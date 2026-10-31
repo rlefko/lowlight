@@ -1,0 +1,427 @@
+{
+  "numpy_version": "2.3.5",
+  "normal_source": "numpy.random._generator:random_standard_normal (unchanged compiled original)",
+  "seeds": [
+    {
+      "seed": 0,
+      "seed_sequence_uint32": [
+        4193807198,
+        3608280800,
+        4257844596,
+        558784985,
+        2830263908,
+        4049111945,
+        4188578965,
+        3313769907
+      ],
+      "initial_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 35293237679382962460625916412976557062,
+          "inc": 301325031617297768984019258933901347115
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "raw64": [
+        "4878219abc2b5007",
+        "e90635315b0fbcea",
+        "d1be9f5d1af903de",
+        "4ae2f9c8d0e2617a",
+        "d5b8fcfe80f01226",
+        "e794ddfd283fe529",
+        "48c3c686d4f36142",
+        "e49e15e6d49ed594"
+      ],
+      "frames_per_channel": 16385,
+      "left_first_bits": [
+        "3dfb4e16",
+        "3f39780c",
+        "bfa7f3b0",
+        "bf023085",
+        "3f196204",
+        "be5cc54e",
+        "be9bcb21",
+        "be7757d1",
+        "bf1ef44f",
+        "bf17a27c",
+        "3f28b8f2",
+        "3f3d8051",
+        "3da14e42",
+        "3fb45566",
+        "bf556fb3",
+        "3f192f01"
+      ],
+      "right_first_bits": [
+        "bed972f6",
+        "3f23d323",
+        "bfa13f02",
+        "3f983911",
+        "3f3b8ded",
+        "3f345699",
+        "bff0a80c",
+        "bfe36d04",
+        "3fe88922",
+        "bfd19228",
+        "3efc0e2b",
+        "3eac5d03",
+        "c044bbb4",
+        "beabafa1",
+        "be3bd5e9",
+        "3da5d213"
+      ],
+      "left_fnv1a64": "abcd51cc5bb979ee",
+      "right_fnv1a64": "3b66e5a1df57a2a3",
+      "right_start_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 232457201433131991876802634913880002,
+          "inc": 301325031617297768984019258933901347115
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "final_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 266336207979955191211353372788224819997,
+          "inc": 301325031617297768984019258933901347115
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      }
+    },
+    {
+      "seed": 1,
+      "seed_sequence_uint32": [
+        1198173411,
+        2350650119,
+        3889802888,
+        2844263258,
+        993293085,
+        867792354,
+        2092448553,
+        2069513848
+      ],
+      "initial_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 65957734448604215338632799397380544346,
+          "inc": 137507187339342062873242244162062939731
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "raw64": [
+        "99d23e1572f477f9",
+        "136b0708f5c28193",
+        "59ae9f5b7d86f995",
+        "5567c9cf674df7bf",
+        "09b8ddffa1d55167",
+        "db833629b19db45a",
+        "08f625e0405d4bee",
+        "00b3456aa351179a"
+      ],
+      "frames_per_channel": 16385,
+      "left_first_bits": [
+        "c01c5d7c",
+        "bf817770",
+        "bfacb1e2",
+        "bfaca685",
+        "bed4be55",
+        "3f8cdd33",
+        "bf3e6f40",
+        "bd19eb31",
+        "be808903",
+        "be55517c",
+        "bec98fb7",
+        "3fb4f944",
+        "3f24607c",
+        "be51a44e",
+        "bfb4a68d",
+        "bf57cb84"
+      ],
+      "right_first_bits": [
+        "3fd309bd",
+        "3fbc21d7",
+        "bf3beca6",
+        "3c9f141a",
+        "bf81e52a",
+        "bf15a760",
+        "bd04d1e5",
+        "3f8512a0",
+        "3d91d127",
+        "3eb41785",
+        "bde8f0d2",
+        "bed41d80",
+        "3f8fbc28",
+        "3f8c3dc0",
+        "bf4bf568",
+        "3e403dfc"
+      ],
+      "left_fnv1a64": "34fcadfe62d7fc9b",
+      "right_fnv1a64": "b62a86f1c30d8ea8",
+      "right_start_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 151487221554830909133285645525835528877,
+          "inc": 137507187339342062873242244162062939731
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "final_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 321609892187087789351176295886236815401,
+          "inc": 137507187339342062873242244162062939731
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      }
+    },
+    {
+      "seed": 1278560406,
+      "seed_sequence_uint32": [
+        3598520870,
+        3263843441,
+        1619735753,
+        239816010,
+        2897696876,
+        1021551768,
+        2952573390,
+        1688118911
+      ],
+      "initial_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 134210145258491295014455338319133834011,
+          "inc": 161871339090582263940087569635891307421
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "raw64": [
+        "98b6b37a04e71871",
+        "25ed8a8b8fbfb1ad",
+        "c2f583efc208f018",
+        "a4c78d2a199a0464",
+        "ea50f477edd10acf",
+        "d566a77248b0765b",
+        "ca2ec3c9a5128bc6",
+        "d8e679d2c0edce04"
+      ],
+      "frames_per_channel": 16385,
+      "left_first_bits": [
+        "3f8dcef2",
+        "beb09b04",
+        "3d8ba542",
+        "3e4e18f1",
+        "3f33ba1d",
+        "3f5c4f66",
+        "bf29b777",
+        "3e95733b",
+        "3f84dac1",
+        "bf5242fe",
+        "3f3803b3",
+        "3eac0953",
+        "3f7182b0",
+        "be10b910",
+        "3f5fe9d1",
+        "3e4ae304"
+      ],
+      "right_first_bits": [
+        "be4dd8fd",
+        "3ee01962",
+        "bd89c459",
+        "3ef66f72",
+        "beca7fde",
+        "3f3bab5f",
+        "3d1ddae3",
+        "bf1e4dde",
+        "3dc1cd19",
+        "3f4e08dd",
+        "be927821",
+        "be9a3a41",
+        "bdd6dc62",
+        "bf1725b0",
+        "bf1efe48",
+        "40009605"
+      ],
+      "left_fnv1a64": "521ea49e5563593d",
+      "right_fnv1a64": "9d1dedcfce2b9c2e",
+      "right_start_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 240039362547473414742202123537645244159,
+          "inc": 161871339090582263940087569635891307421
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "final_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 193819642444692117494570186505820850377,
+          "inc": 161871339090582263940087569635891307421
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      }
+    },
+    {
+      "seed": 2147483647,
+      "seed_sequence_uint32": [
+        2194283346,
+        710631236,
+        382499475,
+        1911926439,
+        3247033313,
+        3703737181,
+        2766022561,
+        4225283706
+      ],
+      "initial_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 120254503311590327371651922854824794609,
+          "inc": 246598215771638461635450375241958444867
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "raw64": [
+        "a7117225a9307a9c",
+        "d3cec553739418b9",
+        "a3ca5e1ad0ddbc09",
+        "44fdd23b23baa8eb",
+        "f947259e1a6208db",
+        "773e7ab0b44b4cf2",
+        "51dec1877515bc8f",
+        "2afe3eef7a10ec77"
+      ],
+      "frames_per_channel": 16385,
+      "left_first_bits": [
+        "3ec3d95a",
+        "3f9b7d69",
+        "3d7729f8",
+        "3eced03e",
+        "3feb03c1",
+        "400059e1",
+        "3f6a41ca",
+        "3f01b0fa",
+        "3e9e5f4d",
+        "3ee00f68",
+        "3f66248f",
+        "3fcf4ec0",
+        "3f1b340e",
+        "bfdc080e",
+        "bfd9743d",
+        "bf819e7e"
+      ],
+      "right_first_bits": [
+        "3ee21030",
+        "3ea51e03",
+        "3f3f625f",
+        "3fd841e0",
+        "bf3a00cf",
+        "3e77c02b",
+        "3f982b2f",
+        "bf09f475",
+        "3e9a61db",
+        "bfaf6f22",
+        "bf838a29",
+        "bf3f3f72",
+        "3f7719a4",
+        "3f9aa552",
+        "be693815",
+        "3de2b8e4"
+      ],
+      "left_fnv1a64": "7149b05e971bc38a",
+      "right_fnv1a64": "c684fffaf475fa10",
+      "right_start_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 319918188824221817024982716944034986776,
+          "inc": 246598215771638461635450375241958444867
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      },
+      "final_state": {
+        "bit_generator": "PCG64",
+        "state": {
+          "state": 280951120102489275752617214834303074512,
+          "inc": 246598215771638461635450375241958444867
+        },
+        "has_uint32": 0,
+        "uinteger": 0
+      }
+    }
+  ],
+  "branches": [
+    {
+      "id": "fast-positive",
+      "words": [
+        "0200000000000080"
+      ],
+      "raw_draws": 1,
+      "normal_double": 0.09595891071509462,
+      "normal_float32_bits": "3dc4861b"
+    },
+    {
+      "id": "fast-negative",
+      "words": [
+        "0200000000000180"
+      ],
+      "raw_draws": 1,
+      "normal_double": -0.09595891071509462,
+      "normal_float32_bits": "bdc4861b"
+    },
+    {
+      "id": "wedge-accept",
+      "words": [
+        "1000000000000001",
+        "0000000000000000"
+      ],
+      "raw_draws": 2,
+      "normal_double": 0.10762094799244001,
+      "normal_float32_bits": "3ddc685f"
+    },
+    {
+      "id": "wedge-reject-then-fast",
+      "words": [
+        "1ffffffffffffe01",
+        "ffffffffffffffff",
+        "0200000000000080"
+      ],
+      "raw_draws": 3,
+      "normal_double": 0.09595891071509462,
+      "normal_float32_bits": "3dc4861b"
+    },
+    {
+      "id": "tail-negative",
+      "words": [
+        "1ffffffffffffe00",
+        "8000000000000000",
+        "8000000000000000"
+      ],
+      "raw_draws": 3,
+      "normal_double": -3.8438404004446767,
+      "normal_float32_bits": "c076017b"
+    },
+    {
+      "id": "tail-retry-positive",
+      "words": [
+        "1ffffffffffdfe00",
+        "0000000000000000",
+        "0000000000000000",
+        "8000000000000000",
+        "8000000000000000"
+      ],
+      "raw_draws": 5,
+      "normal_double": 3.8438404004446767,
+      "normal_float32_bits": "4076017b"
+    }
+  ]
+}
