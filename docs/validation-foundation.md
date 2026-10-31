@@ -18,4 +18,6 @@ The [first unsigned size baseline](foundation-size-baseline.json) is 188,672 byt
 
 Local evidence is retained under `.build/`: `script-test.log`, `script-release.log`, `DerivedData/Logs/Test/*.xcresult`, `launch-light.png`, and `launch-dark.png`. Build outputs and screenshots are not app resources or tracked artifacts.
 
-Hosted Actions, traced CodeQL analysis, repository protection, physical-device behavior, native audio parity, battery/memory measurements, and signed-export sizes remain pending. No remote, PR, owner approval, or release exists yet.
+The public repository and [PR #1](https://github.com/rlefko/lowlight/pull/1) now exist. Administrative access and the active [main-branch protection rules](https://github.com/rlefko/lowlight/rules/26254576) were verified through GitHub's API. CI Gate is bound to the observed GitHub Actions app ID. CodeQL findings protection is enabled; an uploaded analysis still needs its findings checked.
+
+Hosted Actions and traced CodeQL analysis are in progress. Physical-device behavior, native audio parity, battery/memory measurements, and signed-export sizes remain pending. No owner approval or release exists yet.

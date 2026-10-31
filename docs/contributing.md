@@ -14,7 +14,7 @@ CI runs Quality, Build and Tests, Audio Regression, Size Budget, CodeQL, and an 
 
 Manual workflow runs require a `size_base` commit/ref. PRs compare against their actual merge base; main-branch runs compare against the previous head. A missing project counts as a first size baseline only when the base tree is empty.
 
-Require CI Gate on the default branch after the first real hosted run establishes the checks. Verify branch rules actually require PRs, up-to-date successful checks, and restrict bypasses. Enable code-scanning merge protection for relevant findings when supported. Check visibility/plan permissions before treating CodeQL as available. If the PR author is the owner, use mandatory CI and an explicit manual owner review/merge handoff; GitHub cannot accept self-approval. No rules are currently configured because no remote has been selected.
+The active [main-branch ruleset](https://github.com/rlefko/lowlight/rules/26254576) requires PRs, resolved review conversations, an up-to-date CI Gate from GitHub Actions, and CodeQL findings protection. Force pushes and deletion are blocked, with no bypass actors. CodeQL errors/warnings and medium-or-higher security findings block merging. Read the active branch rules back through GitHub's API when changing protection; workflow YAML alone is insufficient. Owner-authored PRs use mandatory CI and an explicit manual review/merge handoff because GitHub cannot accept self-approval.
 
 ## Verified tool references
 
