@@ -85,6 +85,22 @@ bool ll_glue_process(LLGlue *glue, const LLBusFrame *input, LLGlueFrame *output,
 // clears provided output, and preserves state.
 bool ll_glue_drain(LLGlue *glue, LLGlueFrame *output, uint32_t capacity, uint32_t *written);
 
+enum { LL_ROOM_TONAL_LIMIT = 1024 };
+typedef struct LLRoom LLRoom;
+// Separate, single-owner 32 kHz room; finite space/warmth in 0...1. Setup/destruction
+// require an idle renderer. Fixed delays and coefficients are prepared at creation.
+LLRoom *ll_room_create(double space, double warmth);
+void ll_room_destroy(LLRoom *room);
+void ll_room_reset(LLRoom *room); // Clears the tail, preserving controls/coefficients.
+// Allocation/free/lock/I/O-free. Same-frame .92 dry + scaled wet replaces tonal;
+// bass/drums/duck pass unchanged. No added alignment latency. Feed zero tonal input
+// to continue the tail; no finite drain/truncation is imposed.
+// Requires finite fields, |tonal| <= LL_ROOM_TONAL_LIMIT and duck in 0...1.
+// Validates the entire call before advancing. Overlap (including in-place) is
+// rejected; failure clears provided output and preserves state. Caller supplies
+// full count storage; count 0 permits null buffers for a valid room.
+bool ll_room_process(LLRoom *room, const LLGlueFrame *input, LLGlueFrame *output, uint32_t frames);
+
 #ifdef __cplusplus
 }
 #endif
