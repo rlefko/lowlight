@@ -12,9 +12,12 @@ Use Python 3.12.14. Setup downloads only developer dependencies; all versions an
 tools/reference/setup /path/to/python3.12
 .tools/reference/bin/python tools/reference/check.py --integrity
 .tools/reference/bin/python tools/reference/check.py --render
+.tools/reference/bin/python tools/reference/verify-events.py
 ```
 
 CI can install the same environment with `python -m pip install --require-hashes -r tools/reference/requirements.lock`. After setup, rendering and comparison work offline. `--integrity` uses only the standard library. `--render` assembles an ignored temporary prototype tree, references the bundled bank, and preserves whole-song loudness analysis and the original signal path. It writes candidates and reports only beneath `.build/`; it never replaces reviewed fixtures.
+
+The separate [planning-v1 event oracle](../../tests/fixtures/planning-v1/events.json) covers 2,322 events across three native-generator scores, including both directions of a 60↔100 BPM transition. `verify-events.py` uses only the standard library to rederive these through the frozen event algorithm and independent RNG adapter. The [manifest](../../tests/fixtures/planning-v1/manifest.json) fixes provenance hashes and tolerances; initialization refuses to overwrite existing fixtures. These metadata tests complement the unchanged v9 audio oracle and do not establish native sound parity.
 
 ## Fixtures and tolerances
 
