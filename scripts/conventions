@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+# SPDX-License-Identifier: GPL-3.0-only
+require 'json'
+require 'open3'
+
+def git(*args)
+  out, status = Open3.capture2('git', *args)
+  abort 'Could not read Git metadata' unless status.success?
+  out.strip
+end
+
+def subject!(subject)
+  valid = subject.match?(/\A\p{So}[\p{So}\p{Mn}\u200d]* [A-Z][^\n]{2,71}\z/) &&
+          !subject.match?(/[.!?;:]\z/)
+  abort "Use a leading emoji and concise sentence fragment without final punctuation: #{subject}" unless valid
+end
+
+if ARGV.first
+  subject!(File.read(ARGV.first).lines.reject { |line| line.start_with?('#') }.first.to_s.strip)
+elsif ENV['GITHUB_EVENT_NAME'] == 'pull_request'
+  pr = JSON.parse(File.read(ENV.fetch('GITHUB_EVENT_PATH'))).fetch('pull_request')
+  title = pr.fetch('title')
+  subject!(title)
+  slug = title.split(' ', 2).last.downcase.gsub(/[^a-z0-9]+/, '-').sub(/-\z/, '')
+  abort 'Branch must match the PR title' unless pr.fetch('head').fetch('ref') == "rlefko/#{slug}"
+  range = "#{pr.fetch('base').fetch('sha')}..#{pr.fetch('head').fetch('sha')}"
+  git('log', '--no-merges', '--format=%s', range).lines.each { |line| subject!(line.strip) }
+end

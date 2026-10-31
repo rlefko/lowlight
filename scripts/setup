@@ -1,0 +1,20 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+./scripts/toolchain
+source config/toolchain.env
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+archive=".tools/swiftlint-$SWIFTLINT_VERSION.zip"
+destination=".tools/swiftlint-$SWIFTLINT_VERSION"
+mkdir -p .tools
+if [[ ! -f "$archive" ]]; then
+  curl --fail --location --retry 3 "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/portable_swiftlint.zip" -o "$archive.download"
+  mv "$archive.download" "$archive"
+fi
+printf '%s  %s\n' "$SWIFTLINT_SHA256" "$archive" | shasum -a 256 --check
+mkdir -p "$destination"
+unzip -oq "$archive" -d "$destination"
+[[ "$("$destination/swiftlint" version)" == "$SWIFTLINT_VERSION" ]]
+git config --local core.hooksPath .githooks
+echo 'Setup complete. Run scripts/quality and scripts/build test.'
