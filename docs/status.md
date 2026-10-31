@@ -3,7 +3,7 @@
 | Milestone | Status |
 | --- | --- |
 | 1. Establish the Project Foundation | [PR #1](https://github.com/rlefko/lowlight/pull/1) merged; [hosted results](https://github.com/rlefko/lowlight/pull/1/checks) passed |
-| 2. Preserve the Audio Reference | Bank, native decoder checks, and frozen developer fixtures implemented on `rlefko/preserve-the-audio-reference`; pending hosted checks and owner review |
+| 2. Preserve the Audio Reference | [PR #2](https://github.com/rlefko/lowlight/pull/2) open; local [validation](audio-reference.md#milestone-2-validation) passed; [hosted results](https://github.com/rlefko/lowlight/pull/2/checks); owner review pending |
 | 3. Add Deterministic Song Planning | Planned |
 | 4. Match the Accepted Instrument Sound | Planned |
 | 5. Blend Continuous Sessions | Planned |
