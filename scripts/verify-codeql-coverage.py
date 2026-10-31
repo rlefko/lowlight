@@ -20,12 +20,13 @@ def expected_sources(root):
         if name.endswith(".swift") and (
             name.startswith("Lowlight/")
             or (len(parts) >= 4 and parts[0] == "Packages" and parts[2] == "Sources")
+            or (len(parts) == 3 and parts[0] == "Packages" and parts[2] == "Package.swift")
         ):
             if not (root / name).is_file():
                 raise ValueError(f"Missing tracked source: {name}")
             expected.add(name)
     if not any(p.startswith("Lowlight/") for p in expected) or not any(
-        p.startswith("Packages/") for p in expected
+        p.startswith("Packages/") and "/Sources/" in p for p in expected
     ):
         raise ValueError("Expected nonempty app and package source inventories")
     return expected
@@ -83,6 +84,6 @@ if __name__ == "__main__":
     try:
         root = Path(sys.argv[2]) if len(sys.argv) == 3 else Path(__file__).resolve().parents[1]
         count = verify(json.loads(Path(sys.argv[1]).read_text()), root)
-        print(f"Verified CodeQL extraction of all {count} tracked production Swift files")
+        print(f"Verified CodeQL extraction of all {count} app/package Swift sources and manifests")
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         sys.exit(str(error))

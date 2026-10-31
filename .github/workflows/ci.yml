@@ -10,6 +10,10 @@ on:
         description: Base commit or ref for the size comparison
         required: true
         type: string
+      codeql_debug:
+        description: Retain Swift CodeQL tracer logs and database for diagnosis
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -137,7 +141,7 @@ jobs:
       matrix:
         include:
           - language: swift
-            os: macos-26
+            os: macos-26-intel
             build-mode: manual
             bundle: osx64
           - language: python
@@ -154,18 +158,12 @@ jobs:
           persist-credentials: false
       - if: matrix.language == 'swift'
         run: scripts/toolchain
-      - name: Resolve Swift packages before tracing
-        if: matrix.language == 'swift'
-        run: |
-          xcodebuild -project Lowlight.xcodeproj -scheme Lowlight \
-            -configuration Release -destination 'generic/platform=iOS' \
-            -derivedDataPath "$RUNNER_TEMP/codeql-derived" -resolvePackageDependencies
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-${{ matrix.bundle }}.tar.gz
-          debug: ${{ matrix.language == 'swift' }}
+          debug: ${{ matrix.language == 'swift' && inputs.codeql_debug == true }}
           debug-artifact-name: codeql-debug-${{ matrix.language }}
       - name: Trace a fresh app build without compilation caches
         if: matrix.language == 'swift'
@@ -179,7 +177,7 @@ jobs:
         id: analyze
         with:
           category: /language:${{ matrix.language }}
-      - name: Require every production Swift source in the extracted database
+      - name: Require app/package Swift sources and manifests in the extracted database
         if: matrix.language == 'swift'
         env:
           DATABASE: ${{ fromJSON(steps.analyze.outputs.db-locations).swift }}

@@ -11,11 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 VERIFY = runpy.run_path(str(ROOT / "scripts/verify-codeql-coverage.py"))["verify"]
 APP = ROOT / "Lowlight/LowlightApp.swift"
 EVENTS = ROOT / "Packages/LowlightPlanning/Sources/LowlightPlanning/EventPlanner.swift"
+MANIFEST = ROOT / "Packages/LowlightPlanning/Package.swift"
 
 
 class CoverageTests(unittest.TestCase):
     def setUp(self):
-        self.files = sorted((ROOT / "Lowlight").rglob("*.swift")) + sorted(
+        self.files = [MANIFEST] + sorted((ROOT / "Lowlight").rglob("*.swift")) + sorted(
             (ROOT / "Packages/LowlightPlanning/Sources").rglob("*.swift"))
         self.payload = {"#select": {
             "columns": [{"kind": "Entity"}, {"kind": "String"}],
@@ -27,7 +28,7 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(VERIFY(self.payload, ROOT), len(self.files))
 
     def test_missing_current_app_or_package_file_fails(self):
-        for missing in (APP, EVENTS):
+        for missing in (APP, EVENTS, MANIFEST):
             with self.subTest(missing=missing):
                 payload = copy.deepcopy(self.payload)
                 payload["#select"]["tuples"] = [r for r in payload["#select"]["tuples"] if r[0]["label"] != str(missing)]
@@ -35,7 +36,8 @@ class CoverageTests(unittest.TestCase):
                     VERIFY(payload, ROOT)
 
     def test_outside_same_basename_does_not_supply_coverage(self):
-        self.payload["#select"]["tuples"][0][0]["label"] = str(ROOT.parent / APP.name)
+        row = next(row for row in self.payload["#select"]["tuples"] if row[0]["label"] == str(APP))
+        row[0]["label"] = str(ROOT.parent / APP.name)
         with self.assertRaisesRegex(ValueError, APP.name):
             VERIFY(self.payload, ROOT)
 
