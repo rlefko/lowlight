@@ -72,5 +72,57 @@ class CoverageTests(unittest.TestCase):
                 VERIFY(payload, ROOT)
 
 
+class CppCoverageTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory(prefix="lowlight-cpp-coverage-")
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name).resolve()
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        self.source = self.root / "Packages/LowlightAudio/Sources/CLowlightDSP/VoiceMixer.cpp"
+        self.header = self.source.parent / "include/LowlightDSP.h"
+        self.header.parent.mkdir(parents=True)
+        self.source.write_text('#include "LowlightDSP.h"\n')
+        self.header.write_text("void render(void);\n")
+        subprocess.run(["git", "-C", str(self.root), "add", "Packages"], check=True)
+        self.payload = {"#select": {
+            "columns": [{"kind": "Entity"}, {"kind": "String"}],
+            "tuples": [[{"label": str(path)}, "File successfully extracted."] for path in (self.source, self.header)],
+        }}
+
+    def test_complete_native_inventory_includes_public_header(self):
+        self.assertEqual(VERIFY(self.payload, self.root, "cpp"), 2)
+
+    def test_missing_implementation_or_public_header_fails(self):
+        for missing in (self.source, self.header):
+            payload = copy.deepcopy(self.payload)
+            payload["#select"]["tuples"] = [r for r in payload["#select"]["tuples"] if r[0]["label"] != str(missing)]
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, missing.name):
+                VERIFY(payload, self.root, "cpp")
+
+    def test_other_checkout_cannot_supply_kernel_coverage(self):
+        self.payload["#select"]["tuples"][0][0]["label"] = str(self.root.parent / self.source.name)
+        with self.assertRaisesRegex(ValueError, "VoiceMixer.cpp"):
+            VERIFY(self.payload, self.root, "cpp")
+
+    def test_requires_both_tracked_implementation_and_header(self):
+        for path in (self.source, self.header):
+            subprocess.run(["git", "-C", str(self.root), "rm", "--cached", "-q", str(path)], check=True)
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "nonempty C/C\\+\\+"):
+                VERIFY(self.payload, self.root, "cpp")
+            subprocess.run(["git", "-C", str(self.root), "add", str(path)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "rm", "--cached", "-q", str(self.source), str(self.header)], check=True)
+        with self.assertRaisesRegex(ValueError, "nonempty C/C\\+\\+"):
+            VERIFY(self.payload, self.root, "cpp")
+
+    def test_deleted_tracked_source_fails_even_with_extraction_row(self):
+        self.source.unlink()
+        with self.assertRaisesRegex(ValueError, "Missing tracked source: .*VoiceMixer.cpp"):
+            VERIFY(self.payload, self.root, "cpp")
+
+    def test_unsupported_language_cannot_disable_inventory(self):
+        with self.assertRaisesRegex(ValueError, "Unsupported CodeQL language"):
+            VERIFY(self.payload, self.root, "rust")
+
+
 if __name__ == "__main__":
     unittest.main()

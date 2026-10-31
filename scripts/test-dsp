@@ -1,0 +1,17 @@
+#!/bin/bash
+# Copyright (C) 2026 Ryan Lefkowitz
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+./scripts/toolchain
+[[ $# == 0 ]] || { echo 'Usage: scripts/test-dsp' >&2; exit 2; }
+mkdir -p .build/DSPTests
+flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
+  -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
+sources=(Packages/LowlightAudio/Sources/CLowlightDSP/VoiceMixer.cpp tests/dsp/VoiceMixerTests.cpp)
+xcrun clang++ "${flags[@]}" -O2 "${sources[@]}" -o .build/DSPTests/optimized
+.build/DSPTests/optimized
+xcrun clang++ "${flags[@]}" -O1 -g -fno-omit-frame-pointer \
+  -fsanitize=address,undefined -fno-sanitize-recover=all "${sources[@]}" -o .build/DSPTests/sanitized
+.build/DSPTests/sanitized

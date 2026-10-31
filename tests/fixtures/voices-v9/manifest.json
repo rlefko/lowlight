@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source": "Unmodified v9 render_room.voice and place; first eight seconds of tonal note-ons plus tails",
+  "sample_rate": 32000,
+  "frames": 384000,
+  "channels": 2,
+  "warmth": 0.78,
+  "event_count": 21,
+  "tolerances": {
+    "maximum_absolute_error": 1e-05,
+    "rms_error": 1e-06
+  },
+  "prepared_sample_count": 18,
+  "prepared_bytes": 15741256,
+  "peak_active_voices": 7,
+  "tail_silence_start_frame": 375010,
+  "events_file": "events.json",
+  "events_sha256": "53ef377a6cf2f473f9e81a9ae3f6706dc033c5d372836aba2fd8778df1291498",
+  "fixture_file": "voice-prefix.flac",
+  "fixture_sha256": "21960919f83b5022335e841563f2b9bc45f5e5b7639f2d0159d61c7d8444d73b",
+  "full_float32_sha256": "1fba6fc21012d94b06936a2338da9224932716d0fc97eb81daf80924bef52620",
+  "reference": {
+    "peak": 0.11166359484195709,
+    "rms": 0.0173905808364304,
+    "integrated_lufs": -31.959644279798166,
+    "four_times_peak_dbtp": -19.036239624023438
+  },
+  "absolute_endpoint_rounding_difference": {
+    "maximum_absolute_error": 6.1853788793087006e-06,
+    "rms_error": 2.3083185060508884e-07
+  }
+}

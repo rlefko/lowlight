@@ -8,8 +8,15 @@ let package = Package(
     name: "LowlightAudio",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [.library(name: "LowlightAudio", targets: ["LowlightAudio"])],
+    dependencies: [.package(path: "../LowlightPlanning")],
     targets: [
-        .target(name: "LowlightAudio"),
+        .target(
+            name: "CLowlightDSP",
+            publicHeadersPath: "include",
+            cxxSettings: [.unsafeFlags(["-ffp-contract=off"])]
+        ),
+        .target(name: "LowlightAudio", dependencies: ["CLowlightDSP", "LowlightPlanning"]),
         .testTarget(name: "LowlightAudioTests", dependencies: ["LowlightAudio"]),
-    ]
+    ],
+    cxxLanguageStandard: .cxx17
 )
