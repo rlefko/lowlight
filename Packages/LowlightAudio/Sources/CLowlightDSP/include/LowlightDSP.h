@@ -158,6 +158,26 @@ void ll_air_reset(LLAir *air); // Rewinds both prepared streams and filters with
 // Setup/add use round-to-nearest and flush subnormals, restoring full host FP state.
 bool ll_air_add(LLAir *air, float *stereo, uint32_t frames);
 
+#define LL_SONG_MIX_BUS_LIMIT 1e20f
+typedef struct LLSongMix LLSongMix;
+// Single-owner finite song mix after room, before fixed loudness gain/protection.
+// Owns prepared air and HP32 state. Creation uses the same seed/N/origin/texture/
+// fades rules as ll_air_create; setup/destruction belong off the audio callback.
+LLSongMix *ll_song_mix_create(uint32_t take_seed, uint32_t input_frames, uint64_t frame_origin,
+                            double texture, const LLRackFades *fades);
+void ll_song_mix_destroy(LLSongMix *mix);
+void ll_song_mix_reset(LLSongMix *mix); // Rewinds air and clears HP history without another scan.
+// Allocation/free/lock/I/O-free: Float (tonal+bass)*duck+drums, accepted air, then
+// Double-state HP32 with Float output. Writes 2*frames interleaved stereo Floats.
+// Input buses must be finite with magnitude <=LL_SONG_MIX_BUS_LIMIT; duck in 0...1.
+// Count cannot exceed the remaining N logical song frames; no added latency/drain.
+// Caller removes glue's 399 startup frames and retains its delayed/drained song frames.
+// Validates the whole call before advancing; any input/output overlap is rejected.
+// Failure clears provided output and preserves signal state. Caller supplies full
+// count storage. Count 0 permits null buffers for a valid mix, including at EOF.
+// Setup/process enforce RN+FTZ and restore full caller FP state. No concurrent calls.
+bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output, uint32_t frames);
+
 #ifdef __cplusplus
 }
 #endif

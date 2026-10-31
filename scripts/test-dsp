@@ -9,9 +9,14 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 mkdir -p .build/DSPTests
 flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
   -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
-for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir; do
+for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix; do
   sources=("Packages/LowlightAudio/Sources/CLowlightDSP/$suite.cpp" "tests/dsp/${suite}Tests.cpp")
-  if [[ "$suite" == QuietAir ]]; then sources+=(Packages/LowlightAudio/Sources/CLowlightDSP/NumpyRandom.cpp); fi
+  if [[ "$suite" == QuietAir || "$suite" == SongMix ]]; then
+    sources+=(Packages/LowlightAudio/Sources/CLowlightDSP/NumpyRandom.cpp)
+  fi
+  if [[ "$suite" == SongMix ]]; then
+    sources+=(Packages/LowlightAudio/Sources/CLowlightDSP/{QuietAir,HarmonicGlue,StereoRoom}.cpp)
+  fi
   xcrun clang++ "${flags[@]}" -O2 "${sources[@]}" -o ".build/DSPTests/$suite-optimized"
   ".build/DSPTests/$suite-optimized"
   xcrun clang++ "${flags[@]}" -O1 -g -fno-omit-frame-pointer \
