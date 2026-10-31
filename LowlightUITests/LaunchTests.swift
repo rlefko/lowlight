@@ -19,6 +19,13 @@ final class LaunchTests: XCTestCase {
             app.staticTexts[
                 "Original code: GNU General Public License v3.0 only (GPL-3.0-only)."
             ].exists)
+        app.swipeUp()
+        app.buttons["softwareNoticesLink"].tap()
+        XCTAssertTrue(app.navigationBars["Software Notices"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("Melissa"))
+        XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("NumPy Developers"))
+        app.navigationBars["Software Notices"].buttons["About Lowlight"].tap()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5))
         app.buttons["Done"].tap()
         XCTAssertTrue(app.staticTexts["listeningStatus"].waitForExistence(timeout: 5))
 

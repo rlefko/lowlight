@@ -78,6 +78,16 @@ private struct AboutView: View {
                         .navigationTitle("Sound Licenses")
                     }
                 }
+                Section("Software") {
+                    NavigationLink("Software notices") {
+                        ScrollView {
+                            Text(softwareNotices).textSelection(.enabled).padding()
+                                .accessibilityIdentifier("softwareNoticeText")
+                        }
+                        .navigationTitle("Software Notices")
+                    }
+                    .accessibilityIdentifier("softwareNoticesLink")
+                }
             }
             .navigationTitle("About Lowlight")
             .toolbar {
@@ -98,5 +108,15 @@ private struct AboutView: View {
                 else { return "License text is unavailable. Please reinstall the app." }
                 return text
             }.joined(separator: "\n\n")
+    }
+
+    private var softwareNotices: String {
+        guard
+            let url = Bundle.main.url(
+                forResource: "NumPy-Random-Notices", withExtension: "txt",
+                subdirectory: "ThirdParty"),
+            let text = try? String(contentsOf: url, encoding: .utf8)
+        else { return "Software notices are unavailable. Please reinstall the app." }
+        return text
     }
 }

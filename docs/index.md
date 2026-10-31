@@ -14,6 +14,8 @@
 - [Stereo room and evidence](validation-room.md)
 - [Linked peak protection and evidence](validation-peak.md)
 - [Song rack fades and evidence](validation-fades.md)
+- [Quiet synthetic air and evidence](validation-air.md)
+- [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)

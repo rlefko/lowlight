@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
 #include "LowlightDSP.h"
+#include "RackFades.h"
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 #include <limits>
 #include <new>
 #if defined(__SSE2__)
@@ -65,40 +65,13 @@ struct Lowpass {
         return normal(static_cast<float>(result));
     }
 };
-uint64_t frameBits(double value) {
-    uint64_t bits;
-    std::memcpy(&bits, &value, sizeof(bits));
-    return bits == (uint64_t{1} << 63) ? 0 : bits; // Permit negative zero, not negative subnormals.
-}
-struct RackFades {
-    LLRackFades points{};
-    uint64_t rhythmFirst = 0;
-    bool configured = false, arrival = false;
-    static double linear(double position, double start, double end) {
-        if (position <= start) return 0;
-        if (position >= end) return 1;
-        return (position - start) / (end - start);
-    }
-    void apply(float (&stems)[7][2], uint64_t frame) const {
-        if (!configured) return;
-        const double position = static_cast<double>(frame);
-        double tonal = 1 - linear(position, points.tonal_out_start_frame, points.tonal_out_end_frame);
-        if (arrival) tonal *= linear(position, points.tonal_in_start_frame, points.tonal_in_end_frame);
-        const double rhythm = frame < rhythmFirst ? 0 :
-            std::clamp((points.rhythm_out_frame - position) / 2400, 0.0, 1.0);
-        for (uint32_t kind = 0; kind < 7; ++kind)
-            for (uint32_t channel = 0; channel < 2; ++channel)
-                stems[kind][channel] = static_cast<float>(static_cast<double>(stems[kind][channel]) *
-                    (kind < 2 ? tonal : rhythm));
-    }
-};
 struct Buses {
     Lowpass filters[4]{};
     float duck[duckFrames]{};
     float drumGain = 0, hatGain = 0, bassGain = 0;
     uint32_t duckAge = duckFrames;
     bool configured = false;
-    RackFades fades{};
+    lowlight::RackFades fades{};
     void reset() {
         for (auto &filter : filters)
             for (uint32_t ch = 0; ch < 2; ++ch) filter.first[ch] = filter.second[ch] = 0;
@@ -161,18 +134,7 @@ bool ll_mixer_configure_buses(LLMixer *m, double energy) {
 }
 bool ll_mixer_configure_fades(LLMixer *m, const LLRackFades *fades) {
     if (!m || !fades || m->loaded || !m->buses.configured) return false;
-    const double endpoints[] = {fades->tonal_in_start_frame, fades->tonal_in_end_frame,
-        fades->tonal_out_start_frame, fades->tonal_out_end_frame, fades->rhythm_in_frame, fades->rhythm_out_frame};
-    for (const double endpoint : endpoints)
-        if (frameBits(endpoint) > frameBits(static_cast<double>(timelineLimit))) return false;
-    const bool arrival = frameBits(endpoints[0]) != 0 || frameBits(endpoints[1]) != 0;
-    if ((arrival && endpoints[1] - endpoints[0] < 1) || endpoints[3] - endpoints[2] < 1 ||
-        frameBits(endpoints[4]) > frameBits(endpoints[5])) return false;
-    // Gate integer render positions without losing a positive subnormal to caller FTZ/DAZ.
-    const uint64_t first = frameBits(endpoints[4]) && endpoints[4] < 1 ? 1 :
-        static_cast<uint64_t>(std::ceil(endpoints[4]));
-    m->buses.fades = RackFades{*fades, first, true, arrival};
-    return true;
+    return m->buses.fades.configure(*fades);
 }
 int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint32_t channels) {
     if (!m || !pcm || m->loaded || m->samplesUsed == LL_SAMPLE_LIMIT || !frames ||
