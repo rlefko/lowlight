@@ -23,7 +23,7 @@ typedef struct {
     uint8_t midi; // Bass 31...57; percussion 1 for side-stick, otherwise 0; ignored for guitar/piano.
 } LLEvent;
 // Separate rack inputs/outputs preserve the future (processed tonal + bass)*duck + drums order.
-// Guitar/piano remain dry; bass has energy gain but is not ducked. No mastering or rack fades.
+// Guitar/piano remain uncompressed; bass has energy gain but is not ducked. No mastering.
 typedef struct {
     float guitar[2], piano[2], bass[2], drums[2];
     float duck;
@@ -36,6 +36,18 @@ void ll_mixer_destroy(LLMixer *mixer);
 // Optional, off-thread setup before the first score load. Finite energy in 0...1.
 // Designs fixed filters and the duck table; invalid calls leave all state untouched.
 bool ll_mixer_configure_buses(LLMixer *mixer, double energy);
+typedef struct {
+    double tonal_in_start_frame, tonal_in_end_frame;
+    double tonal_out_start_frame, tonal_out_end_frame;
+    double rhythm_in_frame, rhythm_out_frame;
+} LLRackFades;
+// Optional bus-only fades, copied before the first successful score load; buses must
+// already be configured. All endpoints are finite in 0...2^52 canonical 32 kHz frames.
+// Arrival 0/0 disables fade-in; departure and each enabled arrival span must be >=1 frame.
+// Overlapping tonal spans multiply. rhythm_in <= rhythm_out: gate before arrival,
+// then fade the last 2400 frames before departure. Fractional endpoints are supported.
+// Invalid calls preserve state. Reset/reload preserves fades; raw dry output is unchanged.
+bool ll_mixer_configure_fades(LLMixer *mixer, const LLRackFades *fades);
 // Returns a sample index, or -1. Only permitted before loading the first score.
 int32_t ll_mixer_add_sample(LLMixer *mixer, const float *pcm, uint32_t frames, uint32_t channels);
 // Sorted absolute 32 kHz starts; gate/release lengths come from canonical endpoints.
@@ -51,7 +63,8 @@ bool ll_mixer_render(LLMixer *mixer, float *output, uint32_t frames);
 // Requires configured buses; shares the same voices/clock as dry rendering.
 // Both output views advance configured bus state, so switching views loses no filter history.
 // Writes every frame (zeros on failure); caller supplies disjoint storage for frames structs.
-// Filters continue after active_voices reaches zero. Reset/reload clears filters and ducking.
+// Fades scale summed stems before filters; duck remains score-driven. Filters continue
+// after voices/fades end. Reset/reload clears filters and ducking, preserving configuration.
 bool ll_mixer_render_buses(LLMixer *mixer, LLBusFrame *output, uint32_t frames);
 uint32_t ll_mixer_active_voices(const LLMixer *mixer);
 uint32_t ll_mixer_steals(const LLMixer *mixer);

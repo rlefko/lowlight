@@ -104,6 +104,7 @@ jobs:
       - run: python tools/reference/verify-glue.py --integrity
       - run: python tools/reference/verify-room.py --integrity
       - run: python tools/reference/verify-peak.py --integrity
+      - run: python tools/reference/verify-fades.py --integrity
       - run: python tools/reference/verify-grammar.py
       - run: python tools/reference/verify-events.py
       - run: python -m pip install --require-hashes -r tools/reference/requirements.lock
@@ -121,6 +122,7 @@ jobs:
           python tools/reference/verify-glue.py --compare .build/tonal-native/glue --evidence .build/tonal-evidence/glue
           python tools/reference/verify-room.py --compare .build/tonal-native/room --evidence .build/tonal-evidence/room
           python tools/reference/verify-peak.py --compare .build/tonal-native/peak --evidence .build/tonal-evidence/peak
+          python tools/reference/verify-fades.py --compare .build/tonal-native/fades --evidence .build/tonal-evidence/fades
           cp .build/tonal-native/profile.json .build/tonal-evidence/profile.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

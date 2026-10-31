@@ -13,6 +13,7 @@
 - [Linked harmonic compression and evidence](validation-glue.md)
 - [Stereo room and evidence](validation-room.md)
 - [Linked peak protection and evidence](validation-peak.md)
+- [Song rack fades and evidence](validation-fades.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)

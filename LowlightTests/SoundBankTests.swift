@@ -75,6 +75,36 @@ struct SoundBankTests {
         }
         #expect(busFinite && mixer.activeVoices == 0 && mixer.position == 99_200)
         try verifyHarmonicGlue(buses)
+        try verifyRackFades(bank: bank, score: score)
+    }
+
+    private func verifyRackFades(bank: URL, score: Data) throws {
+        let mixer = try TonalVoiceMixer(
+            preparer: TonalSamplePreparer(bankURL: bank),
+            events: NoteEvent.importReference(score), warmth: 0.78, busEnergy: 0.35,
+            rackFades: SongRackFades(
+                tonalOutStartFrame: 1000, tonalOutEndFrame: 4000, rhythmOutFrame: 3200))
+        var buses = [RhythmBusFrame](repeating: RhythmBusFrame(), count: 6400)
+        #expect(buses.withUnsafeMutableBufferPointer { mixer.renderBuses(into: $0) })
+        #expect(buses[4000...].allSatisfy { $0.guitar == (0, 0) && $0.piano == (0, 0) })
+        #expect(buses[3200...].allSatisfy { $0.bass == (0, 0) })
+        #expect(buses[3200..<3300].contains { $0.drums != (0, 0) })
+        #expect(buses[3200].duck < 1 && mixer.activeVoices > 0)
+        let glue = try HarmonicGlue(inputFrames: UInt64(buses.count), focus: .guitar)
+        var compressed = [HarmonicGlueFrame](repeating: HarmonicGlueFrame(), count: buses.count)
+        #expect(
+            compressed.withUnsafeMutableBufferPointer { destination in
+                buses.withUnsafeBufferPointer { glue.process($0, into: destination) }
+            })
+        let room = try StereoRoom(space: 0.70, warmth: 0.78)
+        var reverberated = compressed
+        #expect(
+            reverberated.withUnsafeMutableBufferPointer { destination in
+                compressed.withUnsafeBufferPointer { room.process($0, into: destination) }
+            })
+        let tail = (4000 + HarmonicGlue.latencyFrames)..<buses.count
+        #expect(compressed[tail].allSatisfy { $0.tonal == (0, 0) })
+        #expect(reverberated[tail].contains { $0.tonal != (0, 0) })
     }
 
     private func verifyHarmonicGlue(_ buses: [RhythmBusFrame]) throws {
