@@ -201,7 +201,7 @@ jobs:
           languages: ${{ matrix.languages }}
           # The explicit native build traces both languages; build-mode is single-language-only.
           build-mode: ${{ matrix.build-mode }}
-          tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-${{ matrix.bundle }}.tar.gz
+          tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-${{ matrix.bundle }}.tar.zst
           debug: ${{ matrix.language == 'native' && inputs.codeql_debug == true }}
           debug-artifact-name: codeql-debug-${{ matrix.language }}
       - name: Trace a fresh app build without compilation caches

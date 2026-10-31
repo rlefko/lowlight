@@ -42,3 +42,31 @@ Coverage was checked beyond successful upload: both debug runs extracted the sam
 Every Swift run now decodes the existing `swift/diagnostics/successfully-extracted-files` result and requires all tracked app sources, package `Sources`, and package manifests. Missing, malformed, or incomplete inventories fail the job; generated extras are allowed. The small `swift-extraction-inventory` artifact is retained for seven days. This guard accompanies the real clean build, disabled compilation caches/integrated driver, normal security queries, upload, and merge protection.
 
 Xcode task timings remain in the job log. Detailed CodeQL logs and a database bundle are opt-in through `codeql_debug` on manual workflow runs; they are off by default to avoid routine bundling/upload overhead. The [pinned action supports these debug artifacts](https://github.com/github/codeql-action/blob/v4.39.1/init/action.yml). Seven local coverage-gate tests exercise missing app/package/manifest files, invalid output, empty inventories, and outside-file substitutions. The actual Intel inventory also passes the expanded 13-file check.
+
+### CodeQL archive setup
+
+The native job now analyzes Swift and C++ together, with guards for all 17 tracked Swift sources/manifests and both C++ implementation/header files. Python runs separately. Setup uses the official CodeQL 2.27.3 `.tar.zst` bundles instead of `.tar.gz`; the action revision, CLI version, query packs, runner, fresh build, compilation-cache settings, categories, and required checks remain unchanged. The `/language:swift` category is the existing native comparison key.
+
+The [pinned action's extraction code](https://github.com/github/codeql-action/blob/9b3254085494b55a0f7c4c2b3d2d52cc712ce370/src/tar.ts) supports Zstandard with BSD tar ≥3.4.3 or GNU tar ≥1.31 and zstd available on PATH. The macOS runner provides BSD tar 3.5.3 and zstd 1.5.7; the Linux logs show GNU tar 1.35 and working Zstandard extraction. No new installer or permanent benchmark job is added.
+
+The [official 2.27.3 release](https://github.com/github/codeql-action/releases/tag/codeql-bundle-v2.27.3) publishes both formats:
+
+| Platform | Gzip bytes | Zstandard bytes | Download reduction |
+| --- | ---: | ---: | ---: |
+| macOS | 1,259,640,549 | 878,370,760 | 30.3% |
+| Linux | 695,275,440 | 558,869,612 | 19.6% |
+
+Both downloaded macOS archives matched the official SHA-256 digests. Their decompressed tar streams are byte-for-byte identical: 3,189,903,360 bytes, SHA-256 `2d232ac295ead4b405d1514c7854dfca84847acf86a4ad779e586aea79220180`. Extraction also produced identical paths, modes, and hashes for 37,317 regular files and 5,657 directories across all four trials.
+
+An exploratory local Apple M4 Max/arm64 comparison used BSD tar 3.5.3, libarchive 3.7.4, zstd 1.5.7, and the pinned action's commands: `tar xz -C DEST -f ARCHIVE` for gzip; `tar -x --zstd --ignore-zeros -f ARCHIVE -C DEST` for Zstandard. Four fresh-directory trials in gzip/Zstandard/Zstandard/gzip order took 7.332/6.579/6.031/7.054 seconds (means 7.193/6.305 seconds). Digest verification warmed the archives in filesystem caches; no cache purge or fsync was used. Timing includes process startup/extraction but excludes download and hashing. A brief disk-usage probe overlapped the reversed pair. Two trials per format on an uncontrolled local host establish neither hosted latency nor a fixed percentage gain.
+
+Retained macOS gzip baselines both missed the tool cache:
+
+| Run | Download | Extraction | Entire initialization | Fresh trace | Native job |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| [PR 8](https://github.com/rlefko/lowlight/actions/runs/41215691162/job/124579740372) | 12.9 s | 46.7 s | 91.1 s | 10m49s | 16m43s |
+| [PR 9](https://github.com/rlefko/lowlight/actions/runs/41219372696/job/124590614333) | 16.3 s | 57.5 s | 110.2 s | 9m42s | 15m12s |
+
+Download, extraction, and initialization use adjacent timestamped log markers; trace/job times use GitHub's whole-second step metadata. Both runs used the same macOS image and tool versions, but separate workers with unrecorded CPU contention. The archive alone was identical while download/extraction already varied from 59.6 to 73.8 seconds. Compare those setup phases separately from compilation and analysis; whole-job variation is not an archive-speed measurement. Python's existing tool-cache hit provides no cold-extraction timing comparison.
+
+Validation retains the 13 coverage-guard tests, the actual extracted-source inventories, CLI version and query counts, final analysis diagnostics/findings, aggregate CodeQL check, and CI Gate. Tool-archive caching is separate from compilation caching: the actual app and both packages still receive a fresh traced build. The slower trace remains a separate profiling concern.
