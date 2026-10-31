@@ -52,6 +52,7 @@ jobs:
           path: .build/DerivedData
           key: build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('config/toolchain.env', '**/Package.resolved', '**/project.pbxproj') }}-${{ github.sha }}
           restore-keys: build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('config/toolchain.env', '**/Package.resolved', '**/project.pbxproj') }}-
+      - run: scripts/test-planner
       - run: scripts/build test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -76,6 +77,7 @@ jobs:
           cache-dependency-path: tools/reference/requirements.lock
       - run: scripts/verify-bank
       - run: python tools/reference/check.py --integrity
+      - run: python tools/reference/verify-grammar.py
       - run: python -m pip install --require-hashes -r tools/reference/requirements.lock
       - run: python tools/reference/check.py --render
   size:

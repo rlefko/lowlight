@@ -1,0 +1,7 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+./scripts/toolchain
+xcrun swift test --package-path Packages/LowlightPlanning --scratch-path .build/PlanningTests
