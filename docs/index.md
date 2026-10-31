@@ -8,6 +8,7 @@
 - [Native tonal preparation and evidence](validation-tonal.md)
 - [Bounded tonal voices and evidence](validation-voices.md)
 - [Native bass and evidence](validation-bass.md)
+- [Native percussion and evidence](validation-percussion.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)

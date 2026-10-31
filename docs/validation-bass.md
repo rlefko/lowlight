@@ -1,6 +1,6 @@
 # Native accepted bass
 
-The offline mixer now includes the accepted `render_room.bass_voice` alongside guitar and piano. This continues milestone 4. Percussion, room/compression, bus gains, mastering, continuous transport, and app playback remain separate work.
+The offline mixer now includes the accepted `render_room.bass_voice` alongside guitar and piano. This continues milestone 4. [Percussion is now implemented](validation-percussion.md); room/compression, bus gains, mastering, continuous transport, and app playback remain separate work.
 
 ## Sound and ownership
 
@@ -10,7 +10,7 @@ Preparation runs off the callback: the existing denominator-2048 polyphase resam
 
 The C++ voice adds the original three sine harmonics (amplitudes 0.21/0.105/0.037), exponential attack/decay, velocity exponent 1.10, gain 0.24, and cosine-squared release. Phase derives from integer sample age at 32 kHz, so buffer partitions cannot change it. Synthesis continues after the recorded touch ends, up to the supported 16-second hold plus five-second release. Double arithmetic is retained until the final Float32 conversion; centered output preserves the reference's Float32 center factor. Pan and connected articulation do not alter bass. The later bass bus gain of 1.20, ducking, and mastering are intentionally outside this voice comparison.
 
-The same 32 MiB PCM arena, 64 sample descriptors, and 2,048 copied events remain in force. Scores containing bass reserve one existing voice slot: at most 63 guitar/piano readers plus one bass reader, including fades. Guitar/piano-only scores retain all 64 slots. Tonal stealing cannot displace bass. Unexpected overlapping bass requests reuse its slot with the existing 160-frame fade and one pending replacement; additional requests while that replacement is pending are dropped and counted. This preserves strict monophony and bounds any accepted replacement's onset delay to five milliseconds. The accepted planner already produces nonoverlapping bass, so its normal score needs no such correction.
+The same 32 MiB PCM arena, 64 sample descriptors, and 2,048 copied events remain in force. Scores containing bass reserve one existing voice slot: at most 63 guitar/piano/percussion readers plus one bass reader, including fades. Scores without bass retain all 64 slots. Tonal stealing cannot displace bass. Unexpected overlapping bass requests reuse its slot with the existing 160-frame fade and one pending replacement; additional requests while that replacement is pending are dropped and counted. This preserves strict monophony and bounds any accepted replacement's onset delay to five milliseconds. The accepted planner already produces nonoverlapping bass, so its normal score needs no such correction.
 
 Sample/event copies remain immutable during rendering. Setup, loading, reset, and destruction require an idle single-owner renderer. Bass loads validate MIDI 31–57, mono touch PCM, duration bounds, and `start + hold + release ≤ 2^52` before changing state. The render path retains the allocation/free audit, floating-point control restoration, and bounded subblocks described in [tonal voice validation](validation-voices.md).
 

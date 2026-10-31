@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "sample_rate": 32000,
+  "tolerances": {
+    "maximum_absolute_error": 1e-05,
+    "rms_error": 1e-06
+  },
+  "source": "Unmodified v9 instruments.pitched/add_note; dry one-shot percussion before bus processing",
+  "bodies": [
+    {
+      "instrument": "kick",
+      "note": 0,
+      "round_robin": 0,
+      "velocity": 0.5,
+      "file": "body-kick-0.f32",
+      "frames": 16640,
+      "channels": 1,
+      "full_float32_sha256": "e0c75324e180dbd54af472306d580f3d5a454257955c0d41121e62d61b7506ee",
+      "peak": 0.7734792828559875,
+      "rms": 0.1932390400653265
+    },
+    {
+      "instrument": "kick",
+      "note": 0,
+      "round_robin": 1,
+      "velocity": 0.5,
+      "file": "body-kick-1.f32",
+      "frames": 16640,
+      "channels": 1,
+      "full_float32_sha256": "9addc7237b381f4f9d9a2610e884613b16306dc58e23db0bc1fc0eb4d526b751",
+      "peak": 0.7706502676010132,
+      "rms": 0.19330816361241912
+    },
+    {
+      "instrument": "snare",
+      "note": 1,
+      "round_robin": 0,
+      "velocity": 0.5,
+      "file": "body-snare-0.f32",
+      "frames": 22400,
+      "channels": 1,
+      "full_float32_sha256": "a9645a6afd462b7f84a5c64c68ce3d10e588784eec1161a2e993c1da54c67bd5",
+      "peak": 0.5410714745521545,
+      "rms": 0.02178608643434843
+    },
+    {
+      "instrument": "snare",
+      "note": 1,
+      "round_robin": 1,
+      "velocity": 0.5,
+      "file": "body-snare-1.f32",
+      "frames": 22400,
+      "channels": 1,
+      "full_float32_sha256": "b69da5999df52ef2df1b0f5e86b164618e95066535c1883db416b45dbd6e0030",
+      "peak": 0.5017557740211487,
+      "rms": 0.019744436877898886
+    },
+    {
+      "instrument": "hat",
+      "note": 0,
+      "round_robin": 0,
+      "velocity": 0.71999999,
+      "file": "body-hat-1-0.f32",
+      "frames": 4160,
+      "channels": 1,
+      "full_float32_sha256": "5b61e5ab6b2f2db225adb42a11bdc86e4b18ad5c26cf6edfe48e44f0408f7037",
+      "peak": 0.5592466592788696,
+      "rms": 0.07035671250013059
+    },
+    {
+      "instrument": "hat",
+      "note": 0,
+      "round_robin": 1,
+      "velocity": 0.71999999,
+      "file": "body-hat-1-1.f32",
+      "frames": 4160,
+      "channels": 1,
+      "full_float32_sha256": "02fa84644e6654d41ce9e4c14283f23d44c54a66ef12a9c021a5bdb34b08e927",
+      "peak": 0.5482951402664185,
+      "rms": 0.056296297979155356
+    },
+    {
+      "instrument": "hat",
+      "note": 0,
+      "round_robin": 0,
+      "velocity": 0.72,
+      "file": "body-hat-2-0.f32",
+      "frames": 4160,
+      "channels": 1,
+      "full_float32_sha256": "12be78e5651a9fb85cff11308d2fd91c993b59860e8aec7ed2baa86d95588e4b",
+      "peak": 0.5120763182640076,
+      "rms": 0.056445690409822315
+    },
+    {
+      "instrument": "hat",
+      "note": 0,
+      "round_robin": 1,
+      "velocity": 0.72,
+      "file": "body-hat-2-1.f32",
+      "frames": 4160,
+      "channels": 1,
+      "full_float32_sha256": "b9f28fe286d3ec9c85ead4ebcfa2ee7c241839d5e224f830ca24deca6bf649bf",
+      "peak": 0.5253838896751404,
+      "rms": 0.05677905209797652
+    },
+    {
+      "instrument": "shaker",
+      "note": 0,
+      "round_robin": 0,
+      "velocity": 0.5,
+      "file": "body-shaker-0.f32",
+      "frames": 5419,
+      "channels": 1,
+      "full_float32_sha256": "3e7e51d530a5eece0ccc51a6adc835ba0234d4616c530d1e24d4a672b8411f59",
+      "peak": 0.779998779296875,
+      "rms": 0.1370928255474529
+    },
+    {
+      "instrument": "shaker",
+      "note": 0,
+      "round_robin": 1,
+      "velocity": 0.5,
+      "file": "body-shaker-1.f32",
+      "frames": 3700,
+      "channels": 1,
+      "full_float32_sha256": "eacdbf4b04ec4fe1af63154ba72fb1352009202fac225563d3a3022b8f8a499d",
+      "peak": 0.779998779296875,
+      "rms": 0.11345593234801936
+    },
+    {
+      "instrument": "shaker",
+      "note": 0,
+      "round_robin": 2,
+      "velocity": 0.5,
+      "file": "body-shaker-2.f32",
+      "frames": 3805,
+      "channels": 1,
+      "full_float32_sha256": "ab6bc6473d827f5b0dcb19416c2f5e5836424fcfa99896138333be3bcaecc78e",
+      "peak": 0.779998779296875,
+      "rms": 0.08164407488257877
+    },
+    {
+      "instrument": "shaker",
+      "note": 0,
+      "round_robin": 3,
+      "velocity": 0.5,
+      "file": "body-shaker-3.f32",
+      "frames": 2644,
+      "channels": 1,
+      "full_float32_sha256": "d31f6a75906f199ba7c41ed7c5aaa41142bd6bab5eef3c0fc801f45e781b2da0",
+      "peak": 0.779998779296875,
+      "rms": 0.10502055229695903
+    }
+  ],
+  "clips": [
+    {
+      "id": "percussion-prefix",
+      "frames": 416000,
+      "channels": 2,
+      "event_count": 36,
+      "tail_silence_start_frame": 392079,
+      "prepared_bytes": 345600,
+      "events_file": "events.json",
+      "events_sha256": "ce9f12712317d12bb654f414b66277c657288748ffa0f3dd2f548170083d86c9",
+      "fixture_file": "percussion-prefix.flac",
+      "fixture_sha256": "2d11f91a8ab62cd54465cc6159302bb869a46462323a371f0ba11ab0063e7347",
+      "full_float32_sha256": "c8fbeb855cb840a7353b4300205fe4bfc0ed77ee569017fa4f9a24b7c1470c32",
+      "reference": {
+        "peak": 0.12194100022315979,
+        "rms": 0.01285877440612182,
+        "integrated_lufs": -34.775286476668235,
+        "four_times_peak_dbtp": -18.227365493774414
+      }
+    },
+    {
+      "id": "percussion-controls",
+      "frames": 160000,
+      "channels": 2,
+      "event_count": 20,
+      "tail_silence_start_frame": 126400,
+      "prepared_bytes": 441152,
+      "events_file": "controls.json",
+      "events_sha256": "8f75d1c956055e397147f2e5a2332b5177b7a4cff9607843af00ce15c9be911c",
+      "fixture_file": "percussion-controls.flac",
+      "fixture_sha256": "34401a591d39b3a0a3244b20f53997ea8debc304b3f8562c7541537ef17f20b0",
+      "full_float32_sha256": "083752e2b15b2be5895342a63df5afd146755aabd3a26b84f4a03e6e4ddd093b",
+      "reference": {
+        "peak": 0.33909812569618225,
+        "rms": 0.029085570485721864,
+        "integrated_lufs": -30.466646560241283,
+        "four_times_peak_dbtp": -9.387964248657227
+      }
+    }
+  ]
+}

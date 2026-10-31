@@ -55,7 +55,7 @@ struct LLMixer {
     Voice voices[LL_VOICE_LIMIT]{};
     uint32_t samplesUsed = 0, floatsUsed = 0, eventCount = 0, next = 0;
     uint32_t steals = 0, dropped = 0;
-    uint32_t tonalVoices = LL_VOICE_LIMIT;
+    uint32_t sharedVoices = LL_VOICE_LIMIT;
     uint64_t position = 0;
     bool loaded = false;
 };
@@ -97,11 +97,15 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
             (i && e.start_frame < events[i - 1].start_frame) || !e.hold_frames ||
             e.hold_frames > 16 * 32000 || e.release_frames > 5 * 32000 ||
             !std::isfinite(e.velocity) || e.velocity < 0 || e.velocity > 1 ||
-            !std::isfinite(e.pan) || e.pan < -1 || e.pan > 1 || e.instrument > 2 ||
+            !std::isfinite(e.pan) || e.pan < -1 || e.pan > 1 || e.instrument > 6 ||
             e.connected > 1 || e.priority > 2) return false;
         const bool bass = e.instrument == 2;
+        const bool percussion = e.instrument >= 3;
         if (bass && (e.midi < 31 || e.midi > 57 || m->samples[e.sample_index].channels != 1)) return false;
-        const uint32_t lifetime = bass ? e.hold_frames + e.release_frames : sampleFramesLimit;
+        if (percussion && (e.priority != 0 || e.midi != (e.instrument == 4 ? 1 : 0) ||
+                           m->samples[e.sample_index].channels != 1)) return false;
+        const uint32_t lifetime = bass ? e.hold_frames + e.release_frames :
+            (percussion ? m->samples[e.sample_index].frames : sampleFramesLimit);
         if (e.start_frame > timelineLimit - lifetime) return false;
         hasBass |= bass;
     }
@@ -110,18 +114,24 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
         auto &out = m->events[i];
         out.note = e;
         const bool bass = e.instrument == 2;
+        const bool percussion = e.instrument >= 3;
         out.frames = bass ? e.hold_frames + e.release_frames :
-            std::min(m->samples[e.sample_index].frames, e.hold_frames + e.release_frames);
-        out.attack = bass ? 0 : std::min(out.frames, e.instrument ? 288u : 448u);
+            (percussion ? m->samples[e.sample_index].frames :
+             std::min(m->samples[e.sample_index].frames, e.hold_frames + e.release_frames));
+        out.attack = bass || percussion ? 0 : std::min(out.frames, e.instrument ? 288u : 448u);
         out.frequency = bass ? 440 * std::pow(2.0, (static_cast<int>(e.midi) - 69) / 12.0) : 0;
         out.bassGain = bass ? .24 * std::pow(static_cast<double>(e.velocity), 1.10) : 0;
-        out.gain = normal(static_cast<float>(bass ? out.bassGain : (e.instrument ? .23 : .235) *
+        if (percussion) {
+            constexpr double gains[] = {.31, .25, .27, .11};
+            out.gain = normal(static_cast<float>(gains[e.instrument - 3] *
+                std::pow(static_cast<double>(e.velocity), 1.25)));
+        } else out.gain = normal(static_cast<float>(bass ? out.bassGain : (e.instrument ? .23 : .235) *
             std::pow(static_cast<double>(e.velocity), 1.05) * (e.connected ? .9 : 1)));
         const double pan = bass ? 0 : e.pan;
         out.left = static_cast<float>(std::cos((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
         out.right = static_cast<float>(std::sin((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
     }
-    m->tonalVoices = hasBass ? LL_VOICE_LIMIT - 1 : LL_VOICE_LIMIT;
+    m->sharedVoices = hasBass ? LL_VOICE_LIMIT - 1 : LL_VOICE_LIMIT;
     m->eventCount = count; m->loaded = true;
     ll_mixer_reset(m);
     return true;
@@ -144,20 +154,20 @@ void schedule(LLMixer &m, uint32_t index) {
         else start(bass, index);
         return;
     }
-    for (uint32_t i = 0; i < m.tonalVoices; ++i) {
+    for (uint32_t i = 0; i < m.sharedVoices; ++i) {
         auto &voice = m.voices[i];
         if (!voice.active) { start(voice, index); return; }
     }
     int best = -1;
-    for (uint32_t i = 0; i < m.tonalVoices; ++i) {
+    for (uint32_t i = 0; i < m.sharedVoices; ++i) {
         const auto &voice = m.voices[i];
         const auto &event = m.events[voice.event];
         if (voice.pending >= 0 || event.note.priority > incoming.note.priority) continue;
         if (best < 0) { best = i; continue; }
         const auto &prior = m.voices[best];
         const auto &priorEvent = m.events[prior.event];
-        const bool releasing = voice.age >= event.note.hold_frames;
-        const bool priorReleasing = prior.age >= priorEvent.note.hold_frames;
+        const bool releasing = event.note.instrument >= 3 || voice.age >= event.note.hold_frames;
+        const bool priorReleasing = priorEvent.note.instrument >= 3 || prior.age >= priorEvent.note.hold_frames;
         if (event.note.priority < priorEvent.note.priority ||
             (event.note.priority == priorEvent.note.priority &&
              ((releasing && !priorReleasing) || (releasing == priorReleasing && voice.age > prior.age)))) best = i;
@@ -205,6 +215,12 @@ void renderFrame(LLMixer &m, float *output) {
         if (e.note.instrument == 2) {
             const float sample = bassSample(v, e, s, m.pcm);
             left += sample * e.left; right += sample * e.right;
+        } else if (e.note.instrument >= 3) {
+            const float sample = m.pcm[s.offset + v.age];
+            const float fade = v.fade ? static_cast<float>(v.fade - 1) / (LL_STEAL_FRAMES - 1) : 1;
+            // Preserve the accepted per-hit rounding: pan first, then velocity gain.
+            left += ((sample * e.left) * e.gain) * fade;
+            right += ((sample * e.right) * e.gain) * fade;
         } else {
             const uint32_t offset = s.offset + v.age * s.channels;
             const float gain = envelope(v, e);

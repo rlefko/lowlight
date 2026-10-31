@@ -1,6 +1,6 @@
 # Native tonal voices
 
-`LowlightAudio` now renders prepared guitar/piano notes through the production C++ kernel, behind the offline harness. It preserves the accepted attack/release curves, velocity law, connected-note gain, piano stereo width, and pan law. This is another focused part of milestone 4; [bass is now implemented](validation-bass.md); drums, room/compression, mastering, continuous transport, and app playback remain pending.
+`LowlightAudio` now renders prepared guitar/piano notes through the production C++ kernel, behind the offline harness. It preserves the accepted attack/release curves, velocity law, connected-note gain, piano stereo width, and pan law. This is another focused part of milestone 4; [bass](validation-bass.md) and [percussion](validation-percussion.md) are now implemented; bus processing, room/compression, mastering, continuous transport, and app playback remain pending.
 
 ## Ownership and limits
 
