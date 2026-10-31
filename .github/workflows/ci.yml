@@ -165,17 +165,20 @@ jobs:
   codeql:
     name: CodeQL (${{ matrix.language }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30 # Leave headroom for both native extractors and a cold clean build.
     strategy:
       fail-fast: false
       matrix:
         include:
           - language: native
             languages: swift,cpp
+            # This opaque comparison key preserves the existing Swift baseline.
+            category: swift
             os: macos-26-intel
             bundle: osx64
           - language: python
             languages: python
+            category: python
             os: ubuntu-24.04
             build-mode: none
             bundle: linux64
@@ -208,7 +211,7 @@ jobs:
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         id: analyze
         with:
-          category: /language:${{ matrix.language }}
+          category: /language:${{ matrix.category }}
       - name: Require app/package Swift sources and manifests in the extracted database
         if: matrix.language == 'native'
         env:
