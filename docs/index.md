@@ -10,6 +10,7 @@
 - [Native bass and evidence](validation-bass.md)
 - [Native percussion and evidence](validation-percussion.md)
 - [Rhythm bus and evidence](validation-rhythm.md)
+- [Linked harmonic compression and evidence](validation-glue.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)

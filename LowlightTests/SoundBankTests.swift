@@ -74,6 +74,42 @@ struct SoundBankTests {
             .allSatisfy(\.isFinite)
         }
         #expect(busFinite && mixer.activeVoices == 0 && mixer.position == 99_200)
+        try verifyHarmonicGlue(buses)
+    }
+
+    private func verifyHarmonicGlue(_ buses: [RhythmBusFrame]) throws {
+        let glue = try HarmonicGlue(inputFrames: UInt64(buses.count), focus: .piano)
+        let latency = HarmonicGlue.latencyFrames
+        var output = [HarmonicGlueFrame](
+            repeating: HarmonicGlueFrame(), count: buses.count + latency)
+        output.withUnsafeMutableBufferPointer { destination in
+            #expect(
+                buses.withUnsafeBufferPointer {
+                    glue.process(
+                        $0, into: UnsafeMutableBufferPointer(rebasing: destination[..<buses.count]))
+                })
+            #expect(
+                glue.drain(
+                    into: UnsafeMutableBufferPointer(rebasing: destination[buses.count...]))
+                    == latency)
+        }
+        let neutral = output.prefix(latency).allSatisfy {
+            $0.tonal.0 == 0 && $0.tonal.1 == 0 && $0.bass.0 == 0 && $0.bass.1 == 0
+                && $0.drums.0 == 0 && $0.drums.1 == 0 && $0.duck == 1
+        }
+        #expect(neutral)
+        let finite = output.allSatisfy {
+            [$0.tonal.0, $0.tonal.1, $0.bass.0, $0.bass.1, $0.drums.0, $0.drums.1, $0.duck]
+                .allSatisfy(\.isFinite)
+        }
+        #expect(finite && output.contains { abs($0.tonal.0) > 0.001 })
+        let aligned = buses.indices.allSatisfy { index in
+            let actual = output[index + latency]
+            let input = buses[index]
+            return actual.bass == input.bass && actual.drums == input.drums
+                && actual.duck == input.duck
+        }
+        #expect(aligned)
     }
 
     @Test func bundledTonalSamplesPrepareOnIOS() throws {

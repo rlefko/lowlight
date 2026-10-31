@@ -9,9 +9,11 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 mkdir -p .build/DSPTests
 flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
   -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
-sources=(Packages/LowlightAudio/Sources/CLowlightDSP/VoiceMixer.cpp tests/dsp/VoiceMixerTests.cpp)
-xcrun clang++ "${flags[@]}" -O2 "${sources[@]}" -o .build/DSPTests/optimized
-.build/DSPTests/optimized
-xcrun clang++ "${flags[@]}" -O1 -g -fno-omit-frame-pointer \
-  -fsanitize=address,undefined -fno-sanitize-recover=all "${sources[@]}" -o .build/DSPTests/sanitized
-.build/DSPTests/sanitized
+for suite in VoiceMixer HarmonicGlue; do
+  sources=("Packages/LowlightAudio/Sources/CLowlightDSP/$suite.cpp" "tests/dsp/${suite}Tests.cpp")
+  xcrun clang++ "${flags[@]}" -O2 "${sources[@]}" -o ".build/DSPTests/$suite-optimized"
+  ".build/DSPTests/$suite-optimized"
+  xcrun clang++ "${flags[@]}" -O1 -g -fno-omit-frame-pointer \
+    -fsanitize=address,undefined -fno-sanitize-recover=all "${sources[@]}" -o ".build/DSPTests/$suite-sanitized"
+  ".build/DSPTests/$suite-sanitized"
+done

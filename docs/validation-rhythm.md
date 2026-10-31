@@ -1,6 +1,6 @@
 # Accepted rhythm bus
 
-The optional bus output continues milestone 4 with the energy-dependent rhythm balance in the unchanged v9 `session_render.render_song`. It exposes dry guitar/piano, processed bass/drums, and a mono kick-duck factor. It does not produce a finished mix: harmonic focus gains, glue compression, room, rack fades, air, mastering, and playback remain separate work.
+The optional bus output continues milestone 4 with the energy-dependent rhythm balance in the unchanged v9 `session_render.render_song`. It exposes dry guitar/piano, processed bass/drums, and a mono kick-duck factor. It does not produce a finished mix: the separate [harmonic glue stage](validation-glue.md) adds focus gains and compression; room, rack fades, air, mastering, and playback remain later work.
 
 ## Signal path and state
 
