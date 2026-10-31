@@ -171,16 +171,23 @@ jobs:
   codeql:
     name: CodeQL (${{ matrix.language }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30 # Leave headroom for both native extractors and a cold clean build.
+    timeout-minutes: 30 # Leave headroom for extraction and a cold clean build.
     strategy:
       fail-fast: false
       matrix:
         include:
-          - language: native
-            languages: swift,cpp
-            # This opaque comparison key preserves the existing Swift baseline.
+          - language: swift
+            languages: swift
+            # Keep the existing comparison key when separating native analyses.
             category: swift
             os: macos-26-intel
+            build-mode: manual
+            bundle: osx64
+          - language: cpp
+            languages: cpp
+            category: cpp
+            os: macos-26-intel
+            build-mode: manual
             bundle: osx64
           - language: python
             languages: python
@@ -196,18 +203,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - if: matrix.language == 'native'
+      - if: matrix.build-mode == 'manual'
         run: scripts/toolchain
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: ${{ matrix.languages }}
-          # The explicit native build traces both languages; build-mode is single-language-only.
           build-mode: ${{ matrix.build-mode }}
           tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-${{ matrix.bundle }}.tar.zst
-          debug: ${{ matrix.language == 'native' && inputs.codeql_debug == true }}
+          debug: ${{ matrix.build-mode == 'manual' && inputs.codeql_debug == true }}
           debug-artifact-name: codeql-debug-${{ matrix.language }}
       - name: Trace a fresh app build without compilation caches
-        if: matrix.language == 'native'
+        if: matrix.build-mode == 'manual'
         run: |
           xcodebuild -project Lowlight.xcodeproj -scheme Lowlight \
             -configuration Release -destination 'generic/platform=iOS' \
@@ -219,7 +225,7 @@ jobs:
         with:
           category: /language:${{ matrix.category }}
       - name: Require app/package Swift sources and manifests in the extracted database
-        if: matrix.language == 'native'
+        if: matrix.language == 'swift'
         env:
           DATABASE: ${{ fromJSON(steps.analyze.outputs.db-locations).swift }}
         run: |
@@ -228,7 +234,7 @@ jobs:
             > "$RUNNER_TEMP/codeql-swift-extracted-files.json"
           scripts/verify-codeql-coverage.py "$RUNNER_TEMP/codeql-swift-extracted-files.json"
       - name: Require the C++ kernel and public headers in the extracted database
-        if: matrix.language == 'native'
+        if: matrix.language == 'cpp'
         env:
           DATABASE: ${{ fromJSON(steps.analyze.outputs.db-locations).cpp }}
         run: |
@@ -237,14 +243,14 @@ jobs:
             > "$RUNNER_TEMP/codeql-cpp-extracted-files.json"
           scripts/verify-codeql-coverage.py "$RUNNER_TEMP/codeql-cpp-extracted-files.json" --language cpp
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && matrix.language == 'native'
+        if: always() && matrix.language == 'swift'
         with:
           name: swift-extraction-inventory
           path: ${{ runner.temp }}/codeql-swift-extracted-files.json
           retention-days: 7
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && matrix.language == 'native'
+        if: always() && matrix.language == 'cpp'
         with:
           name: cpp-extraction-inventory
           path: ${{ runner.temp }}/codeql-cpp-extracted-files.json
