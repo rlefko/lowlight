@@ -14,7 +14,7 @@ Zero-state Butterworth high-pass and fourth-order low-pass filters preserve thei
 
 This API accepts local file URLs only. Each manifest read is capped at 262,145 bytes and rejects data above 262,144 bytes. Asset paths must stay in the bank; decoding verifies the declared frame count, one/two channels, 32 kHz rate, and finite samples. Each input has at most 192,000 frames. Nearest-root transposition in MIDI 50–69 is at most two semitones, giving at most 215,513 output frames. The maximum owned output is about 1.65 MiB. Temporary decoder/filter buffers are released per call; there is no retained sample cache or whole-bank decode.
 
-Preparation allocates, reads files, and processes an entire note. It must run on a preparation worker, never in an audio callback. A bounded cache/worker handoff and the 64-voice mixer are subsequent work. This API does not establish a real-time rendering guarantee.
+Preparation allocates, reads files, and processes an entire note. It must run on a preparation worker, never in an audio callback. The [64-voice mixer](validation-voices.md) owns bounded immutable copies for an offline score; a concurrent cache/worker handoff remains subsequent work. This API does not establish a real-time rendering guarantee.
 
 ## Reproduction and evidence
 
