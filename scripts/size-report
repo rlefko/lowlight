@@ -17,7 +17,7 @@ def measure(path)
   { 'binary_bytes' => File.size(binary), 'resources_bytes' => total - File.size(binary), 'total_bytes' => total }
 end
 
-abort 'Usage: scripts/size-report APP [MERGE_BASE_APP]' unless (1..2).cover?(ARGV.length)
+abort 'Usage: scripts/size-report APP [MERGE_BASE_APP [BASE_COMMIT]]' unless (1..3).cover?(ARGV.length)
 budget = JSON.parse(File.read(File.expand_path('../size-budget.json', __dir__)))
 current = measure(ARGV[0])
 report = { 'kind' => 'unsigned arm64 device-build proxy', 'configuration' => 'Release (build command)', 'current' => current, 'budget' => budget }
@@ -26,6 +26,11 @@ if ARGV[1]
   baseline = measure(ARGV[1])
   delta = current['total_bytes'] - baseline['total_bytes']
   allowance = [budget.fetch('allowed_growth_bytes'), baseline['total_bytes'] * budget.fetch('allowed_growth_fraction')].max
+  reviewed = budget['reviewed_growth']
+  if reviewed && ARGV[2] == reviewed.fetch('base_commit')
+    allowance = [allowance, reviewed.fetch('maximum_bytes')].max
+    report['reviewed_growth'] = reviewed
+  end
   report.merge!('baseline' => baseline, 'growth_bytes' => delta, 'allowed_growth_bytes' => allowance)
   failed ||= delta > allowance
 else

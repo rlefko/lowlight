@@ -10,6 +10,9 @@
   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES">
     <Testables>
       <TestableReference skipped="NO" parallelizable="NO">
+        <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="100000000000000000000003" BuildableName="LowlightTests.xctest" BlueprintName="LowlightTests" ReferencedContainer="container:Lowlight.xcodeproj"/>
+      </TestableReference>
+      <TestableReference skipped="NO" parallelizable="NO">
         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="100000000000000000000002" BuildableName="LowlightUITests.xctest" BlueprintName="LowlightUITests" ReferencedContainer="container:Lowlight.xcodeproj"/>
       </TestableReference>
     </Testables>
