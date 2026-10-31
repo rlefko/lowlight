@@ -93,4 +93,16 @@ The observed native execution span fell by 132 seconds, while summed native runn
 
 The first pair reached native completion 14m57s versus 12m46s after workflow creation. However, the complete workflows reached CI Gate in 15m02s versus 16m46s: the candidate’s Build and Tests job waited for a runner, then its downstream audio check finished after CodeQL. This trial does not establish faster overall PR feedback.
 
-In the completed first pair, the actual native SARIF rule-ID union is identical: 27 Swift plus 58 C++ rules match the combined 85; Python’s 43 rule IDs also match. Normalized source inventories are identical, with all 17 tracked Swift sources/manifests and both C++ files verified. Swift’s inventory additionally includes the public C header. Those analyses have zero errors, warnings, and findings, and Swift reports zero unresolved AST nodes. The [PR’s aggregate CodeQL status](https://github.com/rlefko/lowlight/pull/12/checks) and new-category acceptance require separate verification on its merge commit. A second matched pair uses [combined run 41228406940](https://github.com/rlefko/lowlight/actions/runs/41228406940) and [split run 41228473706](https://github.com/rlefko/lowlight/actions/runs/41228473706) with the same respective source commits and inputs; the PR description records the completed repeat alongside its final checks.
+The repeat used [combined run 41228406940](https://github.com/rlefko/lowlight/actions/runs/41228406940) and [split run 41228473706](https://github.com/rlefko/lowlight/actions/runs/41228473706), with the same respective source commits and inputs.
+
+| Second matched pair | Init | Fresh trace | Analysis | Native job |
+| --- | ---: | ---: | ---: | ---: |
+| Combined Swift/C++ | 2m37s | 15m22s | 6m21s | 25m00s |
+| Split Swift | 1m23s | 7m36s | 1m23s | 10m58s |
+| Split C++ | 1m32s | 2m09s | 1m17s | 5m28s |
+
+The split’s actual native wall span was 12m48s because Swift started 1m50s after C++; its longest job alone would understate elapsed time. Native runner use totaled 16m26s. The repeated split reached native completion 13m40s after workflow creation and CI Gate in 13m44s. The combined control took 25m04s to native completion and 25m24s to CI Gate. All native jobs again missed the tool cache; both repeat arms restored the same 32,594,764-byte C++ TRAP cache from `25fd93c`. This is a different cache from the first pair, so compare within each pair.
+
+Both pairs favored native completion, while whole-workflow results were mixed. Retain the split to remove serial C++ work, with the extra build and runner requirement explicit. The large repeat difference is not an isolated matrix effect: Swift compile task time varied from 510.804 seconds in the control to 256.173 seconds in the candidate, and initialization/analysis also varied. These observations establish neither a fixed percentage gain nor routine ten-minute feedback.
+
+Across both pairs, the actual native SARIF rule-ID union is identical: 27 Swift plus 58 C++ rules match the combined 85; Python’s 43 rule IDs also match. Normalized source inventories are identical, with all 17 tracked Swift sources/manifests and both C++ files verified. Swift’s inventory additionally includes the public C header. Those analyses have zero errors, warnings, and findings, and Swift reports zero unresolved AST nodes. The [PR’s aggregate CodeQL status](https://github.com/rlefko/lowlight/pull/12/checks) and new-category acceptance require separate verification on its merge commit.
