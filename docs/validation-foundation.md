@@ -16,8 +16,8 @@ Validated with Xcode 26.6 (17F113), Swift 6.3.3, and the iOS 26.5 SDK/runtime:
 
 The [first unsigned size baseline](foundation-size-baseline.json) is 188,672 bytes for the app binary, 1,191 bytes for other bundle files, and 189,863 bytes total. There is no prior app for a growth comparison. Different build paths can affect binary size; CI will establish its own first baseline. These measurements exclude signing and app thinning.
 
-Local evidence is retained under `.build/`: `script-test.log`, `script-release.log`, `DerivedData/Logs/Test/*.xcresult`, `launch-light.png`, and `launch-dark.png`. Build outputs and screenshots are not app resources or tracked artifacts.
+The [light](images/foundation-light.png) and [dark](images/foundation-dark.png) simulator screenshots are retained as documentation only, outside app resources. Local build evidence remains under `.build/`: `script-test.log`, `script-release.log`, and `DerivedData/Logs/Test/*.xcresult`. Hosted runs retain their own test and size artifacts.
 
 The public repository and [PR #1](https://github.com/rlefko/lowlight/pull/1) now exist. Administrative access and the active [main-branch protection rules](https://github.com/rlefko/lowlight/rules/26254576) were verified through GitHub's API. CI Gate is bound to the observed GitHub Actions app ID. CodeQL findings protection is enabled; an uploaded analysis still needs its findings checked.
 
-Hosted Actions and traced CodeQL analysis are in progress. Physical-device behavior, native audio parity, battery/memory measurements, and signed-export sizes remain pending. No owner approval or release exists yet.
+Current hosted Actions and traced CodeQL results are recorded in the [PR checks](https://github.com/rlefko/lowlight/pull/1/checks). Physical-device behavior, native audio parity, battery/memory measurements, and signed-export sizes remain pending. No owner approval or release exists yet.
