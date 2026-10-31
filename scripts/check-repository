@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 # SPDX-License-Identifier: GPL-3.0-only
+require 'json'
+require 'digest'
 root = File.expand_path('..', __dir__)
 Dir.chdir(root)
 abort 'Complete GPL v3 text is missing' unless File.read('LICENSE').include?('END OF TERMS AND CONDITIONS')
@@ -12,8 +14,12 @@ Dir.glob('{README.md,docs/**/*.md}').each do |path|
   end
 end
 abort 'Sound-bank validation failed' unless system('./scripts/verify-bank')
+notices = JSON.parse(File.read('config/third-party-notices.json')).fetch('files')
+notices.each do |path, expected|
+  abort "Changed or missing third-party notice: #{path}" unless File.file?(path) && Digest::SHA256.file(path).hexdigest == expected
+end
 unexpected = Dir.glob('Lowlight/**/*').select do |path|
-  File.file?(path) && !path.end_with?('.swift') && !path.start_with?('Lowlight/SoundBank/')
+  File.file?(path) && !path.end_with?('.swift') && !path.start_with?('Lowlight/SoundBank/') && !notices.key?(path)
 end
 abort "Unexpected app resources: #{unexpected.join(', ')}" unless unexpected.empty?
 puts 'Documentation links, license, credits, and app resource inventory passed'

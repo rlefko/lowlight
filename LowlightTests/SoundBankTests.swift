@@ -19,6 +19,33 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
+    @Test func preparedAirReplaysOnIOSWithLocalPhaseAndAbsoluteFades() throws {
+        let origin: UInt64 = 3_200_017
+        let fades = SongRackFades(
+            tonalOutStartFrame: Double(origin + 3200), tonalOutEndFrame: Double(origin + 12800),
+            rhythmOutFrame: Double(origin + 8000))
+        let air = try QuietAir(
+            takeSeed: 1_278_560_406, inputFrames: 19_200, frameOrigin: origin, texture: 0.09,
+            rackFades: fades)
+        let carrier = [Float](repeating: 0.01, count: 38_400)
+        var output = carrier
+        #expect(output.withUnsafeMutableBufferPointer { air.add(to: $0) })
+        let finite = output.allSatisfy(\.isFinite)
+        #expect(finite && output.prefix(25_600).contains { $0 != 0.01 })
+        #expect(output.suffix(12_800).allSatisfy { $0 == 0.01 })
+        air.reset()
+        var replay = carrier
+        #expect(replay.withUnsafeMutableBufferPointer { air.add(to: $0) })
+        #expect(output == replay)
+        let local = try QuietAir(
+            takeSeed: 1_278_560_406, inputFrames: 19_200, frameOrigin: 0, texture: 0.09,
+            rackFades: SongRackFades(
+                tonalOutStartFrame: 3200, tonalOutEndFrame: 12800, rhythmOutFrame: 8000))
+        var localOutput = carrier
+        #expect(localOutput.withUnsafeMutableBufferPointer { local.add(to: $0) })
+        #expect(localOutput == output)
+    }
+
     @Test func bundledInstrumentVoicesRenderOnIOS() throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
         let score = Data(

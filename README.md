@@ -30,6 +30,6 @@ See [project documentation](docs/index.md) for architecture, sound provenance, t
 
 ## License and credits
 
-Copyright © 2026 Ryan Lefkowitz. Original project code is licensed under [GPL-3.0-only](LICENSE). The 77 bundled recorded notes are CC0-1.0; see the [sound-bank provenance and notices](docs/sound-bank.md). Python reference tools and test audio are developer resources outside the app. There are no third-party app runtime dependencies.
+Copyright © 2026 Ryan Lefkowitz. Original project code is licensed under [GPL-3.0-only](LICENSE). The 77 bundled recorded notes are CC0-1.0; see the [sound-bank provenance and notices](docs/sound-bank.md). A small adapted NumPy/PCG noise-generation subset retains its [third-party code notices](docs/third-party-code.md), also available offline in About. Python reference tools and test audio are developer resources outside the app; no NumPy runtime or external runtime package is bundled.
 
 Development accelerated with Codex

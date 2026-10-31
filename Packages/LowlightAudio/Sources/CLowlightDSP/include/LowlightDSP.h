@@ -138,6 +138,26 @@ bool ll_peak_process(LLPeakProtector *protector, const float *input, float *outp
 // nonaliased written=0, and preserves state. Caller supplies full capacity storage.
 bool ll_peak_drain(LLPeakProtector *protector, float *output, uint32_t capacity, uint32_t *written);
 
+enum { LL_AIR_MAX_FRAMES = 5792000 };
+typedef struct LLAir LLAir;
+// Finite 32 kHz song air. Setup runs off-thread: it scans both complete channels
+// for normalization and certifies <=64 raw RNG words per normal before replay.
+// take_seed <2^31; input_frames in 1...LL_AIR_MAX_FRAMES; texture finite in 0...1.
+// frame_origin+input_frames <=2^52. Required fades use the mixer descriptor rules;
+// origin affects only the tonal fade clock, while modulation/RNG remain song-local.
+// Returns null on invalid input, allocation failure, or an over-budget RNG stream.
+LLAir *ll_air_create(uint32_t take_seed, uint32_t input_frames, uint64_t frame_origin,
+                     double texture, const LLRackFades *fades);
+void ll_air_destroy(LLAir *air);
+void ll_air_reset(LLAir *air); // Rewinds both prepared streams and filters without a new scan.
+// Allocation/free/lock/I/O-free. Adds air in place to 2*frames finite stereo Floats,
+// retaining the Double modulation/addition before one Float store. Frames must not
+// exceed the prepared remainder; count 0 permits a null buffer for a valid air.
+// Failure clears provided output and preserves signal state. No extra latency or
+// drain; callers must account for upstream DSP latency before supplying song frames.
+// Setup/add use round-to-nearest and flush subnormals, restoring full host FP state.
+bool ll_air_add(LLAir *air, float *stereo, uint32_t frames);
+
 #ifdef __cplusplus
 }
 #endif

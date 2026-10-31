@@ -1,0 +1,66 @@
+{
+  "version": "2.3.5",
+  "commit": "c3d60fc8393f3ca3306b8ce8b6453d43737e3d90",
+  "files": [
+    {
+      "path": "numpy/random/bit_generator.pyx",
+      "bytes": 24292,
+      "sha256": "1e2e991c929c318b9a424e2e8ec3f92525c6478c382b59731f3a83e1a7306821"
+    },
+    {
+      "path": "numpy/random/_pcg64.pyx",
+      "bytes": 18827,
+      "sha256": "b57fb542a52d65a485546f56b2bca15c458c44dd34159dcf8417aa20acdb9afc"
+    },
+    {
+      "path": "numpy/random/src/pcg64/pcg64.h",
+      "bytes": 13310,
+      "sha256": "2ce9cc9366a9993cfd786a1ee63eaad35d8761c0ff9744ee5508192156f33d4a"
+    },
+    {
+      "path": "numpy/random/src/pcg64/pcg64.c",
+      "bytes": 7616,
+      "sha256": "21fdfe42947deb332cc2aaa870b44136d4ae23db4bdd19ef5ba7ffed4dc92718"
+    },
+    {
+      "path": "numpy/random/src/pcg64/LICENSE.md",
+      "bytes": 1154,
+      "sha256": "e7d4f4fb20358f314210a892ae17351e04993813646f697ec387385ca2a36918"
+    },
+    {
+      "path": "numpy/random/src/distributions/distributions.c",
+      "bytes": 48773,
+      "sha256": "d1bd4b618bc9e4a447efa0651c3dfeb2d186b10bd8057eab0397b40529451f47"
+    },
+    {
+      "path": "numpy/random/src/distributions/ziggurat_constants.h",
+      "bytes": 74983,
+      "sha256": "9f8b114014b8475777e88c6af80e126654fe0753693d6eabba365d3c4051236c"
+    },
+    {
+      "path": "numpy/random/src/distributions/LICENSE.md",
+      "bytes": 2745,
+      "sha256": "469778be8f33d54e1bcaab28c281cc472916d2d273f835e55bc487d30503face"
+    },
+    {
+      "path": "numpy/random/LICENSE.md",
+      "bytes": 3511,
+      "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f"
+    },
+    {
+      "path": "LICENSE.txt",
+      "bytes": 1543,
+      "sha256": "1be1df33863f97a7bc1c4d67980bd6c69c9a6fef0a5ee76e6ad6cb91e56e8491"
+    },
+    {
+      "path": "numpy/_core/src/umath/loops_utils.h.src",
+      "bytes": 8001,
+      "sha256": "ed85d5b99f0b457cb7a316bf8c4acb884034bbbb81a89c5cedb62be80bf7c4f8"
+    },
+    {
+      "path": "numpy/_core/_methods.py",
+      "bytes": 9430,
+      "sha256": "e2a8945044b9c273857979cf6afb6aa8c561674f5965e48a970a9d3f0d9e2922"
+    }
+  ]
+}
