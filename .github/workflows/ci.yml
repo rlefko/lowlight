@@ -137,7 +137,7 @@ jobs:
       matrix:
         include:
           - language: swift
-            os: macos-26
+            os: macos-26-intel
             build-mode: manual
             bundle: osx64
           - language: python
@@ -154,12 +154,6 @@ jobs:
           persist-credentials: false
       - if: matrix.language == 'swift'
         run: scripts/toolchain
-      - name: Resolve Swift packages before tracing
-        if: matrix.language == 'swift'
-        run: |
-          xcodebuild -project Lowlight.xcodeproj -scheme Lowlight \
-            -configuration Release -destination 'generic/platform=iOS' \
-            -derivedDataPath "$RUNNER_TEMP/codeql-derived" -resolvePackageDependencies
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: ${{ matrix.language }}
