@@ -8,5 +8,7 @@
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)
+- [Native planning decision](adrs/002-native-planning.md)
+- [Native planning validation](validation-planning.md)
 - [Milestones and release gates](status.md)
 - [Foundation validation](validation-foundation.md)

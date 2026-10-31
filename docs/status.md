@@ -3,8 +3,8 @@
 | Milestone | Status |
 | --- | --- |
 | 1. Establish the Project Foundation | [PR #1](https://github.com/rlefko/lowlight/pull/1) merged; [hosted results](https://github.com/rlefko/lowlight/pull/1/checks) passed |
-| 2. Preserve the Audio Reference | [PR #2](https://github.com/rlefko/lowlight/pull/2) open; local [validation](audio-reference.md#milestone-2-validation) passed; [hosted results](https://github.com/rlefko/lowlight/pull/2/checks); owner review pending |
-| 3. Add Deterministic Song Planning | Planned |
+| 2. Preserve the Audio Reference | [PR #2](https://github.com/rlefko/lowlight/pull/2) merged; [hosted results](https://github.com/rlefko/lowlight/pull/2/checks) passed |
+| 3. Add Deterministic Song Planning | [PR #3](https://github.com/rlefko/lowlight/pull/3) open; local [validation](validation-planning.md) passed; [hosted results](https://github.com/rlefko/lowlight/pull/3/checks); note events and shared timing follow in a separate PR |
 | 4. Match the Accepted Instrument Sound | Planned |
 | 5. Blend Continuous Sessions | Planned |
 | 6. Support Background Playback | Planned |
@@ -16,6 +16,6 @@ The [public repository](https://github.com/rlefko/lowlight) is configured and ad
 
 Required hosted CI and CodeQL results are tracked in each PR's checks. Keep new PRs unmerged until checks pass and the owner reviews the concrete result. Owner review is a manual handoff because the PR author cannot self-approve. No release exists yet.
 
-Next: review the audio reference, then add deterministic native planning in a separate PR. No native sound engine exists yet. CodeQL latency is recorded as a [performance follow-up](performance.md#ci-performance-follow-up).
+Current scope: native song planning without playback. Keep note-event expansion and the shared bridge clock together in the next focused PR before starting instrument DSP. No native sound engine exists yet. CodeQL latency remains a [performance follow-up](performance.md#ci-performance-follow-up).
 
 Release gates include sound parity, two-hour native soaks, on-device offline first launch and locked-screen playback, interruption/route behavior, energy/memory/size evidence, accessibility and appearance checks, dependency/asset license inventory, distribution-route review, and an explicit release decision. No App Store submission is authorized by completing a milestone.

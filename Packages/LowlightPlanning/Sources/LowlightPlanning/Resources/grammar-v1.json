@@ -1,0 +1,794 @@
+{
+  "schemaVersion": 1,
+  "chords": {
+    "Fmaj9": {
+      "root": 41,
+      "voices": [
+        53,
+        57,
+        60,
+        64
+      ],
+      "tops": [
+        57,
+        60,
+        64,
+        67
+      ]
+    },
+    "Em7": {
+      "root": 40,
+      "voices": [
+        52,
+        55,
+        59,
+        62
+      ],
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ]
+    },
+    "Am9": {
+      "root": 33,
+      "voices": [
+        52,
+        55,
+        59,
+        60
+      ],
+      "tops": [
+        55,
+        59,
+        60,
+        64
+      ]
+    },
+    "Dm9": {
+      "root": 38,
+      "voices": [
+        53,
+        57,
+        60,
+        64
+      ],
+      "tops": [
+        57,
+        60,
+        64,
+        65
+      ]
+    },
+    "G6": {
+      "root": 31,
+      "voices": [
+        50,
+        55,
+        59,
+        64
+      ],
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ]
+    },
+    "Cmaj9": {
+      "root": 36,
+      "voices": [
+        52,
+        55,
+        59,
+        62
+      ],
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ]
+    },
+    "C69": {
+      "root": 36,
+      "voices": [
+        52,
+        55,
+        57,
+        62
+      ],
+      "tops": [
+        55,
+        57,
+        62,
+        64
+      ]
+    },
+    "Bbmaj9": {
+      "root": 34,
+      "voices": [
+        53,
+        57,
+        60,
+        62
+      ],
+      "tops": [
+        57,
+        60,
+        62,
+        65
+      ]
+    },
+    "Gm9": {
+      "root": 31,
+      "voices": [
+        53,
+        57,
+        58,
+        62
+      ],
+      "tops": [
+        53,
+        57,
+        62,
+        65
+      ]
+    },
+    "C6": {
+      "root": 36,
+      "voices": [
+        52,
+        55,
+        57,
+        60
+      ],
+      "tops": [
+        55,
+        57,
+        60,
+        64
+      ]
+    },
+    "Cm9": {
+      "root": 36,
+      "voices": [
+        51,
+        55,
+        58,
+        62
+      ],
+      "tops": [
+        55,
+        58,
+        62,
+        63
+      ]
+    },
+    "Fm9": {
+      "root": 41,
+      "voices": [
+        53,
+        56,
+        60,
+        63
+      ],
+      "tops": [
+        56,
+        60,
+        63,
+        67
+      ]
+    },
+    "Abmaj9": {
+      "root": 32,
+      "voices": [
+        55,
+        58,
+        60,
+        63
+      ],
+      "tops": [
+        55,
+        58,
+        60,
+        63
+      ]
+    },
+    "Ebmaj9": {
+      "root": 39,
+      "voices": [
+        55,
+        58,
+        62,
+        65
+      ],
+      "tops": [
+        55,
+        58,
+        62,
+        65
+      ]
+    },
+    "Bb6": {
+      "root": 34,
+      "voices": [
+        53,
+        55,
+        58,
+        62
+      ],
+      "tops": [
+        55,
+        58,
+        62,
+        65
+      ]
+    },
+    "Gm7": {
+      "root": 31,
+      "voices": [
+        50,
+        53,
+        55,
+        58
+      ],
+      "tops": [
+        53,
+        55,
+        58,
+        62
+      ]
+    }
+  },
+  "families": [
+    {
+      "id": "M00",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Fmaj9",
+        "Em7",
+        "Am9",
+        "Am9",
+        "Dm9",
+        "G6",
+        "Cmaj9",
+        "Cmaj9"
+      ]
+    },
+    {
+      "id": "M01",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Cmaj9",
+        "Cmaj9",
+        "Am9",
+        "Am9",
+        "Fmaj9",
+        "Fmaj9",
+        "Dm9",
+        "G6"
+      ]
+    },
+    {
+      "id": "M02",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Fmaj9",
+        "Fmaj9",
+        "Em7",
+        "Am9",
+        "Dm9",
+        "Dm9",
+        "G6",
+        "Cmaj9"
+      ]
+    },
+    {
+      "id": "M03",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Am9",
+        "Am9",
+        "Fmaj9",
+        "G6",
+        "Cmaj9",
+        "Em7",
+        "Dm9",
+        "G6"
+      ]
+    },
+    {
+      "id": "M04",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Cmaj9",
+        "Em7",
+        "Fmaj9",
+        "Fmaj9",
+        "Dm9",
+        "G6",
+        "Cmaj9",
+        "G6"
+      ]
+    },
+    {
+      "id": "M05",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Dm9",
+        "G6",
+        "Cmaj9",
+        "Cmaj9",
+        "Fmaj9",
+        "Em7",
+        "Am9",
+        "Am9"
+      ]
+    },
+    {
+      "id": "M06",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Fmaj9",
+        "G6",
+        "Em7",
+        "Am9",
+        "Dm9",
+        "G6",
+        "Cmaj9",
+        "Cmaj9"
+      ]
+    },
+    {
+      "id": "M07",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Cmaj9",
+        "Am9",
+        "Dm9",
+        "G6",
+        "Em7",
+        "Am9",
+        "Fmaj9",
+        "G6"
+      ]
+    },
+    {
+      "id": "M08",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Am9",
+        "Fmaj9",
+        "Cmaj9",
+        "Cmaj9",
+        "Dm9",
+        "Fmaj9",
+        "G6",
+        "G6"
+      ]
+    },
+    {
+      "id": "M09",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Cmaj9",
+        "G6",
+        "Am9",
+        "Em7",
+        "Fmaj9",
+        "Cmaj9",
+        "Dm9",
+        "G6"
+      ]
+    },
+    {
+      "id": "M10",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Em7",
+        "Am9",
+        "Dm9",
+        "G6",
+        "Fmaj9",
+        "Fmaj9",
+        "Cmaj9",
+        "Cmaj9"
+      ]
+    },
+    {
+      "id": "M11",
+      "mode": "major",
+      "baseKey": 0,
+      "progression": [
+        "Fmaj9",
+        "Dm9",
+        "Em7",
+        "Am9",
+        "G6",
+        "G6",
+        "Cmaj9",
+        "Cmaj9"
+      ]
+    },
+    {
+      "id": "m00",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Cm9",
+        "Cm9",
+        "Abmaj9",
+        "Abmaj9",
+        "Ebmaj9",
+        "Bb6",
+        "Fm9",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m01",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Fm9",
+        "Bb6",
+        "Ebmaj9",
+        "Ebmaj9",
+        "Abmaj9",
+        "Abmaj9",
+        "Gm7",
+        "Cm9"
+      ]
+    },
+    {
+      "id": "m02",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Cm9",
+        "Abmaj9",
+        "Fm9",
+        "Fm9",
+        "Bb6",
+        "Bb6",
+        "Ebmaj9",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m03",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Abmaj9",
+        "Abmaj9",
+        "Cm9",
+        "Cm9",
+        "Fm9",
+        "Bb6",
+        "Gm7",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m04",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Cm9",
+        "Gm7",
+        "Abmaj9",
+        "Bb6",
+        "Ebmaj9",
+        "Ebmaj9",
+        "Fm9",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m05",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Ebmaj9",
+        "Bb6",
+        "Cm9",
+        "Cm9",
+        "Abmaj9",
+        "Fm9",
+        "Gm7",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m06",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Fm9",
+        "Fm9",
+        "Abmaj9",
+        "Abmaj9",
+        "Cm9",
+        "Bb6",
+        "Gm7",
+        "Cm9"
+      ]
+    },
+    {
+      "id": "m07",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Cm9",
+        "Cm9",
+        "Fm9",
+        "Bb6",
+        "Ebmaj9",
+        "Abmaj9",
+        "Fm9",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m08",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Abmaj9",
+        "Bb6",
+        "Gm7",
+        "Cm9",
+        "Fm9",
+        "Bb6",
+        "Ebmaj9",
+        "Ebmaj9"
+      ]
+    },
+    {
+      "id": "m09",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Cm9",
+        "Ebmaj9",
+        "Abmaj9",
+        "Abmaj9",
+        "Fm9",
+        "Fm9",
+        "Bb6",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m10",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Ebmaj9",
+        "Abmaj9",
+        "Fm9",
+        "Bb6",
+        "Cm9",
+        "Cm9",
+        "Gm7",
+        "Gm7"
+      ]
+    },
+    {
+      "id": "m11",
+      "mode": "minor",
+      "baseKey": 0,
+      "progression": [
+        "Cm9",
+        "Abmaj9",
+        "Ebmaj9",
+        "Bb6",
+        "Fm9",
+        "Abmaj9",
+        "Gm7",
+        "Cm9"
+      ]
+    },
+    {
+      "id": "F0",
+      "mode": "major",
+      "baseKey": 5,
+      "progression": [
+        "Bbmaj9",
+        "Bbmaj9",
+        "Am9",
+        "Am9",
+        "Gm9",
+        "C6",
+        "Fmaj9",
+        "Fmaj9"
+      ]
+    },
+    {
+      "id": "F1",
+      "mode": "major",
+      "baseKey": 5,
+      "progression": [
+        "Fmaj9",
+        "Fmaj9",
+        "Dm9",
+        "Dm9",
+        "Bbmaj9",
+        "Bbmaj9",
+        "C6",
+        "C6"
+      ]
+    }
+  ],
+  "contours": [
+    [
+      2,
+      1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      2,
+      2,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      2,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      1,
+      2,
+      1,
+      0,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      2,
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      2,
+      1,
+      1,
+      2,
+      1,
+      0,
+      1
+    ]
+  ],
+  "keys": [
+    0,
+    2,
+    3,
+    5,
+    7,
+    10
+  ],
+  "forms": [
+    28,
+    36,
+    36,
+    44
+  ],
+  "phraseArcs": [
+    [
+      0.92,
+      1.0,
+      1.03,
+      0.94
+    ],
+    [
+      0.95,
+      1.02,
+      0.97,
+      0.9
+    ],
+    [
+      0.9,
+      0.97,
+      1.02,
+      0.96
+    ]
+  ],
+  "names": [
+    "Paper Lanterns",
+    "River Windows",
+    "Quiet Platforms",
+    "Sidewalk Light",
+    "Distant Rooms",
+    "Evening Letters",
+    "Small Gardens",
+    "Passing Clouds",
+    "Late Trains",
+    "Open Windows",
+    "Warm Pavement",
+    "Blue Notebooks"
+  ],
+  "presets": {
+    "Focus": {
+      "energy": 0.35,
+      "mood": 0.15,
+      "warmth": 0.78,
+      "space": 0.44,
+      "texture": 0.09,
+      "variation": 0.55,
+      "tempo": null
+    },
+    "Relax": {
+      "energy": 0.1,
+      "mood": 0.05,
+      "warmth": 0.88,
+      "space": 0.55,
+      "texture": 0.07,
+      "variation": 0.35,
+      "tempo": null
+    },
+    "Commute": {
+      "energy": 0.58,
+      "mood": 0.35,
+      "warmth": 0.72,
+      "space": 0.42,
+      "texture": 0.08,
+      "variation": 0.6,
+      "tempo": null
+    },
+    "Workout": {
+      "energy": 0.88,
+      "mood": 0.65,
+      "warmth": 0.63,
+      "space": 0.35,
+      "texture": 0.06,
+      "variation": 0.65,
+      "tempo": null
+    },
+    "Reflective": {
+      "energy": 0.27,
+      "mood": -0.8,
+      "warmth": 0.82,
+      "space": 0.5,
+      "texture": 0.07,
+      "variation": 0.5,
+      "tempo": null
+    }
+  }
+}

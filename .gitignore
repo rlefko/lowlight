@@ -1,6 +1,7 @@
 .DS_Store
 .build/
 .tools/
+.swiftpm/
 *.xcuserstate
 xcuserdata/
 *.xcresult
