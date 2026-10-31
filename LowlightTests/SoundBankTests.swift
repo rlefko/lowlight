@@ -133,6 +133,37 @@ struct SoundBankTests {
         #expect(input.suffix(1600).allSatisfy { $0.tonal == (0, 0) })
         // Voices have retired, but the causal room still contains their release tails.
         #expect(output.suffix(1600).contains { $0.tonal.0 != 0 || $0.tonal.1 != 0 })
+        try verifyPeakProtection(output)
+    }
+
+    private func verifyPeakProtection(_ buses: [HarmonicGlueFrame]) throws {
+        // Driven diagnostic input, not the future production mixing/gain-analysis stage.
+        let input: [Float] = buses.flatMap { frame -> [Float] in
+            let left = (frame.tonal.0 + frame.bass.0) * frame.duck + frame.drums.0
+            let right = (frame.tonal.1 + frame.bass.1) * frame.duck + frame.drums.1
+            return [left * 16, right * 16]
+        }
+        let protector = try PeakProtector(mode: .song)
+        let latency = PeakProtector.latencyFrames
+        var output = [Float](repeating: .nan, count: input.count + latency * 2)
+        output.withUnsafeMutableBufferPointer { destination in
+            #expect(
+                input.withUnsafeBufferPointer {
+                    protector.process(
+                        $0, into: UnsafeMutableBufferPointer(rebasing: destination[..<input.count]))
+                })
+            #expect(
+                protector.drain(
+                    into: UnsafeMutableBufferPointer(
+                        rebasing: destination[input.count...])) == latency)
+        }
+        let finite = output.allSatisfy(\.isFinite)
+        #expect(finite)
+        #expect(output.prefix((HarmonicGlue.latencyFrames + latency) * 2).allSatisfy { $0 == 0 })
+        let inputPeak = input.map { abs($0) }.max() ?? 0
+        let outputPeak = output.map { abs($0) }.max() ?? 0
+        #expect(inputPeak > 0.6 && outputPeak > 0 && outputPeak < inputPeak)
+        #expect(input.indices.allSatisfy { abs(output[$0 + latency * 2]) <= abs(input[$0]) })
     }
 
     @Test func bundledTonalSamplesPrepareOnIOS() throws {

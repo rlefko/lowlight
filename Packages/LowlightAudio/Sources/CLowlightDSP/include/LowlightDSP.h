@@ -101,6 +101,30 @@ void ll_room_reset(LLRoom *room); // Clears the tail, preserving controls/coeffi
 // full count storage; count 0 permits null buffers for a valid room.
 bool ll_room_process(LLRoom *room, const LLGlueFrame *input, LLGlueFrame *output, uint32_t frames);
 
+enum { LL_PEAK_LATENCY = 160, LL_PEAK_SONG = 0, LL_PEAK_SESSION = 1 };
+#define LL_PEAK_INPUT_LIMIT 1e20f
+typedef struct LLPeakProtector LLPeakProtector;
+// Separate, single-owner 32 kHz linked stereo protector. Modes select the accepted
+// -5 dB song or -2.2 dB session target. Smoothing is not a hard/true-peak ceiling.
+// Setup/destruction require an idle renderer; stream length need not be known.
+LLPeakProtector *ll_peak_create(uint8_t mode);
+void ll_peak_destroy(LLPeakProtector *protector);
+void ll_peak_reset(LLPeakProtector *protector); // Preserves mode; reopens and clears history.
+// Allocation/free/lock/I/O-free. Caller supplies 2*frames interleaved floats.
+// Writes one physical frame per input; the first 160 are silence. Inputs must be
+// finite with magnitude <= LL_PEAK_INPUT_LIMIT, keeping the Float detector finite.
+// Validates the whole call before advancing; overlap (including in-place) is
+// rejected. Failure clears provided output and preserves state. Count 0 permits
+// null buffers for an open valid processor. Calls after drain fail until reset.
+bool ll_peak_process(LLPeakProtector *protector, const float *input, float *output, uint32_t frames);
+// First valid call (even capacity 0) closes input. Emits exactly 160 more physical
+// frames for nonempty streams, none for empty; extends the last detector peak.
+// Repeated calls after exhaustion succeed with written=0. Clears unused capacity.
+// written is required; capacity 0 permits null output. Rejects output/written
+// overlap before writing through written. Failure clears provided output, sets
+// nonaliased written=0, and preserves state. Caller supplies full capacity storage.
+bool ll_peak_drain(LLPeakProtector *protector, float *output, uint32_t capacity, uint32_t *written);
+
 #ifdef __cplusplus
 }
 #endif
