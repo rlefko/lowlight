@@ -4,7 +4,7 @@
 import AVFAudio
 import Foundation
 
-public enum TonalInstrument: String, Codable, Sendable { case guitar, piano }
+public enum TonalInstrument: String, Codable, Sendable { case guitar, piano, bass }
 
 public enum SamplePreparationError: Error { case invalidRequest, invalidBank, invalidAudio }
 
@@ -26,7 +26,7 @@ public struct TonalSamplePreparer: Sendable {
     }
     private struct GuitarManifest: Decodable { let entries: [Entry] }
     private let bankURL: URL
-    private let guitar, piano: [Entry]
+    private let guitar, piano, bass: [Entry]
 
     public init(bankURL: URL) throws {
         guard bankURL.isFileURL else { throw SamplePreparationError.invalidBank }
@@ -35,16 +35,22 @@ public struct TonalSamplePreparer: Sendable {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let guitarData = try Self.manifest(
             self.bankURL.appendingPathComponent("electric_guitar_manifest.json"))
-        let pianoData = try Self.manifest(
+        let sampleData = try Self.manifest(
             self.bankURL.appendingPathComponent("sample_manifest.json"))
         guitar = try decoder.decode(GuitarManifest.self, from: guitarData).entries
-        piano = try decoder.decode([Entry].self, from: pianoData).filter {
+        let samples = try decoder.decode([Entry].self, from: sampleData)
+        piano = samples.filter {
             $0.instrument == "piano" && $0.asset.contains("_v1_")
         }
-        guard guitar.count == 32, piano.count == 10 else {
+        bass = samples.filter { $0.instrument == "bass" && $0.asset.contains("_v1_") }
+        guard guitar.count == 32, piano.count == 10,
+            bass.compactMap(\.rootMidi) == [34, 34, 49, 49, 38, 38, 28, 28, 44, 44],
+            Set(bass.map(\.asset)).count == 10,
+            bass.allSatisfy({ $0.channels == 1 && $0.frames <= 80_000 })
+        else {
             throw SamplePreparationError.invalidBank
         }
-        for entry in guitar + piano {
+        for entry in guitar + piano + bass {
             let path = self.bankURL.appendingPathComponent(entry.asset).resolvingSymlinksInPath()
                 .standardizedFileURL.path
             guard let root = entry.rootMidi,
@@ -68,9 +74,11 @@ public struct TonalSamplePreparer: Sendable {
         throws
         -> PreparedTonalSample
     {
-        guard (50...69).contains(note), (0...10).contains(roundRobin), warmth.isFinite else {
+        guard (0...10).contains(roundRobin), warmth.isFinite else {
             throw SamplePreparationError.invalidRequest
         }
+        if instrument == .bass { return try prepareBass(note: note, roundRobin: roundRobin) }
+        guard (50...69).contains(note) else { throw SamplePreparationError.invalidRequest }
         let pool = instrument == .guitar ? guitar : piano
         // Manifest order is significant for piano ties (58 selects 60, not 56).
         // Guitar ties in this range select the lower root, as in the frozen bank.
@@ -113,6 +121,25 @@ public struct TonalSamplePreparer: Sendable {
         }
         guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
         return PreparedTonalSample(samples: samples, channels: entry.channels)
+    }
+
+    private func prepareBass(note: Int, roundRobin: Int) throws -> PreparedTonalSample {
+        guard (31...57).contains(note) else { throw SamplePreparationError.invalidRequest }
+        // Keep manifest order: ties at 31/36 select 34, and 41 selects 38.
+        guard let root = bass.compactMap(\.rootMidi).min(by: { abs($0 - note) < abs($1 - note) }),
+            let entry = bass.filter({ $0.rootMidi == root }).dropFirst(roundRobin % 2).first,
+            (-3...8).contains(note - root)
+        else { throw SamplePreparationError.invalidBank }
+        var samples = SampleProcessing.transpose(
+            try decode(entry), channels: 1, semitones: note - root)
+        guard samples.count <= 89_797 else { throw SamplePreparationError.invalidAudio }
+        SampleProcessing.filter(&samples, channels: 1, cutoff: 1800, highpass: false, order: 2)
+        // The accepted bass assets are mono; averaging their single channel is an identity.
+        SampleProcessing.filter(&samples, channels: 1, cutoff: 180, highpass: true, order: 2)
+        SampleProcessing.filter(&samples, channels: 1, cutoff: 650, highpass: false, order: 2)
+        for index in samples.indices { samples[index] *= 0.08 }
+        guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
+        return PreparedTonalSample(samples: samples, channels: 1)
     }
 
     // Match Python round(value, 2), including binary values on either side of a decimal tie.

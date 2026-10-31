@@ -17,9 +17,10 @@ typedef struct {
     uint64_t start_frame;
     uint32_t sample_index, hold_frames, release_frames;
     float velocity, pan;
-    uint8_t instrument; // 0 guitar, 1 piano
+    uint8_t instrument; // 0 guitar, 1 piano, 2 bass (mono recorded touch, already scaled by .08)
     uint8_t connected;
     uint8_t priority; // 0 bed/support, 1 answer, 2 protected melody
+    uint8_t midi; // Bass pitch 31...57; ignored for guitar/piano.
 } LLEvent;
 
 // Setup/destruction require an idle renderer. Owns bounded PCM/event copies.
@@ -30,6 +31,7 @@ void ll_mixer_destroy(LLMixer *mixer);
 int32_t ll_mixer_add_sample(LLMixer *mixer, const float *pcm, uint32_t frames, uint32_t channels);
 // Sorted absolute 32 kHz starts; gate/release lengths come from canonical endpoints.
 // Invalid loads leave the existing score/state untouched. Empty scores are valid.
+// Scores containing bass reserve one of the 64 slots for its monophonic voice.
 bool ll_mixer_load_events(LLMixer *mixer, const LLEvent *events, uint32_t count);
 void ll_mixer_reset(LLMixer *mixer);
 // Allocation/free/lock/I/O-free. Writes every stereo frame; handles 256-frame subblocks.

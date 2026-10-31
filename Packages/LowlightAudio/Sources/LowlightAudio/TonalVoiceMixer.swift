@@ -22,7 +22,8 @@ public final class TonalVoiceMixer {
         var previous: Int64 = -1
         for event in events {
             try event.validate()
-            guard [.guitar, .piano].contains(event.instrument), event.startFrame >= previous else {
+            guard [.guitar, .piano, .bass].contains(event.instrument), event.startFrame >= previous
+            else {
                 throw VoiceMixerError.invalidScore
             }
             previous = event.startFrame
@@ -32,10 +33,13 @@ public final class TonalVoiceMixer {
             var slots: [Key: UInt32] = [:]
             var score: [LLEvent] = []
             for event in events {
-                let instrument: TonalInstrument = event.instrument == .guitar ? .guitar : .piano
+                guard let instrument = TonalInstrument(rawValue: event.instrument.rawValue) else {
+                    throw VoiceMixerError.invalidScore
+                }
                 let key = Key(
                     instrument: instrument, note: event.note,
-                    roundRobin: instrument == .guitar ? event.roundRobin % 4 : 0)
+                    roundRobin: instrument == .guitar
+                        ? event.roundRobin % 4 : (instrument == .bass ? event.roundRobin % 2 : 0))
                 if slots[key] == nil {
                     guard slots.count < Int(LL_SAMPLE_LIMIT) else {
                         throw VoiceMixerError.capacityExceeded
@@ -57,9 +61,11 @@ public final class TonalVoiceMixer {
                         hold_frames: UInt32(event.gateEndFrame - event.startFrame),
                         release_frames: UInt32(event.releaseEndFrame - event.gateEndFrame),
                         velocity: Float(event.velocity), pan: Float(event.pan),
-                        instrument: instrument == .guitar ? 0 : 1,
+                        instrument: instrument == .guitar ? 0 : (instrument == .piano ? 1 : 2),
                         connected: event.articulation == .connected ? 1 : 0,
-                        priority: event.role == .melody ? 2 : (event.role == .answer ? 1 : 0)))
+                        priority: [.melody, .bass].contains(event.role)
+                            ? 2 : (event.role == .answer ? 1 : 0),
+                        midi: UInt8(event.note)))
             }
             guard
                 score.withUnsafeBufferPointer({
