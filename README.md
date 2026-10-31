@@ -2,7 +2,7 @@
 
 Lowlight is an iPhone app in development for original, ongoing lo-fi music that works entirely offline. The accepted sound uses soft guitar and piano, rounded bass, restrained drums, and a shared room.
 
-The current milestone is a native launchable shell with an About screen. Music playback and controls are not implemented yet. See the [milestone status](docs/status.md) for completed work and open validation.
+The app currently has a native shell, an offline About/licenses screen, and the accepted lossless note bank. A frozen developer reference harness preserves short sound fixtures for the native port. Music playback and controls are not implemented yet. See the [milestone status](docs/status.md) for validation and remaining work.
 
 ## Build
 
@@ -27,6 +27,6 @@ See [project documentation](docs/index.md) for architecture, sound provenance, t
 
 ## License and credits
 
-Copyright © 2026 Ryan Lefkowitz. Original project code is licensed under [GPL-3.0-only](LICENSE). Sample assets have separate licenses and will be imported with their notices in the next milestone; none are bundled now. There are no third-party runtime dependencies.
+Copyright © 2026 Ryan Lefkowitz. Original project code is licensed under [GPL-3.0-only](LICENSE). The 77 bundled recorded notes are CC0-1.0; see the [sound-bank provenance and notices](docs/sound-bank.md). Python reference tools and test audio are developer resources outside the app. There are no third-party app runtime dependencies.
 
 Development accelerated with Codex

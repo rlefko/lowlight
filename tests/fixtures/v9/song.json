@@ -1,0 +1,340 @@
+{
+  "bars": 36,
+  "bass_cell": 2,
+  "chords": [
+    {
+      "name": "Fmaj9",
+      "pcs": [
+        0,
+        4,
+        5,
+        7,
+        9
+      ],
+      "root": 41,
+      "tops": [
+        57,
+        60,
+        64,
+        67
+      ],
+      "voices": [
+        53,
+        57,
+        60,
+        64
+      ]
+    },
+    {
+      "name": "Em7",
+      "pcs": [
+        2,
+        4,
+        7,
+        11
+      ],
+      "root": 40,
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ],
+      "voices": [
+        52,
+        55,
+        59,
+        62
+      ]
+    },
+    {
+      "name": "Am9",
+      "pcs": [
+        0,
+        4,
+        7,
+        9,
+        11
+      ],
+      "root": 33,
+      "tops": [
+        55,
+        59,
+        60,
+        64
+      ],
+      "voices": [
+        52,
+        55,
+        59,
+        60
+      ]
+    },
+    {
+      "name": "Am9",
+      "pcs": [
+        0,
+        4,
+        7,
+        9,
+        11
+      ],
+      "root": 33,
+      "tops": [
+        55,
+        59,
+        60,
+        64
+      ],
+      "voices": [
+        52,
+        55,
+        59,
+        60
+      ]
+    },
+    {
+      "name": "Dm9",
+      "pcs": [
+        0,
+        2,
+        4,
+        5,
+        9
+      ],
+      "root": 38,
+      "tops": [
+        57,
+        60,
+        64,
+        65
+      ],
+      "voices": [
+        53,
+        57,
+        60,
+        64
+      ]
+    },
+    {
+      "name": "G6",
+      "pcs": [
+        2,
+        4,
+        7,
+        11
+      ],
+      "root": 31,
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ],
+      "voices": [
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    {
+      "name": "Cmaj9",
+      "pcs": [
+        0,
+        2,
+        4,
+        7,
+        11
+      ],
+      "root": 36,
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ],
+      "voices": [
+        52,
+        55,
+        59,
+        62
+      ]
+    },
+    {
+      "name": "Cmaj9",
+      "pcs": [
+        0,
+        2,
+        4,
+        7,
+        11
+      ],
+      "root": 36,
+      "tops": [
+        55,
+        59,
+        62,
+        64
+      ],
+      "voices": [
+        52,
+        55,
+        59,
+        62
+      ]
+    }
+  ],
+  "controls": {
+    "energy": 0.35,
+    "mood": 0.15,
+    "space": 0.44,
+    "tempo": null,
+    "texture": 0.09,
+    "variation": 0.55,
+    "warmth": 0.78
+  },
+  "drum_cell": 3,
+  "duration_seconds": 110.99722818189925,
+  "energy": 0.3795510689640131,
+  "family": "M00",
+  "focus": "guitar",
+  "handoff_seconds": 104.67168544642003,
+  "id": 0,
+  "in_bridge": null,
+  "key": 0,
+  "key_name": "C",
+  "melody": [
+    [
+      64,
+      60,
+      57
+    ],
+    [
+      62,
+      59
+    ],
+    [
+      60,
+      59,
+      55
+    ],
+    [
+      59,
+      60
+    ],
+    [
+      60,
+      57,
+      64
+    ],
+    [
+      62,
+      59
+    ],
+    [
+      59,
+      62,
+      64
+    ],
+    [
+      62,
+      59
+    ]
+  ],
+  "melody_times": [
+    [
+      0.0,
+      2.0,
+      3.0
+    ],
+    [
+      0.0,
+      2.0
+    ],
+    [
+      0.0,
+      2.0,
+      3.0
+    ],
+    [
+      0.0,
+      2.0
+    ],
+    [
+      0.0,
+      2.0,
+      3.0
+    ],
+    [
+      0.0,
+      2.0
+    ],
+    [
+      0.0,
+      2.0,
+      3.0
+    ],
+    [
+      0.0,
+      2.0
+    ]
+  ],
+  "mode": "major",
+  "next_tempo": 75.18,
+  "out_bridge": {
+    "name": "shared pivot",
+    "pcs": [
+      0,
+      4,
+      7,
+      9
+    ],
+    "root": 36,
+    "tops": [
+      55,
+      57,
+      60
+    ],
+    "voices": [
+      52,
+      55,
+      57,
+      60
+    ]
+  },
+  "outro_start_seconds": 98.46153846153847,
+  "parameters": {
+    "chill": 0.6204489310359869,
+    "focus": "guitar",
+    "seed": 91031,
+    "space": 0.44,
+    "tempo": 78.0,
+    "texture": 0.09,
+    "warmth": 0.78
+  },
+  "phrase_arc": [
+    0.9,
+    0.97,
+    1.02,
+    0.96
+  ],
+  "previous_tempo": 78.0,
+  "render_stats": {
+    "buffer_frames": 3711911,
+    "events": 621,
+    "fixed_gain_dB": 9.818919986115517,
+    "harmonic_compression_max_dB": 4.831632137298584,
+    "max_rss_MiB": 955.26953125,
+    "peak_reduction_fraction_over_1dB": 0.0,
+    "peak_reduction_max_dB": -0.0,
+    "rendered_sample_peak_dBFS": -6.826844215393066,
+    "source_body_LUFS": -30.318919986115517
+  },
+  "shift": 0,
+  "signature": "1bf32ea1c9c2b7560d0b",
+  "start_seconds": 0.0,
+  "take_seed": 1278560406,
+  "tempo": 78.0,
+  "title": "Paper Lanterns 01"
+}

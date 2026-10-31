@@ -1,0 +1,46 @@
+{
+  "generator": "Unmodified revision 9 Python DSP with 621 frozen events",
+  "python": "3.12.14",
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "whole_song": {
+    "render_seconds": 18.983494290849194,
+    "peak_rss_mib": 1069.5625,
+    "song_fixed_gain_db": 9.818919941908316,
+    "source_body_lufs": -30.318919941908316,
+    "master": {
+      "frames": 3711911,
+      "ceiling_dBFS": -2.2,
+      "input_sample_peak_dBFS": -6.826845851438504,
+      "output_sample_peak_dBFS": -6.826845851438504,
+      "maximum_reduction_dB": 0.0,
+      "fraction_frames_over_0_1dB_reduction": 0.0,
+      "maximum_buffer_frames": 64160,
+      "lookahead_ms": 5,
+      "attack_ms": 0.7,
+      "release_ms": 100
+    },
+    "libsndfile_version": "1.2.2"
+  },
+  "clips": {
+    "focus-body.flac": {
+      "sample_rate": 32000,
+      "channels": 2,
+      "frames": 256000,
+      "format": "FLAC/PCM_24",
+      "integrated_lufs": -20.61001633856252,
+      "sample_peak_dbfs": -8.048230171203613,
+      "decoded_float32_le_sha256": "a3546f1b567a62b1685fca92f07efcb195c2a9060e2e9ab7ebcb165c371cda6a"
+    },
+    "outgoing-tail.flac": {
+      "sample_rate": 32000,
+      "channels": 2,
+      "frames": 256000,
+      "format": "FLAC/PCM_24",
+      "integrated_lufs": -28.56179342742173,
+      "sample_peak_dbfs": -12.54651927947998,
+      "decoded_float32_le_sha256": "adc16cb319439859889d3cce95388c5fa9c37fbf539f7b32af89c609dd63c21f"
+    }
+  },
+  "alignment": "Canonical 32,000 Hz sample positions; protect() uses future lookahead without inserting PCM frames. Native causal ports must align their delay before comparison.",
+  "limitation": "Single outgoing song rack, no successor overlap; the final protector remains inactive at this signal level. No native parity or device-performance claim."
+}
