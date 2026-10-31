@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# SPDX-License-Identifier: GPL-3.0-only
+require 'json'
+require 'open3'
+
+def measure(path)
+  abort "Missing app: #{path}" unless File.directory?(path)
+  platform, status = Open3.capture2('/usr/libexec/PlistBuddy', '-c', 'Print :DTPlatformName', "#{path}/Info.plist")
+  abort 'Size comparison requires an iphoneos device app' unless status.success? && platform.strip == 'iphoneos'
+  executable, status = Open3.capture2('/usr/libexec/PlistBuddy', '-c', 'Print :CFBundleExecutable', "#{path}/Info.plist")
+  abort 'Cannot read app executable' unless status.success?
+  binary = File.join(path, executable.strip)
+  architectures, status = Open3.capture2('lipo', '-archs', binary)
+  abort 'Size comparison requires an arm64 device app' unless status.success? && architectures.strip == 'arm64'
+  files = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).select { |file| File.file?(file) && !File.symlink?(file) }
+  total = files.sum { |file| File.size(file) }
+  { 'binary_bytes' => File.size(binary), 'resources_bytes' => total - File.size(binary), 'total_bytes' => total }
+end
+
+abort 'Usage: scripts/size-report APP [MERGE_BASE_APP]' unless (1..2).cover?(ARGV.length)
+budget = JSON.parse(File.read(File.expand_path('../size-budget.json', __dir__)))
+current = measure(ARGV[0])
+report = { 'kind' => 'unsigned arm64 device-build proxy', 'configuration' => 'Release (build command)', 'current' => current, 'budget' => budget }
+failed = current['total_bytes'] > budget.fetch('maximum_total_bytes')
+if ARGV[1]
+  baseline = measure(ARGV[1])
+  delta = current['total_bytes'] - baseline['total_bytes']
+  allowance = [budget.fetch('allowed_growth_bytes'), baseline['total_bytes'] * budget.fetch('allowed_growth_fraction')].max
+  report.merge!('baseline' => baseline, 'growth_bytes' => delta, 'allowed_growth_bytes' => allowance)
+  failed ||= delta > allowance
+else
+  report['baseline_status'] = 'First baseline; no merge-base app exists'
+end
+report['passed'] = !failed
+puts JSON.pretty_generate(report)
+warn "Unsigned app: binary #{current['binary_bytes']} B; resources #{current['resources_bytes']} B; total #{current['total_bytes']} B"
+abort 'Size budget exceeded; review the growth and budget before merging' if failed

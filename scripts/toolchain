@@ -1,0 +1,11 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+source config/toolchain.env
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+[[ "$(xcodebuild -version)" == "$(printf 'Xcode %s\nBuild version %s' "$XCODE_VERSION" "$XCODE_BUILD")" ]] || {
+  echo "Select Xcode $XCODE_VERSION ($XCODE_BUILD) using DEVELOPER_DIR." >&2; exit 1;
+}
+xcrun swift --version | grep -F "Apple Swift version $SWIFT_VERSION " >/dev/null
+[[ "$(xcrun swift format --version)" == "$SWIFT_FORMAT_VERSION" ]]

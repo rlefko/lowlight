@@ -1,0 +1,166 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      size_base:
+        description: Base commit or ref for the size comparison
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  TOOLCHAINS: com.apple.dt.toolchain.Xcode
+defaults:
+  run:
+    shell: bash
+jobs:
+  quality:
+    name: Quality
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tools/*.zip
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('config/toolchain.env') }}
+      - run: scripts/setup
+      - run: scripts/quality
+      - run: scripts/conventions
+      - run: scripts/check-repository
+  build:
+    name: Build and Tests
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .build/DerivedData
+          key: build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('config/toolchain.env', '**/Package.resolved', '**/project.pbxproj') }}-${{ github.sha }}
+          restore-keys: build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('config/toolchain.env', '**/Package.resolved', '**/project.pbxproj') }}-
+      - run: scripts/build test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: simulator-results
+          path: .build/DerivedData/Logs/Test/*.xcresult
+          include-hidden-files: true
+          if-no-files-found: error
+  audio:
+    name: Audio Regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify foundation-only scope
+        run: |
+          if git ls-files | grep -Ei '(^|/)(Audio|Engine|DSP|Planner|SoundBank)(/|\.)|\.(flac|wav|aif|aiff|cpp|c|h)$'; then
+            echo 'Add real audio regression checks with the engine or reference bank.' >&2
+            exit 1
+          fi
+          if git grep -nE 'AVAudio|AudioToolbox|AudioUnit|import Accelerate' -- '*.swift'; then
+            echo 'Audio code requires real regression checks.' >&2
+            exit 1
+          fi
+          echo 'Not yet applicable: this foundation contains no audio engine or sound bank.' >> "$GITHUB_STEP_SUMMARY"
+  size:
+    name: Size Budget
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: scripts/build release
+      - name: Compare identical unsigned Release device builds
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || inputs.size_base }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          app=.build/DerivedData/Build/Products/Release-iphoneos/Lowlight.app
+          base_args=()
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            echo 'A real comparison base is required.' >&2
+            exit 1
+          fi
+          base_commit=$(git rev-parse --verify --end-of-options "$BASE_SHA^{commit}")
+          base=$(git merge-base "$base_commit" "$HEAD_SHA")
+          if git cat-file -e "$base:Lowlight.xcodeproj/project.pbxproj" 2>/dev/null; then
+            git worktree add --detach "$RUNNER_TEMP/size-base" "$base"
+            xcodebuild -quiet -project "$RUNNER_TEMP/size-base/Lowlight.xcodeproj" \
+              -scheme Lowlight -configuration Release -destination 'generic/platform=iOS' \
+              -derivedDataPath "$RUNNER_TEMP/size-base-derived" \
+              ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build
+            base_args+=("$RUNNER_TEMP/size-base-derived/Build/Products/Release-iphoneos/Lowlight.app")
+          elif [[ -n "$(git ls-tree "$base")" ]]; then
+            echo 'Missing base project in a nonempty tree; investigate before comparing size.' >&2
+            exit 1
+          fi
+          result=0
+          scripts/size-report "$app" "${base_args[@]}" > .build/size-report.json 2> .build/size-summary.txt || result=$?
+          cat .build/size-summary.txt >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: unsigned-size-report
+          path: .build/size-*
+          include-hidden-files: true
+          if-no-files-found: error
+  codeql:
+    name: CodeQL
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: scripts/toolchain
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: swift
+          build-mode: manual
+          tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-osx64.tar.gz
+      - name: Trace a fresh app build without compilation caches
+        run: |
+          xcodebuild -quiet -project Lowlight.xcodeproj -scheme Lowlight \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/codeql-derived" clean build \
+            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO COMPILATION_CACHE_ENABLE_CACHING=NO \
+            SWIFT_ENABLE_COMPILE_CACHE=NO SWIFT_USE_INTEGRATED_DRIVER=NO
+      - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:swift
+  gate:
+    name: CI Gate
+    if: always()
+    needs: [quality, build, audio, size, codeql]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every applicable job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -e 'length == 5 and all(.[]; .result == "success")'

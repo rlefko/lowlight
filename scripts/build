@@ -1,0 +1,20 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+./scripts/toolchain
+mode="${1:-test}"
+derived="${2:-.build/DerivedData}"
+common=(-project Lowlight.xcodeproj -scheme Lowlight -derivedDataPath "$derived"
+  CODE_SIGNING_ALLOWED=NO)
+case "$mode" in
+  test)
+    xcodebuild "${common[@]}" -configuration Debug \
+      -destination "${SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone 17,OS=26.5}" \
+      -parallel-testing-enabled NO test ;;
+  release)
+    xcodebuild "${common[@]}" -configuration Release \
+      -destination 'generic/platform=iOS' ARCHS=arm64 build ;;
+  *) echo 'Usage: scripts/build test|release [derived-data-path]' >&2; exit 2 ;;
+esac
