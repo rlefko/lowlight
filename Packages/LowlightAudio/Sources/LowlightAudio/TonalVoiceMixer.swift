@@ -20,7 +20,7 @@ public final class TonalVoiceMixer {
 
     public init(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
-        busEnergy: Double? = nil
+        busEnergy: Double? = nil, rackFades: SongRackFades? = nil
     ) throws {
         guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite else {
             throw VoiceMixerError.invalidScore
@@ -40,6 +40,12 @@ public final class TonalVoiceMixer {
         do {
             if let busEnergy, !ll_mixer_configure_buses(handle, busEnergy) {
                 throw VoiceMixerError.invalidScore
+            }
+            if let rackFades {
+                var configuration = rackFades.configuration
+                guard ll_mixer_configure_fades(handle, &configuration) else {
+                    throw VoiceMixerError.invalidScore
+                }
             }
             var slots: [Key: UInt32] = [:]
             var score: [LLEvent] = []
@@ -117,7 +123,8 @@ public final class TonalVoiceMixer {
         return ll_mixer_render(handle, buffer.baseAddress, UInt32(buffer.count / 2))
     }
 
-    /// Requires busEnergy at construction. Bass remains before ducking for a later shared mix.
+    /// Requires busEnergy at construction; optional rackFades precede bus filters.
+    /// Bass remains before ducking for a later shared mix. Dry rendering stays unfaded.
     /// Both render views advance the same voices, filters, duck envelope, and playhead.
     public func renderBuses(into buffer: UnsafeMutableBufferPointer<RhythmBusFrame>) -> Bool {
         guard buffer.count <= UInt32.max else { return false }

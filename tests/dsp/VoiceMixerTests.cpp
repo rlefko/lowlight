@@ -45,6 +45,15 @@ static uint64_t floatingControl() {
     return 0;
 #endif
 }
+static void setFloatingControl(uint64_t value) {
+#if defined(__aarch64__) || defined(__arm64__)
+    __asm__ volatile("msr fpcr, %0" : : "r"(value) : "memory");
+#elif defined(__x86_64__)
+    _mm_setcsr(static_cast<unsigned>(value));
+#else
+    (void)value;
+#endif
+}
 static bool sameFrame(const LLBusFrame &a, const LLBusFrame &b) {
     return std::equal(a.guitar, a.guitar + 2, b.guitar) && std::equal(a.piano, a.piano + 2, b.piano) &&
         std::equal(a.bass, a.bass + 2, b.bass) && std::equal(a.drums, a.drums + 2, b.drums) && a.duck == b.duck;
@@ -453,6 +462,143 @@ static void kickDuckingAndProtection() {
     CHECK(dropped[5].bass[0] == (bassReference(5, bass(0, 1000, 0)) * 1.20f) * 1.01f);
 }
 
+static void rackFadeValidation() {
+    Mixer mixer;
+    LLRackFades fades{0, 0, 1000, 2400, 0, 2000};
+    CHECK(!ll_mixer_configure_fades(nullptr, &fades));
+    CHECK(!ll_mixer_configure_fades(mixer.value, &fades));
+    CHECK(ll_mixer_configure_buses(mixer.value, .5));
+    CHECK(!ll_mixer_configure_fades(mixer.value, nullptr));
+    CHECK(ll_mixer_configure_fades(mixer.value, &fades));
+    double LLRackFades::*fields[] = {&LLRackFades::tonal_in_start_frame, &LLRackFades::tonal_in_end_frame,
+        &LLRackFades::tonal_out_start_frame, &LLRackFades::tonal_out_end_frame,
+        &LLRackFades::rhythm_in_frame, &LLRackFades::rhythm_out_frame};
+    for (const auto field : fields)
+        for (const double invalid : {-1., -std::numeric_limits<double>::denorm_min(),
+                std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN(),
+                std::nextafter(double(uint64_t{1} << 52), std::numeric_limits<double>::infinity())}) {
+            auto bad = fades; bad.*field = invalid; CHECK(!ll_mixer_configure_fades(mixer.value, &bad));
+        }
+    for (const LLRackFades bad : {LLRackFades{0, .5, 1000, 2400, 0, 2000},
+            {1, 1, 1000, 2400, 0, 2000}, {2, 1, 1000, 2400, 0, 2000},
+            {0, 0, 1000, 1000.5, 0, 2000}, {0, 0, 1000, 999, 0, 2000},
+            {0, 0, 1000, 2400, 2001, 2000}}) CHECK(!ll_mixer_configure_fades(mixer.value, &bad));
+    const double limit = double(uint64_t{1} << 52);
+    const LLRackFades boundary{limit - 1, limit, limit - 1, limit, limit, limit};
+    CHECK(ll_mixer_configure_fades(mixer.value, &boundary)); // Inclusive bound and one-frame overlapping spans.
+    CHECK(mixer.sample(.1375f, 4096) == 0);
+    auto invalidScore = event(); invalidScore.instrument = 7;
+    CHECK(!ll_mixer_load_events(mixer.value, &invalidScore, 1));
+    CHECK(ll_mixer_configure_fades(mixer.value, &fades)); // Failed load does not lock setup.
+    auto invalidLast = fades; invalidLast.tonal_out_end_frame = 7000;
+    invalidLast.rhythm_out_frame = std::numeric_limits<double>::quiet_NaN();
+    CHECK(!ll_mixer_configure_fades(mixer.value, &invalidLast)); // Reject the whole descriptor transactionally.
+    fades.tonal_out_end_frame = 0; // The mixer owns a value copy.
+    mixer.load({event(0, 0, 4000, 0)}); const auto expected = mixer.buses(4096);
+    CHECK(expected[1500].guitar[0] > 0 && expected[2400].guitar[0] == 0);
+    CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
+    mixer.reset(); CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
+    CHECK(sameBuses(expected, mixer.buses(4096, {1, 17, 257})));
+    mixer.load({}); CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
+    Mixer empty; CHECK(ll_mixer_configure_buses(empty.value, 0)); empty.load({});
+    CHECK(!ll_mixer_configure_fades(empty.value, &boundary)); // Even an empty successful load locks setup.
+}
+
+static void rackFadeArithmeticAndViews() {
+    Mixer faded, plain;
+    for (auto *mixer : {&faded, &plain}) {
+        CHECK(mixer->sample(.1375f, 8192) == 0 && mixer->sample(.2f, 8192) == 1);
+        CHECK(ll_mixer_configure_buses(mixer->value, .5));
+    }
+    const LLRackFades fades{0, 2800, 1000, 2400, 1750.5, 2400.25};
+    CHECK(ll_mixer_configure_fades(faded.value, &fades)); // Incoming and outgoing envelopes overlap.
+    auto guitar = event(0, 0, 7000, 0), second = event(1, 0, 7000, 0), piano = guitar;
+    second.velocity = .71f; piano.instrument = 1;
+    const std::vector<LLEvent> score{guitar, second, piano, bass(0, 7000, 0)};
+    faded.load(score); plain.load(score);
+    CHECK(faded.render(8000) == plain.render(8000)); // Raw diagnostic dry view is invariant.
+    faded.reset(); plain.reset(); const auto whole = faded.buses(8000), unscaled = plain.buses(8000);
+    bool detectsFloatGain = false;
+    for (const uint32_t frame : {0u, 1000u, 1400u, 1750u, 1751u, 2000u, 2200u, 2399u, 2400u, 2800u}) {
+        const double gain = frame >= 2400 ? 0 : (frame <= 1000 ? 1 : (2400.0 - frame) / 1400) * (frame / 2800.0);
+        for (uint32_t ch = 0; ch < 2; ++ch) {
+            const float expected = float(double(unscaled[frame].guitar[ch]) * gain);
+            CHECK(whole[frame].guitar[ch] == expected);
+            CHECK(whole[frame].piano[ch] == float(double(unscaled[frame].piano[ch]) * gain));
+            detectsFloatGain |= expected != unscaled[frame].guitar[ch] * float(gain);
+        }
+    }
+    CHECK(detectsFloatGain && whole[1750].bass[0] == 0 && whole[1751].bass[0] != 0);
+    CHECK(whole[2400].bass[0] != 0 && whole[2401].bass[0] == 0); // Keep the fractional departure endpoint.
+    faded.reset(); CHECK(sameBuses(whole, faded.buses(8000, {1, 17, 255, 256, 257, 1023})));
+    faded.reset(); faded.render(1777); CHECK(sameBuses(std::vector<LLBusFrame>(whole.begin() + 1777, whole.end()), faded.buses(6223)));
+    faded.load(score); CHECK(sameBuses(whole, faded.buses(8000)));
+    faded.reset(); faded.buses(1777); const auto dryRemainder = faded.render(6223);
+    plain.reset(); plain.render(1777); CHECK(dryRemainder == plain.render(6223));
+    Mixer fractional; CHECK(fractional.sample(.1375f, 4096) == 0);
+    CHECK(ll_mixer_configure_buses(fractional.value, .5));
+    const LLRackFades exact{0, 0, 1000.25, 2400.75, 0, 2400.25};
+    CHECK(ll_mixer_configure_fades(fractional.value, &exact)); fractional.load({guitar});
+    const auto raw = fractional.render(2402); fractional.reset(); const auto tail = fractional.buses(2402);
+    CHECK(tail[1000].guitar[0] == raw[2000] && tail[2401].guitar[0] == 0);
+    CHECK(tail[2400].guitar[0] == float(double(raw[4800]) * (.75 / 1400.5)) && tail[2400].guitar[0] != 0);
+}
+
+static void rackFadeFloatingBounds() {
+    const auto original = floatingControl();
+#if defined(__aarch64__) || defined(__arm64__)
+    const uint64_t flushMask = uint64_t{1} << 24;
+#elif defined(__x86_64__)
+    const uint64_t flushMask = 0x8040;
+#else
+    const uint64_t flushMask = 0;
+#endif
+    for (const uint64_t control : {original & ~flushMask, original | flushMask}) {
+        setFloatingControl(control); Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0);
+        CHECK(ll_mixer_configure_buses(mixer.value, .5));
+        const double tiny = std::numeric_limits<double>::denorm_min();
+        LLRackFades fades{-0., -0., 0, 1, tiny, 2401};
+        CHECK(ll_mixer_configure_fades(mixer.value, &fades));
+        fades.rhythm_in_frame = -tiny; CHECK(!ll_mixer_configure_fades(mixer.value, &fades));
+        fades.rhythm_in_frame = tiny; fades.tonal_out_start_frame = -tiny;
+        CHECK(!ll_mixer_configure_fades(mixer.value, &fades));
+        fades.tonal_out_start_frame = 0; fades.rhythm_out_frame = 0;
+        CHECK(!ll_mixer_configure_fades(mixer.value, &fades)); // Positive subnormal arrival is after zero.
+        mixer.load({bass()}); const auto output = mixer.buses(2);
+        CHECK(output[0].bass[0] == 0 && output[1].bass[0] != 0); // Fractional gate opens at its ceiling frame.
+    }
+    setFloatingControl(original);
+}
+
+static void rackHandoffAndTails() {
+    Mixer old, next, plain;
+    for (auto *mixer : {&old, &next, &plain}) {
+        CHECK(mixer->sample(.1375f, 4096) == 0 && mixer->sample(.2f, 1) == 1);
+        CHECK(ll_mixer_configure_buses(mixer->value, .5));
+    }
+    const LLRackFades outgoing{0, 0, 1000, 2400, 0, 1700}, incoming{1000, 2400, 10000, 11000, 1700, 10500};
+    CHECK(ll_mixer_configure_fades(old.value, &outgoing) && ll_mixer_configure_fades(next.value, &incoming));
+    const std::vector<LLEvent> score{event(0, 0, 4000, 0), bass(0, 4000, 0)};
+    old.load(score); next.load(score); plain.load(score);
+    const auto a = old.buses(3000), b = next.buses(3000), dry = plain.buses(3000);
+    for (const uint32_t frame : {1000u, 1699u, 1700u, 1701u, 2399u, 2400u}) {
+        CHECK(near(a[frame].guitar[0] + b[frame].guitar[0], dry[frame].guitar[0]));
+        if (frame < 1700) CHECK(a[frame].bass[0] != 0 && b[frame].bass[0] == 0);
+        else CHECK(a[frame].bass[0] == 0 && b[frame].bass[0] == dry[frame].bass[0]);
+    }
+    auto before = percussion(3, 1, 1699), after = percussion(3, 1, 1700);
+    old.load({before, after}); const auto tail = old.buses(2000);
+    old.load({before}); const auto single = old.buses(2000);
+    for (uint32_t frame = 0; frame < 2000; ++frame)
+        CHECK(tail[frame].drums[0] == single[frame].drums[0] && tail[frame].drums[1] == single[frame].drums[1]);
+    CHECK(tail[1700].drums[0] != 0 && tail[1700].duck == .945f && single[1700].duck > .945f);
+    CHECK(ll_mixer_active_voices(old.value) == 0); // The last input is gone, but the filter tail survives ownership transfer.
+    next.load({before, after}); const auto arriving = next.buses(2000);
+    next.load({after}); const auto admitted = next.buses(2000);
+    for (uint32_t frame = 0; frame < 2000; ++frame) CHECK(arriving[frame].drums[0] == admitted[frame].drums[0]);
+    CHECK(arriving[1699].drums[0] == 0 && arriving[1699].duck == .945f && arriving[1700].drums[0] != 0);
+}
+
 static void invalidInputsAndOwnership() {
     Mixer mixer; const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
     CHECK(ll_mixer_add_sample(mixer.value, nullptr, 1, 1) == -1);
@@ -498,6 +644,7 @@ static void invalidInputsAndOwnership() {
 int main() {
     timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
     percussionSoundAndBounds(); percussionStealingAndProtection(); busFiltersAndRouting(); busStateAndValidation();
-    kickDuckingAndProtection(); invalidInputsAndOwnership();
+    kickDuckingAndProtection(); rackFadeValidation(); rackFadeArithmeticAndViews(); rackHandoffAndTails();
+    rackFadeFloatingBounds(); invalidInputsAndOwnership();
     std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }
