@@ -63,21 +63,12 @@ jobs:
       - run: scripts/test-audio release
         env:
           LOWLIGHT_AUDIO_OUTPUT: ${{ github.workspace }}/.build/tonal-native
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.12.14'
-          pip-version: '26.2.2'
-          cache: pip
-          cache-dependency-path: tools/reference/requirements.lock
-      - run: python -m pip install --require-hashes -r tools/reference/requirements.lock
-      - run: |
-          python tools/reference/verify-tonal.py --compare .build/tonal-native --evidence .build/tonal-evidence
-          cp .build/tonal-native/profile.json .build/tonal-evidence/profile.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: tonal-preparation-comparison
-          path: .build/tonal-evidence
-          retention-days: 7
+          name: native-tonal-candidates
+          path: .build/tonal-native
+          include-hidden-files: true
+          retention-days: 1
           if-no-files-found: error
       - run: scripts/build test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -89,6 +80,7 @@ jobs:
           if-no-files-found: error
   audio:
     name: Audio Regression
+    needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -108,6 +100,20 @@ jobs:
       - run: python tools/reference/verify-events.py
       - run: python -m pip install --require-hashes -r tools/reference/requirements.lock
       - run: python tools/reference/check.py --render
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: native-tonal-candidates
+          path: .build/tonal-native
+      - run: |
+          python tools/reference/verify-tonal.py --compare .build/tonal-native --evidence .build/tonal-evidence
+          cp .build/tonal-native/profile.json .build/tonal-evidence/profile.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tonal-preparation-comparison
+          path: .build/tonal-evidence
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
   size:
     name: Size Budget
     runs-on: macos-26

@@ -8,7 +8,7 @@ Use one focused behavior change per PR. Titles start with an emoji and use short
 
 ## Checks
 
-`./scripts/test-audio` (or `release`) checks native tonal preparation against frozen windows and malformed input boundaries. CI also compares every Release sample against the original Python functions and retains dry-note A/B evidence; see [tonal validation](validation-tonal.md).
+`./scripts/test-audio` (or `release`) checks native tonal preparation against frozen windows and malformed input boundaries. CI transfers the macOS Release samples to the Linux Audio Regression job for comparison against the original Python functions and retains dry-note A/B evidence; see [tonal validation](validation-tonal.md).
 
 `./scripts/test-planner` runs Swift Testing on the native planning package without a simulator or audio hardware; add `release` to verify the same vectors with production optimization. `./scripts/build test` runs native bank/planning integration checks and the launch/About/dismiss/relaunch UI smoke test. `./scripts/build release` builds the unsigned device app used by size reporting. Use XCTest/XCUITest for UI and appropriate performance coverage.
 
