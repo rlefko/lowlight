@@ -4,6 +4,7 @@
 import AVFAudio
 import CryptoKit
 import Foundation
+import LowlightAudio
 import Testing
 
 private struct Inventory: Decodable {
@@ -17,6 +18,23 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
+    @Test func bundledTonalSamplesPrepareOnIOS() throws {
+        let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
+        let preparer = try TonalSamplePreparer(bankURL: bank)
+        for (instrument, note, channels) in [
+            (TonalInstrument.guitar, 50, 1), (.piano, 61, 2),
+        ] {
+            let sample = try preparer.prepare(
+                instrument: instrument, note: note, roundRobin: 0, warmth: 0.78)
+            #expect(sample.channels == channels)
+            #expect(sample.frames > 32_000)
+            #expect(sample.samples.count == sample.frames * sample.channels)
+            let finite = sample.samples.allSatisfy(\.isFinite)
+            #expect(finite)
+            #expect(sample.samples.contains { abs($0) > 0.01 })
+        }
+    }
+
     @Test func bundledBankDecodesWithoutChangingSamples() throws {
         let app = try #require(Bundle.main.resourceURL)
         let bank = app.appendingPathComponent("SoundBank")
