@@ -1,6 +1,6 @@
 # Architecture
 
-The app is a SwiftUI shell with an About sheet and the accepted sound bank. The local `LowlightPlanning` package owns native song plans, note events, a shared transition clock, and intent checkpoints. It has no playback engine, audio session, settings persistence, or external package dependencies. Resource membership is explicit in the Xcode project and package manifest.
+The app is a SwiftUI shell with an About sheet and the accepted sound bank. The local `LowlightPlanning` package owns native song plans, note events, a shared transition clock, and intent checkpoints. The `LowlightAudio` package prepares native guitar/piano samples off the audio thread; see the [tonal preparation evidence](validation-tonal.md). There is no playback engine, audio session, settings persistence, or external package dependency. Resource membership is explicit in the Xcode project and package manifest.
 
 Responsibilities stay separate: deterministic Swift planner and event timeline, bank preparation, a small C/C++ DSP kernel if needed, playback coordinator, persistence, and UI. Prefer a few modules with clear ownership. See the [native planning decision](adrs/002-native-planning.md) for algorithm versioning and bounded history, and the [shared-time decision](adrs/003-events-and-shared-time.md) for transitions and checkpoint limits.
 

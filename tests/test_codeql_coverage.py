@@ -10,14 +10,13 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 VERIFY = runpy.run_path(str(ROOT / "scripts/verify-codeql-coverage.py"))["verify"]
 APP = ROOT / "Lowlight/LowlightApp.swift"
-EVENTS = ROOT / "Packages/LowlightPlanning/Sources/LowlightPlanning/EventPlanner.swift"
-MANIFEST = ROOT / "Packages/LowlightPlanning/Package.swift"
 
 
 class CoverageTests(unittest.TestCase):
     def setUp(self):
-        self.files = [MANIFEST] + sorted((ROOT / "Lowlight").rglob("*.swift")) + sorted(
-            (ROOT / "Packages/LowlightPlanning/Sources").rglob("*.swift"))
+        self.files = sorted((ROOT / "Lowlight").rglob("*.swift")) + sorted(
+            (ROOT / "Packages").glob("*/Package.swift")) + sorted(
+            (ROOT / "Packages").glob("*/Sources/**/*.swift"))
         self.payload = {"#select": {
             "columns": [{"kind": "Entity"}, {"kind": "String"}],
             "tuples": [[{"label": str(path)}, "File successfully extracted."] for path in self.files],
@@ -28,7 +27,7 @@ class CoverageTests(unittest.TestCase):
         self.assertEqual(VERIFY(self.payload, ROOT), len(self.files))
 
     def test_missing_current_app_or_package_file_fails(self):
-        for missing in (APP, EVENTS, MANIFEST):
+        for missing in self.files:
             with self.subTest(missing=missing):
                 payload = copy.deepcopy(self.payload)
                 payload["#select"]["tuples"] = [r for r in payload["#select"]["tuples"] if r[0]["label"] != str(missing)]

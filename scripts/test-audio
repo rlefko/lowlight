@@ -1,0 +1,12 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+./scripts/toolchain
+configuration="${1:-debug}"
+case "$configuration" in
+  debug|release) ;;
+  *) echo 'Usage: scripts/test-audio [debug|release]' >&2; exit 2 ;;
+esac
+xcrun swift test --configuration "$configuration" --package-path Packages/LowlightAudio --scratch-path .build/AudioTests

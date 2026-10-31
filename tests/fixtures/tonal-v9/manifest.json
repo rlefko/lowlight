@@ -1,0 +1,589 @@
+{
+  "schema_version": 1,
+  "sample_rate": 32000,
+  "source": "Unmodified v9 render_room.guitar and render_room.piano",
+  "python_version": "3.12.14",
+  "libsndfile_version": "1.2.2",
+  "tolerances": {
+    "maximum_absolute_error": 1e-05,
+    "rms_error": 1e-06
+  },
+  "cases": [
+    {
+      "id": "guitar_root",
+      "instrument": "guitar",
+      "note": 55,
+      "round_robin": 0,
+      "warmth": 0.78,
+      "root_midi": 55,
+      "source_asset": "assets/electric_guitar/electric_55_0.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 192000,
+      "channels": 1,
+      "full_float32_sha256": "e8d4e49528176c499845373737331405719e403c412fd9abd3af4a48bd99b55c",
+      "peak": 0.27473360300064087,
+      "rms": 0.07106003994266794,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 190976,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_root.flac",
+      "window_sha256": "6b860e81b2c5b2be5ad25364d98a98037fd31e89233e1ff1accca68f1beaf2df"
+    },
+    {
+      "id": "guitar_rr_wrap",
+      "instrument": "guitar",
+      "note": 55,
+      "round_robin": 7,
+      "warmth": 0.78,
+      "root_midi": 55,
+      "source_asset": "assets/electric_guitar/electric_55_3.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 192000,
+      "channels": 1,
+      "full_float32_sha256": "b2e8db7630835dbc81c133ea837ae5a11bfc3d6dd6869ec04e40d93aa57e6ce6",
+      "peak": 0.30316898226737976,
+      "rms": 0.06761604583610167,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 190976,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_rr_wrap.flac",
+      "window_sha256": "e6af8074c218567d98726958fc8705340f1042c8f68c3dc4d0272738ecdf96a7"
+    },
+    {
+      "id": "guitar_tie_up",
+      "instrument": "guitar",
+      "note": 57,
+      "round_robin": 1,
+      "warmth": 0.78,
+      "root_midi": 55,
+      "source_asset": "assets/electric_guitar/electric_55_1.flac",
+      "resample_numerator": 1576,
+      "resample_denominator": 1769,
+      "frames": 171053,
+      "channels": 1,
+      "full_float32_sha256": "980b5df594d48da31eb60c1d797f7a35d40e59db9f3001c8d1b5da5a149c0ed2",
+      "peak": 0.2914886474609375,
+      "rms": 0.07300627502038448,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 170029,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_tie_up.flac",
+      "window_sha256": "8f8e693cf7cd86c5639eabb30c37b6719efa97ecd6f6de3ebb23f0d1dfa54473"
+    },
+    {
+      "id": "guitar_down",
+      "instrument": "guitar",
+      "note": 54,
+      "round_robin": 2,
+      "warmth": 0.78,
+      "root_midi": 55,
+      "source_asset": "assets/electric_guitar/electric_55_2.flac",
+      "resample_numerator": 1657,
+      "resample_denominator": 1564,
+      "frames": 203417,
+      "channels": 1,
+      "full_float32_sha256": "a41bc1030c470650c3dfe3668206442dacde8b9ab4b97bb1620f9d6cb8bcfb87",
+      "peak": 0.3473242223262787,
+      "rms": 0.06532022142050527,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 202393,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_down.flac",
+      "window_sha256": "364d82aa21274604d6d7cfaf1914e5a92821c2a0b4cba254afd7581a94bc9d34"
+    },
+    {
+      "id": "guitar_high",
+      "instrument": "guitar",
+      "note": 69,
+      "round_robin": 3,
+      "warmth": 0.78,
+      "root_midi": 67,
+      "source_asset": "assets/electric_guitar/electric_67_3.flac",
+      "resample_numerator": 1576,
+      "resample_denominator": 1769,
+      "frames": 171053,
+      "channels": 1,
+      "full_float32_sha256": "3878676fe8a7fea509f34999b4c9d26e325c999641d1782c212bf8a5f1a3baa8",
+      "peak": 0.46940359473228455,
+      "rms": 0.0638907993093751,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 170029,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_high.flac",
+      "window_sha256": "62137bc340fd09dbe88698b678a67aca610745e95d18296fe9fb0ffc91a54441"
+    },
+    {
+      "id": "guitar_low",
+      "instrument": "guitar",
+      "note": 50,
+      "round_robin": 10,
+      "warmth": 0.78,
+      "root_midi": 50,
+      "source_asset": "assets/electric_guitar/electric_50_2.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 192000,
+      "channels": 1,
+      "full_float32_sha256": "db05ab8149dd1208d152ad2de6f3be3d85d37aa6f784aef7944c79899d70620c",
+      "peak": 0.262773334980011,
+      "rms": 0.0849769706447559,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 190976,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_low.flac",
+      "window_sha256": "b95a41ddd47da9f606f5985070fa40898b24f07e403512aebae48783b1bd2d1d"
+    },
+    {
+      "id": "guitar_bright",
+      "instrument": "guitar",
+      "note": 55,
+      "round_robin": 0,
+      "warmth": 0.0,
+      "root_midi": 55,
+      "source_asset": "assets/electric_guitar/electric_55_0.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 192000,
+      "channels": 1,
+      "full_float32_sha256": "4be3cc54068b9216ae377938fb8181e76ac166c7632600e73bd907ff4cc58089",
+      "peak": 0.273512065410614,
+      "rms": 0.0710760298408154,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 190976,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_bright.flac",
+      "window_sha256": "b353cce83bc189a79e680c9d0525a86e94056612b091364b26234351a9afa26d"
+    },
+    {
+      "id": "guitar_warm",
+      "instrument": "guitar",
+      "note": 55,
+      "round_robin": 0,
+      "warmth": 1.0,
+      "root_midi": 55,
+      "source_asset": "assets/electric_guitar/electric_55_0.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 192000,
+      "channels": 1,
+      "full_float32_sha256": "275e53532e5906e65f6a8ce4d6619ad4f108c617a51af7cf719a73a7e28d43d6",
+      "peak": 0.2767832279205322,
+      "rms": 0.0710412109152627,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 190976,
+          "frames": 1024
+        }
+      ],
+      "window_file": "guitar_warm.flac",
+      "window_sha256": "f301af9779e9d6199f4ad864ca5176e56f45fdc38045e3bbb0bd484b45c246a2"
+    },
+    {
+      "id": "piano_root",
+      "instrument": "piano",
+      "note": 60,
+      "round_robin": 0,
+      "warmth": 0.78,
+      "root_midi": 60,
+      "source_asset": "assets/piano/GPiano_sus_C3_v1_rr1_Player.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 166400,
+      "channels": 2,
+      "full_float32_sha256": "b6ca8e1d4c3593375b408478d5b0047a2d4e45c5c83ce9b9e0442f1f64b24b6f",
+      "peak": 0.7678431868553162,
+      "rms": 0.07587621290417255,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 165376,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_root.flac",
+      "window_sha256": "af779e1a1a7de87c365bb1a653a1a2c2137068c3bdd70367212f696a26fc99f4"
+    },
+    {
+      "id": "piano_tie_upper",
+      "instrument": "piano",
+      "note": 58,
+      "round_robin": 0,
+      "warmth": 0.78,
+      "root_midi": 60,
+      "source_asset": "assets/piano/GPiano_sus_C3_v1_rr1_Player.flac",
+      "resample_numerator": 1769,
+      "resample_denominator": 1576,
+      "frames": 186778,
+      "channels": 2,
+      "full_float32_sha256": "41593ef6b677b4365c5263a35ccfea04ed73e320b0c101d8aa475a9f108968d9",
+      "peak": 0.7039344906806946,
+      "rms": 0.06987767328409575,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 185754,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_tie_upper.flac",
+      "window_sha256": "12dda668e8a658be2692b2dc833e5f821ec5873805aa5bcbcf17e20f380b2253"
+    },
+    {
+      "id": "piano_tie_lower",
+      "instrument": "piano",
+      "note": 54,
+      "round_robin": 0,
+      "warmth": 0.78,
+      "root_midi": 52,
+      "source_asset": "assets/piano/GPiano_sus_E2_v1_rr1_Player.flac",
+      "resample_numerator": 1576,
+      "resample_denominator": 1769,
+      "frames": 148246,
+      "channels": 2,
+      "full_float32_sha256": "f68c32b9e0e8f27ebe3eabdaea4c2a78965e6a27ead410bd65ad1623e1be83ab",
+      "peak": 0.5137999057769775,
+      "rms": 0.06734566720520335,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 147222,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_tie_lower.flac",
+      "window_sha256": "6c5468333b27a4236e9390f5fe29330645799e9e5329e9a0afe399a3da88143e"
+    },
+    {
+      "id": "piano_stereo",
+      "instrument": "piano",
+      "note": 64,
+      "round_robin": 9,
+      "warmth": 0.78,
+      "root_midi": 64,
+      "source_asset": "assets/piano/GPiano_sus_E3_v1_rr1_Player.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 166400,
+      "channels": 2,
+      "full_float32_sha256": "3e341248cc7806f131c605505e09db757569b8fce4c2a4e5ba04ccbf0ce0cf37",
+      "peak": 0.6050722002983093,
+      "rms": 0.06756975682684883,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 165376,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_stereo.flac",
+      "window_sha256": "a66095e04179d2305496218a9a2b1c515b5aebb09c25d97ba85c07202983b761"
+    },
+    {
+      "id": "piano_low",
+      "instrument": "piano",
+      "note": 50,
+      "round_robin": 0,
+      "warmth": 0.78,
+      "root_midi": 48,
+      "source_asset": "assets/piano/GPiano_sus_C2_v1_rr1_Player.flac",
+      "resample_numerator": 1576,
+      "resample_denominator": 1769,
+      "frames": 148246,
+      "channels": 2,
+      "full_float32_sha256": "1bd1ea3cad336a5c00b430064ef5e75e2776413e7e80bc210901a211f60eedf6",
+      "peak": 0.5023676753044128,
+      "rms": 0.07038583182655407,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 147222,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_low.flac",
+      "window_sha256": "46b63b33e1de5e82442fd572d8af175b8a5f9618e4fad189f92f299ffb3d1caa"
+    },
+    {
+      "id": "piano_high",
+      "instrument": "piano",
+      "note": 69,
+      "round_robin": 0,
+      "warmth": 0.78,
+      "root_midi": 68,
+      "source_asset": "assets/piano/GPiano_sus_G#3_v1_rr1_Player.flac",
+      "resample_numerator": 1564,
+      "resample_denominator": 1657,
+      "frames": 157061,
+      "channels": 2,
+      "full_float32_sha256": "a458b259955c5764e011c2519c3b10282637bff19cdb1b2cb7e2934fa9724518",
+      "peak": 0.8326539397239685,
+      "rms": 0.0818818347878848,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 156037,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_high.flac",
+      "window_sha256": "017f3805f39c3eb107a5e711c703e8dc11c106822028a7e0fc02ed472586bb1d"
+    },
+    {
+      "id": "piano_bright",
+      "instrument": "piano",
+      "note": 60,
+      "round_robin": 0,
+      "warmth": 0.0,
+      "root_midi": 60,
+      "source_asset": "assets/piano/GPiano_sus_C3_v1_rr1_Player.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 166400,
+      "channels": 2,
+      "full_float32_sha256": "013eec0b0a28b6f58beda9cb4bb91f6b90378b260d03044720c9d1f46f21f931",
+      "peak": 0.773649275302887,
+      "rms": 0.07575583743481616,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 165376,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_bright.flac",
+      "window_sha256": "4bd279cb08af08794f930332bb273d30a784bf77d7aa36c2ced0ade126361aad"
+    },
+    {
+      "id": "piano_warm",
+      "instrument": "piano",
+      "note": 60,
+      "round_robin": 0,
+      "warmth": 1.0,
+      "root_midi": 60,
+      "source_asset": "assets/piano/GPiano_sus_C3_v1_rr1_Player.flac",
+      "resample_numerator": 1,
+      "resample_denominator": 1,
+      "frames": 166400,
+      "channels": 2,
+      "full_float32_sha256": "83f2239f6245a56c3ffc26a9255b9a5f28a42f24e0ea94d38a531c97b88cd15c",
+      "peak": 0.7663514018058777,
+      "rms": 0.07609679148178167,
+      "windows": [
+        {
+          "start_frame": 0,
+          "frames": 1024
+        },
+        {
+          "start_frame": 3840,
+          "frames": 1024
+        },
+        {
+          "start_frame": 27776,
+          "frames": 1024
+        },
+        {
+          "start_frame": 165376,
+          "frames": 1024
+        }
+      ],
+      "window_file": "piano_warm.flac",
+      "window_sha256": "92643da463c35ef2b7e6667fd2f9d6827827116894134a2beaa2d9af173bb901"
+    }
+  ]
+}
