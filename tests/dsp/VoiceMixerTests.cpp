@@ -262,6 +262,80 @@ static void bassReservationAndOverlap() {
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 0);
 }
 
+static LLEvent percussion(uint8_t instrument = 3, uint32_t sample = 0, uint64_t start = 0) {
+    auto note = event(sample, start, 1, 0);
+    note.instrument = instrument; note.midi = instrument == 4 ? 1 : 0;
+    return note;
+}
+static float panFactor(float pan, bool right = false) {
+    const double phase = (pan + 1.0) * std::acos(-1.0) / 4;
+    return static_cast<float>(right ? std::sin(phase) : std::cos(phase)) * static_cast<float>(std::sqrt(2.0));
+}
+static void percussionSoundAndBounds() {
+    Mixer mixer; CHECK(mixer.sample(.1375f, 997) == 0); CHECK(mixer.sample(.1375f, 997, 2) == 1);
+    constexpr double gains[] = {.31, .25, .27, .11};
+    for (uint8_t instrument = 3; instrument <= 6; ++instrument) {
+        auto note = percussion(instrument); note.pan = .31f; note.velocity = .61f;
+        const float gain = static_cast<float>(gains[instrument - 3] * std::pow(double(note.velocity), 1.25));
+        mixer.load({note}); const auto expected = mixer.render(998, {998});
+        for (uint32_t frame = 0; frame < 997; ++frame) { // No attack, gate truncation, or extra decay.
+            CHECK(expected[2 * frame] == (.1375f * panFactor(note.pan)) * gain);
+            CHECK(expected[2 * frame + 1] == (.1375f * panFactor(note.pan, true)) * gain);
+        }
+        CHECK(expected[1994] == 0 && expected[1995] == 0 && ll_mixer_active_voices(mixer.value) == 0);
+        mixer.reset(); CHECK(expected == mixer.render(998, {1, 17, 255, 257}));
+        note.hold_frames = 100; note.release_frames = 800; note.connected = 1;
+        mixer.load({note}); CHECK(expected == mixer.render(998));
+        for (const float pan : {-1.f, 0.f, 1.f}) {
+            auto panned = note; panned.pan = pan; mixer.load({panned}); const auto output = mixer.render(1);
+            CHECK(output[0] == (.1375f * panFactor(pan)) * gain);
+            CHECK(output[1] == (.1375f * panFactor(pan, true)) * gain);
+        }
+        auto silent = note; silent.velocity = 0; mixer.load({silent});
+        CHECK(mixer.render(998) == std::vector<float>(1996, 0) && ll_mixer_active_voices(mixer.value) == 0);
+        mixer.load({note}); mixer.render(37);
+        auto bad = note; bad.sample_index = 1; CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
+        bad = note; bad.midi = instrument == 4 ? 0 : 1; CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
+        for (const uint8_t priority : {1, 2}) {
+            bad = note; bad.priority = priority; CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
+        }
+        CHECK(ll_mixer_position(mixer.value) == 37);
+        CHECK(std::vector<float>(expected.begin() + 74, expected.end()) == mixer.render(961));
+        auto boundary = note; boundary.start_frame = (uint64_t{1} << 52) - 997; mixer.load({boundary});
+        ++boundary.start_frame; CHECK(!ll_mixer_load_events(mixer.value, &boundary, 1));
+    }
+}
+static void percussionStealingAndProtection() {
+    Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0); CHECK(mixer.sample(0, 4096) == 1);
+    CHECK(mixer.sample(.2f, 4096) == 2); CHECK(mixer.sample(.4f, 4096) == 3);
+    auto tone = event(1, 0, 3000, 0); tone.priority = 2;
+    std::vector<LLEvent> score(63, tone); const auto low = bass(0, 3000, 0); score.push_back(low);
+    score.push_back(percussion(3, 2, 100));
+    mixer.load(score); const auto protectedOutput = mixer.render(700, {1});
+    CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 0);
+    CHECK(ll_mixer_dropped_events(mixer.value) == 1);
+    for (uint32_t frame = 0; frame < 700; ++frame)
+        CHECK(near(protectedOutput[2 * frame], bassReference(frame, low, frame < 8 ? .125f : 0)));
+    score[0].priority = 0; score.push_back(percussion(6, 3, 101));
+    mixer.load(score); const auto mixed = mixer.render(700, {1});
+    CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 1);
+    CHECK(ll_mixer_dropped_events(mixer.value) == 1);
+    CHECK(near(mixed[2 * 500], (.2f * panFactor(0)) * .31f + bassReference(500, low)));
+    mixer.reset(); CHECK(mixed == mixer.render(700, {257, 19, 512}));
+    score.assign(63, tone); score.push_back(percussion(3, 2)); // All 64 slots remain available without bass.
+    score.push_back(percussion(6, 3, 100)); score.push_back(percussion(3, 2, 101));
+    mixer.load(score); const auto fade = mixer.render(500, {1});
+    CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 1);
+    CHECK(ll_mixer_dropped_events(mixer.value) == 1);
+    CHECK(near(fade[400], (.2f * panFactor(0)) * .31f * 59.0 / 159));
+    CHECK(fade[518] == 0 && near(fade[520], (.4f * panFactor(0)) * .11f));
+    score.assign(63, tone); score[0] = percussion(3, 2); score[0].hold_frames = 3000;
+    score.push_back(event(1, 20, 100, 3000)); score.push_back(percussion(6, 1, 500));
+    mixer.load(score); const auto longGate = mixer.render(1000);
+    CHECK(longGate[1800] == 0 && ll_mixer_steals(mixer.value) == 1);
+    score[0].hold_frames = 1; mixer.load(score); CHECK(longGate == mixer.render(1000));
+}
+
 static void invalidInputsAndOwnership() {
     Mixer mixer; const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
     CHECK(ll_mixer_add_sample(mixer.value, nullptr, 1, 1) == -1);
@@ -285,7 +359,7 @@ static void invalidInputsAndOwnership() {
     bad = note; bad.velocity = 1.1f; invalid.push_back(bad);
     bad = note; bad.pan = 1.1f; invalid.push_back(bad);
     bad = note; bad.pan = nan; invalid.push_back(bad);
-    bad = note; bad.instrument = 3; invalid.push_back(bad);
+    bad = note; bad.instrument = 7; invalid.push_back(bad);
     bad = note; bad.connected = 2; invalid.push_back(bad);
     bad = note; bad.priority = 3; invalid.push_back(bad);
     for (const auto &value : invalid) CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
@@ -306,6 +380,6 @@ static void invalidInputsAndOwnership() {
 
 int main() {
     timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
-    invalidInputsAndOwnership();
-    std::puts("Voice mixer timing, tonal/bass envelopes, stealing, bounds, and allocation audit passed");
+    percussionSoundAndBounds(); percussionStealingAndProtection(); invalidInputsAndOwnership();
+    std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }

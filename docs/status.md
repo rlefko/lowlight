@@ -5,7 +5,7 @@
 | 1. Establish the Project Foundation | [PR #1](https://github.com/rlefko/lowlight/pull/1) merged; [hosted results](https://github.com/rlefko/lowlight/pull/1/checks) passed |
 | 2. Preserve the Audio Reference | [PR #2](https://github.com/rlefko/lowlight/pull/2) merged; [hosted results](https://github.com/rlefko/lowlight/pull/2/checks) passed |
 | 3. Add Deterministic Song Planning | [PR #3](https://github.com/rlefko/lowlight/pull/3) and [PR #4](https://github.com/rlefko/lowlight/pull/4) merged; [event/timing validation](validation-events.md) and [hosted checks](https://github.com/rlefko/lowlight/pull/4/checks) passed |
-| 4. Match the Accepted Instrument Sound | [PR #6](https://github.com/rlefko/lowlight/pull/6) merged; [PR #7](https://github.com/rlefko/lowlight/pull/7) merged; [PR #8](https://github.com/rlefko/lowlight/pull/8) in review ([bass validation](validation-bass.md)) |
+| 4. Match the Accepted Instrument Sound | [PR #6](https://github.com/rlefko/lowlight/pull/6) merged; [PR #7](https://github.com/rlefko/lowlight/pull/7) merged; [PR #8](https://github.com/rlefko/lowlight/pull/8) merged; native percussion in progress ([validation](validation-percussion.md)) |
 | 5. Blend Continuous Sessions | Planned |
 | 6. Support Background Playback | Planned |
 | 7. Add Expressive Listening Controls | Planned |
@@ -18,6 +18,6 @@ Required hosted CI and CodeQL results are tracked in each PR's checks. Keep new 
 
 [PR #5](https://github.com/rlefko/lowlight/pull/5) merged with all hosted checks passing. Its Intel CodeQL runner and extraction guard remain in place; timing varies and further performance work remains separate.
 
-Current scope: [PR #8](https://github.com/rlefko/lowlight/pull/8) adds native bass to the 64-voice mixer with [independent sound comparison](validation-bass.md); [hosted checks](https://github.com/rlefko/lowlight/pull/8/checks) are tracked for review. [PR #7](https://github.com/rlefko/lowlight/pull/7) is merged with [hosted checks](https://github.com/rlefko/lowlight/pull/7/checks) passed. Percussion, effects, mastering, and playback follow in later focused PRs. No native playback engine exists yet.
+Current scope: native percussion extends the bounded mixer with [independent sound comparison](validation-percussion.md). [PR #8](https://github.com/rlefko/lowlight/pull/8) is merged with [hosted checks](https://github.com/rlefko/lowlight/pull/8/checks) passed. Bus processing, effects, mastering, and playback follow in later focused PRs. No native playback engine exists yet.
 
 Release gates include sound parity, two-hour native soaks, on-device offline first launch and locked-screen playback, interruption/route behavior, energy/memory/size evidence, accessibility and appearance checks, dependency/asset license inventory, distribution-route review, and an explicit release decision. No App Store submission is authorized by completing a milestone.

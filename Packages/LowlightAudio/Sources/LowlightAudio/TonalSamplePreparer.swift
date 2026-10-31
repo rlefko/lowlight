@@ -4,11 +4,13 @@
 import AVFAudio
 import Foundation
 
-public enum TonalInstrument: String, Codable, Sendable { case guitar, piano, bass }
+public enum TonalInstrument: String, Codable, Sendable {
+    case guitar, piano, bass, kick, snare, hat, shaker
+}
 
 public enum SamplePreparationError: Error { case invalidRequest, invalidBank, invalidAudio }
 
-/// Owned interleaved PCM at the canonical 32 kHz rate, before the note envelope/pan.
+/// Owned interleaved PCM at 32 kHz, before event gain/pan. Percussion includes fixed hit decay.
 public struct PreparedTonalSample: Sendable {
     public let samples: [Float]
     public let channels: Int
@@ -26,7 +28,7 @@ public struct TonalSamplePreparer: Sendable {
     }
     private struct GuitarManifest: Decodable { let entries: [Entry] }
     private let bankURL: URL
-    private let guitar, piano, bass: [Entry]
+    private let guitar, piano, bass, percussion: [Entry]
 
     public init(bankURL: URL) throws {
         guard bankURL.isFileURL else { throw SamplePreparationError.invalidBank }
@@ -43,6 +45,12 @@ public struct TonalSamplePreparer: Sendable {
             $0.instrument == "piano" && $0.asset.contains("_v1_")
         }
         bass = samples.filter { $0.instrument == "bass" && $0.asset.contains("_v1_") }
+        percussion = samples.filter {
+            $0.instrument == "kick" || $0.instrument == "shaker"
+                || ($0.instrument == "snare" && $0.asset.contains("_stick_"))
+                || ($0.instrument == "hat" && $0.asset.contains("_HitC_")
+                    && ($0.asset.contains("_v1_") || $0.asset.contains("_v2_")))
+        }
         guard guitar.count == 32, piano.count == 10,
             bass.compactMap(\.rootMidi) == [34, 34, 49, 49, 38, 38, 28, 28, 44, 44],
             Set(bass.map(\.asset)).count == 10,
@@ -59,6 +67,27 @@ public struct TonalSamplePreparer: Sendable {
                 (1...2).contains(entry.channels), (0...127).contains(root)
             else { throw SamplePreparationError.invalidBank }
         }
+        guard Set(percussion.map(\.asset)).count == 12,
+            percussion.filter({ $0.instrument == "hat" && $0.asset.contains("_v1_") }).count == 2,
+            percussion.filter({ $0.instrument == "hat" && $0.asset.contains("_v2_") }).count == 2
+        else { throw SamplePreparationError.invalidBank }
+        for (kind, count, frames) in [
+            ("kick", 2, 25_600...25_600), ("snare", 2, 22_400...22_400),
+            ("hat", 4, 4_160...38_400), ("shaker", 4, 1...5_419),
+        ] {
+            let entries = percussion.filter { $0.instrument == kind }
+            guard entries.count == count else { throw SamplePreparationError.invalidBank }
+            for entry in entries {
+                let path = self.bankURL.appendingPathComponent(entry.asset)
+                    .resolvingSymlinksInPath()
+                    .standardizedFileURL.path
+                guard entry.asset.hasPrefix("assets/\(kind)/"),
+                    path.hasPrefix(self.bankURL.path + "/assets/\(kind)/"),
+                    entry.rootMidi == nil, entry.channels == 1, entry.sampleRate == 32_000,
+                    frames.contains(entry.frames)
+                else { throw SamplePreparationError.invalidBank }
+            }
+        }
     }
 
     private static func manifest(_ url: URL) throws -> Data {
@@ -70,14 +99,23 @@ public struct TonalSamplePreparer: Sendable {
         return data
     }
 
-    public func prepare(instrument: TonalInstrument, note: Int, roundRobin: Int, warmth: Double)
-        throws
-        -> PreparedTonalSample
-    {
-        guard (0...10).contains(roundRobin), warmth.isFinite else {
+    /// Velocity selects the closed-hat layer; continuous event gain remains in the renderer.
+    public func prepare(
+        instrument: TonalInstrument, note: Int, roundRobin: Int, warmth: Double,
+        velocity: Double = 0.5
+    ) throws -> PreparedTonalSample {
+        guard (0...10).contains(roundRobin), warmth.isFinite,
+            velocity.isFinite, (0...1).contains(velocity)
+        else {
             throw SamplePreparationError.invalidRequest
         }
-        if instrument == .bass { return try prepareBass(note: note, roundRobin: roundRobin) }
+        switch instrument {
+        case .bass: return try prepareBass(note: note, roundRobin: roundRobin)
+        case .guitar, .piano: break
+        default:
+            return try preparePercussion(
+                instrument: instrument, note: note, roundRobin: roundRobin, velocity: velocity)
+        }
         guard (50...69).contains(note) else { throw SamplePreparationError.invalidRequest }
         let pool = instrument == .guitar ? guitar : piano
         // Manifest order is significant for piano ties (58 selects 60, not 56).
@@ -121,6 +159,45 @@ public struct TonalSamplePreparer: Sendable {
         }
         guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
         return PreparedTonalSample(samples: samples, channels: entry.channels)
+    }
+
+    private func preparePercussion(
+        instrument: TonalInstrument, note: Int, roundRobin: Int, velocity: Double
+    ) throws -> PreparedTonalSample {
+        guard note == (instrument == .snare ? 1 : 0) else {
+            throw SamplePreparationError.invalidRequest
+        }
+        let layer = velocity < 0.72 ? "_v1_" : "_v2_"
+        let pool = percussion.filter {
+            $0.instrument == instrument.rawValue && (instrument != .hat || $0.asset.contains(layer))
+        }
+        guard !pool.isEmpty else { throw SamplePreparationError.invalidBank }
+        var samples = try decode(pool[roundRobin % pool.count])
+        if instrument == .kick {
+            samples = Array(samples.prefix(16_640))
+            SampleProcessing.filter(&samples, channels: 1, cutoff: 260, highpass: false, order: 2)
+            var frequencySum = 0.0
+            for index in samples.indices {
+                let time = Double(index) / 32_000
+                frequencySum += 48 + 46 * exp(-time / 0.025)
+                let phase = frequencySum / 32_000 * 2 * Double.pi
+                let sine = sin(phase) * exp(-time / 0.115) * (1 - exp(-time / 0.0015))
+                samples[index] *= 0.18
+                samples[index] = Float(0.82 * sine + Double(samples[index]))
+            }
+        } else if instrument == .hat || instrument == .snare {
+            SampleProcessing.filter(
+                &samples, channels: 1, cutoff: instrument == .hat ? 6500 : 3200,
+                highpass: false, order: 2)
+            if instrument == .hat { samples = Array(samples.prefix(4_160)) }
+            let decay = instrument == .hat ? 0.052 : 0.085
+            for index in samples.indices {
+                samples[index] = Float(
+                    Double(samples[index]) * exp(-Double(index) / 32_000 / decay))
+            }
+        }
+        guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
+        return PreparedTonalSample(samples: samples, channels: 1)
     }
 
     private func prepareBass(note: Int, roundRobin: Int) throws -> PreparedTonalSample {

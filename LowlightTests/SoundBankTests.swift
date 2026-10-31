@@ -19,7 +19,7 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
-    @Test func bundledTonalVoicesRenderOnIOS() throws {
+    @Test func bundledInstrumentVoicesRenderOnIOS() throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
         let score = Data(
             """
@@ -32,7 +32,19 @@ struct SoundBankTests {
                "round_robin":0,"release":0.05,"articulation":"normal"},
               {"instrument":"bass","note":41,"beat":0,"time":0,"local_time":0,
                "duration":3,"velocity":0.5,"role":"bass","pan":0,
-               "round_robin":0,"release":0.05,"articulation":"normal"}
+               "round_robin":0,"release":0.05,"articulation":"normal"},
+              {"instrument":"kick","note":0,"beat":0,"time":0,"local_time":0,
+               "duration":0.1,"velocity":0.5,"role":"drum","pan":0,
+               "round_robin":1,"release":0,"articulation":"normal"},
+              {"instrument":"snare","note":1,"beat":0,"time":0,"local_time":0,
+               "duration":0.1,"velocity":0.4,"role":"drum","pan":-0.1,
+               "round_robin":1,"release":0,"articulation":"normal"},
+              {"instrument":"hat","note":0,"beat":0,"time":0,"local_time":0,
+               "duration":0.1,"velocity":0.8,"role":"drum","pan":0.2,
+               "round_robin":1,"release":0,"articulation":"normal"},
+              {"instrument":"shaker","note":0,"beat":0,"time":0,"local_time":0,
+               "duration":0.1,"velocity":0.3,"role":"drum","pan":0.4,
+               "round_robin":3,"release":0,"articulation":"normal"}
             ]
             """.utf8)
         let mixer = try TonalVoiceMixer(
@@ -42,7 +54,7 @@ struct SoundBankTests {
         #expect(output.withUnsafeMutableBufferPointer { mixer.render(into: $0) })
         let finite = output.allSatisfy(\.isFinite)
         #expect(finite && output.contains { abs($0) > 0.001 })
-        // Guitar/piano and recorded bass touch have ended; the bass oscillator continues.
+        // Other voices and recorded bass touch have ended; the bass oscillator continues.
         let sustained = output[(95_000 * 2)..<(96_000 * 2)].contains { abs($0) > 0.0001 }
         #expect(sustained)
         let silent = output[(97_600 * 2)...].allSatisfy { $0 == 0 }

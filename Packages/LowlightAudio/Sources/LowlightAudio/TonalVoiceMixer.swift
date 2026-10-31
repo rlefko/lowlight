@@ -12,7 +12,7 @@ public final class TonalVoiceMixer {
     private let handle: OpaquePointer
     private struct Key: Hashable {
         let instrument: TonalInstrument
-        let note, roundRobin: Int
+        let note, roundRobin, layer: Int
     }
 
     public init(preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double) throws {
@@ -22,8 +22,7 @@ public final class TonalVoiceMixer {
         var previous: Int64 = -1
         for event in events {
             try event.validate()
-            guard [.guitar, .piano, .bass].contains(event.instrument), event.startFrame >= previous
-            else {
+            guard event.startFrame >= previous else {
                 throw VoiceMixerError.invalidScore
             }
             previous = event.startFrame
@@ -36,17 +35,23 @@ public final class TonalVoiceMixer {
                 guard let instrument = TonalInstrument(rawValue: event.instrument.rawValue) else {
                     throw VoiceMixerError.invalidScore
                 }
+                let takes =
+                    switch instrument {
+                    case .guitar, .shaker: 4
+                    case .piano: 1
+                    default: 2
+                    }
                 let key = Key(
                     instrument: instrument, note: event.note,
-                    roundRobin: instrument == .guitar
-                        ? event.roundRobin % 4 : (instrument == .bass ? event.roundRobin % 2 : 0))
+                    roundRobin: event.roundRobin % takes,
+                    layer: instrument == .hat && event.velocity >= 0.72 ? 2 : 1)
                 if slots[key] == nil {
                     guard slots.count < Int(LL_SAMPLE_LIMIT) else {
                         throw VoiceMixerError.capacityExceeded
                     }
                     let sample = try preparer.prepare(
                         instrument: instrument, note: key.note,
-                        roundRobin: key.roundRobin, warmth: warmth)
+                        roundRobin: key.roundRobin, warmth: warmth, velocity: event.velocity)
                     let slot = sample.samples.withUnsafeBufferPointer {
                         ll_mixer_add_sample(
                             handle, $0.baseAddress, UInt32(sample.frames), UInt32(sample.channels))
@@ -55,13 +60,23 @@ public final class TonalVoiceMixer {
                     slots[key] = UInt32(slot)
                 }
                 guard let slot = slots[key] else { throw VoiceMixerError.invalidScore }
+                let identifier: UInt8 =
+                    switch instrument {
+                    case .guitar: 0
+                    case .piano: 1
+                    case .bass: 2
+                    case .kick: 3
+                    case .snare: 4
+                    case .hat: 5
+                    case .shaker: 6
+                    }
                 score.append(
                     LLEvent(
                         start_frame: UInt64(event.startFrame), sample_index: slot,
                         hold_frames: UInt32(event.gateEndFrame - event.startFrame),
                         release_frames: UInt32(event.releaseEndFrame - event.gateEndFrame),
                         velocity: Float(event.velocity), pan: Float(event.pan),
-                        instrument: instrument == .guitar ? 0 : (instrument == .piano ? 1 : 2),
+                        instrument: identifier,
                         connected: event.articulation == .connected ? 1 : 0,
                         priority: [.melody, .bass].contains(event.role)
                             ? 2 : (event.role == .answer ? 1 : 0),
