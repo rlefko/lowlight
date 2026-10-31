@@ -98,6 +98,7 @@ jobs:
       - run: python tools/reference/check.py --integrity
       - run: python tools/reference/verify-tonal.py --integrity
       - run: python tools/reference/verify-voices.py --integrity
+      - run: python tools/reference/verify-bass.py --integrity
       - run: python tools/reference/verify-grammar.py
       - run: python tools/reference/verify-events.py
       - run: python -m pip install --require-hashes -r tools/reference/requirements.lock
@@ -109,6 +110,7 @@ jobs:
       - run: |
           python tools/reference/verify-tonal.py --compare .build/tonal-native --evidence .build/tonal-evidence
           python tools/reference/verify-voices.py --compare .build/tonal-native/voices --evidence .build/tonal-evidence/voices
+          python tools/reference/verify-bass.py --compare .build/tonal-native/bass --evidence .build/tonal-evidence/bass
           cp .build/tonal-native/profile.json .build/tonal-evidence/profile.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

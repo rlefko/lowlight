@@ -63,10 +63,14 @@ enum SampleProcessing {
         return sum
     }
 
-    /// Butterworth high-pass order 2 / low-pass order 4, zero initial state.
+    /// Butterworth order 2 or 4, defaulting to high-pass 2 / low-pass 4; zero initial state.
     /// Double section state matches scipy.sosfilt; cast only at each filter's output.
-    static func filter(_ samples: inout [Float], channels: Int, cutoff: Double, highpass: Bool) {
-        let quality = highpass ? [sqrt(0.5)] : [0.541196100146197, 1.306562964876377]
+    static func filter(
+        _ samples: inout [Float], channels: Int, cutoff: Double, highpass: Bool, order: Int? = nil
+    ) {
+        let order = order ?? (highpass ? 2 : 4)
+        precondition(order == 2 || order == 4)
+        let quality = order == 2 ? [sqrt(0.5)] : [0.541196100146197, 1.306562964876377]
         let tangent = tan(.pi * cutoff / 32_000)
         let sections = quality.map { quality in
             let denominator = 1 + tangent / quality + tangent * tangent

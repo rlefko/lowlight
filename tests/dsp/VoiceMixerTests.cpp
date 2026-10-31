@@ -177,6 +177,91 @@ static void stealing() {
     }
 }
 
+static LLEvent bass(uint64_t start = 0, uint32_t hold = 900, uint32_t release = 300) {
+    auto note = event(0, start, hold, release);
+    note.instrument = 2; note.midi = 40; note.priority = 2;
+    return note;
+}
+static float bassReference(uint32_t age, const LLEvent &note, float touch = 0) {
+    if (age >= note.hold_frames + note.release_frames) return 0;
+    const double t = age / 32000.0, phase = 2 * std::acos(-1.0) * 440 * std::pow(2.0, (note.midi - 69) / 12.0) * t;
+    const double tone = .21 * std::sin(phase) + .105 * std::sin(2 * phase) + .037 * std::sin(3 * phase);
+    double value = (tone * (1 - std::exp(-t / .016)) * std::exp(-t / 2.6) + touch) * .24 * std::pow(note.velocity, 1.10);
+    if (age >= note.hold_frames && note.release_frames > 1)
+        value *= std::pow(std::cos(std::acos(-1.0) / 2 * (age - note.hold_frames) / (note.release_frames - 1)), 2);
+    return static_cast<float>(value) * 0.99999994f;
+}
+static void bassSoundAndBounds() {
+    Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0); CHECK(mixer.sample(.125f, 8, 2) == 1);
+    auto note = bass(); std::vector<float> expected;
+    for (const uint8_t midi : {31, 40, 57}) {
+        note.midi = midi; mixer.load({note}); expected = mixer.render(1201);
+        for (uint32_t frame = 0; frame < 1201; ++frame) {
+            CHECK(near(expected[2 * frame], bassReference(frame, note, frame < 8 ? .125f : 0)));
+            CHECK(expected[2 * frame] == expected[2 * frame + 1]);
+        }
+        CHECK(expected[0] > 0 && expected[2 * 500] != 0 && expected[2400] == 0);
+        CHECK(ll_mixer_active_voices(mixer.value) == 0);
+        mixer.reset(); CHECK(expected == mixer.render(1201, {1, 17, 255, 256, 513}));
+    }
+    note.pan = 1; note.connected = 1; mixer.load({note}); CHECK(expected == mixer.render(1201));
+    note.velocity = .5f; mixer.load({note}); const auto quiet = mixer.render(1201);
+    CHECK(near(quiet[1000], expected[1000] * std::pow(.5, 1.10)));
+    note.velocity = 0; mixer.load({note}); CHECK(mixer.render(1201) == std::vector<float>(2402, 0));
+    CHECK(ll_mixer_active_voices(mixer.value) == 0);
+    for (const uint32_t release : {0u, 1u, 2u}) {
+        note = bass(0, 1, release); mixer.load({note}); const auto tiny = mixer.render(4);
+        for (uint32_t frame = 0; frame < 4; ++frame) CHECK(near(tiny[2 * frame], bassReference(frame, note, .125f)));
+        CHECK(ll_mixer_active_voices(mixer.value) == 0);
+    }
+    note = bass(0, 512000, 160000); mixer.load({note}); expected = mixer.render(672001, {1023});
+    CHECK(near(expected[2 * 512000], bassReference(512000, note)) && expected[2 * 672000] == 0);
+    CHECK(ll_mixer_active_voices(mixer.value) == 0);
+    auto boundary = note; boundary.start_frame = (uint64_t{1} << 52) - 672000; mixer.load({boundary});
+    ++boundary.start_frame; CHECK(!ll_mixer_load_events(mixer.value, &boundary, 1));
+    mixer.load({note}); mixer.render(123);
+    std::vector<LLEvent> invalid;
+    auto bad = note; bad.midi = 30; invalid.push_back(bad);
+    bad = note; bad.midi = 58; invalid.push_back(bad);
+    bad = note; bad.sample_index = 1; invalid.push_back(bad);
+    bad = note; bad.hold_frames = 512001; invalid.push_back(bad);
+    bad = note; bad.release_frames = 160001; invalid.push_back(bad);
+    for (const auto &value : invalid) CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
+    CHECK(ll_mixer_position(mixer.value) == 123);
+    CHECK(std::vector<float>(expected.begin() + 246, expected.begin() + 2048) == mixer.render(901));
+}
+static void bassReservationAndOverlap() {
+    Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0); CHECK(mixer.sample(0, 4096) == 1);
+    auto first = bass(), second = bass(100), rejected = bass(101);
+    second.midi = 47; rejected.midi = 54; rejected.velocity = .5f;
+    mixer.load({first, second, rejected}); const auto overlap = mixer.render(500, {1});
+    CHECK(ll_mixer_active_voices(mixer.value) == 1 && ll_mixer_steals(mixer.value) == 1);
+    CHECK(ll_mixer_dropped_events(mixer.value) == 1);
+    CHECK(near(overlap[2 * 200], bassReference(200, first) * 59.0 / 159));
+    CHECK(overlap[2 * 259] == 0 && near(overlap[2 * 260], bassReference(0, second, .125f)));
+    CHECK(near(overlap[2 * 400], bassReference(140, second)));
+    mixer.reset(); CHECK(overlap == mixer.render(500, {257, 1, 17}));
+    CHECK(ll_mixer_steals(mixer.value) == 1 && ll_mixer_dropped_events(mixer.value) == 1);
+    auto tone = event(1, 0, 3000, 0); tone.priority = 2;
+    std::vector<LLEvent> mixed(63, tone); first = bass(0, 3000, 0); mixed.push_back(first);
+    tone.start_frame = 100; mixed.insert(mixed.end(), 63, tone);
+    tone.start_frame = 101; mixed.push_back(tone);
+    mixer.load(mixed); const auto saturated = mixer.render(700, {1});
+    CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 63);
+    CHECK(ll_mixer_dropped_events(mixer.value) == 1);
+    for (uint32_t frame = 0; frame < 700; ++frame)
+        CHECK(near(saturated[2 * frame], bassReference(frame, first, frame < 8 ? .125f : 0)));
+    mixer.reset(); CHECK(saturated == mixer.render(700, {700}));
+    tone.start_frame = 0; mixed.assign(64, tone); first.velocity = 0; mixed.push_back(first);
+    mixer.load(mixed); mixer.render(500); // Even a silent bass score reserves its one slot.
+    CHECK(ll_mixer_active_voices(mixer.value) == 63 && ll_mixer_steals(mixer.value) == 1);
+    tone.start_frame = 700; mixed.assign(64, tone); mixer.load(mixed); mixer.render(500);
+    auto invalid = bass(); invalid.midi = 58;
+    CHECK(!ll_mixer_load_events(mixer.value, &invalid, 1));
+    CHECK(ll_mixer_position(mixer.value) == 500); mixer.render(300);
+    CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 0);
+}
+
 static void invalidInputsAndOwnership() {
     Mixer mixer; const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
     CHECK(ll_mixer_add_sample(mixer.value, nullptr, 1, 1) == -1);
@@ -200,7 +285,7 @@ static void invalidInputsAndOwnership() {
     bad = note; bad.velocity = 1.1f; invalid.push_back(bad);
     bad = note; bad.pan = 1.1f; invalid.push_back(bad);
     bad = note; bad.pan = nan; invalid.push_back(bad);
-    bad = note; bad.instrument = 2; invalid.push_back(bad);
+    bad = note; bad.instrument = 3; invalid.push_back(bad);
     bad = note; bad.connected = 2; invalid.push_back(bad);
     bad = note; bad.priority = 3; invalid.push_back(bad);
     for (const auto &value : invalid) CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
@@ -220,6 +305,7 @@ static void invalidInputsAndOwnership() {
 }
 
 int main() {
-    timingAndPartitioning(); envelopesAndStereo(); stealing(); invalidInputsAndOwnership();
-    std::puts("Voice mixer timing, envelopes, stealing, bounds, and allocation audit passed");
+    timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
+    invalidInputsAndOwnership();
+    std::puts("Voice mixer timing, tonal/bass envelopes, stealing, bounds, and allocation audit passed");
 }

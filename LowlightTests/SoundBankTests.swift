@@ -29,18 +29,24 @@ struct SoundBankTests {
                "round_robin":0,"release":0.05,"articulation":"normal"},
               {"instrument":"piano","note":60,"beat":0,"time":0,"local_time":0,
                "duration":0.1,"velocity":0.4,"role":"chord","pan":0.2,
+               "round_robin":0,"release":0.05,"articulation":"normal"},
+              {"instrument":"bass","note":41,"beat":0,"time":0,"local_time":0,
+               "duration":3,"velocity":0.5,"role":"bass","pan":0,
                "round_robin":0,"release":0.05,"articulation":"normal"}
             ]
             """.utf8)
         let mixer = try TonalVoiceMixer(
             preparer: TonalSamplePreparer(bankURL: bank),
             events: NoteEvent.importReference(score), warmth: 0.78)
-        var output = [Float](repeating: .nan, count: 5120 * 2)
+        var output = [Float](repeating: .nan, count: 99_200 * 2)
         #expect(output.withUnsafeMutableBufferPointer { mixer.render(into: $0) })
         let finite = output.allSatisfy(\.isFinite)
         #expect(finite && output.contains { abs($0) > 0.001 })
-        let silent = output[(4800 * 2)...].allSatisfy { $0 == 0 }
-        #expect(silent && mixer.activeVoices == 0 && mixer.position == 5120)
+        // Guitar/piano and recorded bass touch have ended; the bass oscillator continues.
+        let sustained = output[(95_000 * 2)..<(96_000 * 2)].contains { abs($0) > 0.0001 }
+        #expect(sustained)
+        let silent = output[(97_600 * 2)...].allSatisfy { $0 == 0 }
+        #expect(silent && mixer.activeVoices == 0 && mixer.position == 99_200)
         #expect(mixer.stolenVoices == 0 && mixer.droppedEvents == 0)
     }
 

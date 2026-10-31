@@ -2,7 +2,7 @@
 
 Lowlight is an iPhone app in development for original, ongoing lo-fi music that works entirely offline. The accepted sound uses soft guitar and piano, rounded bass, restrained drums, and a shared room.
 
-The app currently has a native shell, an offline About/licenses screen, and the accepted lossless note bank. A local Swift package adds deterministic song plans, note events, shared transition timing, and checkpoint restoration; a bounded native guitar/piano mixer now renders through the offline harness. Tonal preparation and voices match the frozen reference within measured tolerances. Music playback and controls are not implemented yet. See the [milestone status](docs/status.md) for validation and remaining work.
+The app currently has a native shell, an offline About/licenses screen, and the accepted lossless note bank. A local Swift package adds deterministic song plans, note events, shared transition timing, and checkpoint restoration; a bounded native guitar/piano/bass mixer now renders through the offline harness. Tonal preparation and voices match the frozen reference within measured tolerances. Music playback and controls are not implemented yet. See the [milestone status](docs/status.md) for validation and remaining work.
 
 ## Build
 
