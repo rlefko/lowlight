@@ -42,7 +42,7 @@ jobs:
   build:
     name: Build and Tests
     runs-on: macos-26
-    timeout-minutes: 15
+    timeout-minutes: 30 # Allows a cold download if the pinned simulator runtime is absent.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -144,7 +144,7 @@ jobs:
           tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-osx64.tar.gz
       - name: Trace a fresh app build without compilation caches
         run: |
-          xcodebuild -quiet -project Lowlight.xcodeproj -scheme Lowlight \
+          xcodebuild -project Lowlight.xcodeproj -scheme Lowlight \
             -configuration Release -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/codeql-derived" clean build \
             ARCHS=arm64 CODE_SIGNING_ALLOWED=NO COMPILATION_CACHE_ENABLE_CACHING=NO \

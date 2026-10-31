@@ -7,6 +7,7 @@ Validated with Xcode 26.6 (17F113), Swift 6.3.3, and the iOS 26.5 SDK/runtime:
 - `scripts/setup`: pinned SwiftLint 0.65.1 download checksum and tool versions passed.
 - `scripts/quality`: official Swift formatting and selected SwiftLint rules passed.
 - `scripts/build test`: iPhone 17 simulator, one launch/About/license/credits/dismiss/relaunch test, zero failures; test execution 12.658 seconds.
+- Fresh temporary-device bootstrap: the revised test command passed with zero failures (12.654 seconds in the test, about 65 seconds including setup); cleanup left no temporary device behind.
 - `scripts/build release`: unsigned arm64 device build passed, deployment target iOS 18.
 - `scripts/check-repository`: documentation links, complete license, acknowledgment, and foundation resource inventory passed.
 - Hook checks accepted a valid staged file with an invalid working copy and rejected an invalid staged file with a valid working copy. Index and working copy remained unchanged.

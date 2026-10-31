@@ -4,14 +4,42 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 ./scripts/toolchain
+source config/toolchain.env
 mode="${1:-test}"
 derived="${2:-.build/DerivedData}"
 common=(-project Lowlight.xcodeproj -scheme Lowlight -derivedDataPath "$derived"
   CODE_SIGNING_ALLOWED=NO)
 case "$mode" in
   test)
+    if [[ "${GITHUB_ACTIONS:-false}" == true ]]; then
+      sudo -n env DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}" xcodebuild -runFirstLaunch
+    fi
+    destination="${SIMULATOR_DESTINATION:-}"
+    if [[ -z "$destination" ]]; then
+      runtimes="$(xcrun simctl list runtimes -j)"
+      runtime_check='exit(JSON.parse(STDIN.read).fetch("runtimes").any? { |r| r["identifier"] == ARGV[0] && r["isAvailable"] } ? 0 : 1)'
+      if ! ruby -rjson -e "$runtime_check" "$SIMULATOR_RUNTIME" <<< "$runtimes"; then
+        xcrun simctl list runtimes
+        if [[ "${GITHUB_ACTIONS:-false}" != true ]]; then
+          echo "Install iOS $SIMULATOR_OS_VERSION Simulator in Xcode Settings > Components, then rerun." >&2
+          exit 1
+        fi
+        xcodebuild -downloadPlatform iOS -buildVersion "$SIMULATOR_OS_VERSION" -architectureVariant arm64
+        runtimes="$(xcrun simctl list runtimes -j)"
+        if ! ruby -rjson -e "$runtime_check" "$SIMULATOR_RUNTIME" <<< "$runtimes"; then
+          echo "Pinned simulator runtime $SIMULATOR_RUNTIME is unavailable after download." >&2
+          xcrun simctl list runtimes
+          exit 1
+        fi
+      fi
+      xcrun simctl list runtimes
+      device="$(xcrun simctl create 'Lowlight UI Tests' "$SIMULATOR_DEVICE_TYPE" "$SIMULATOR_RUNTIME")"
+      trap 'xcrun simctl shutdown "$device" >/dev/null 2>&1 || :; xcrun simctl delete "$device" >/dev/null 2>&1 || :' EXIT
+      xcrun simctl bootstatus "$device" -b
+      destination="platform=iOS Simulator,id=$device"
+    fi
     xcodebuild "${common[@]}" -configuration Debug \
-      -destination "${SIMULATOR_DESTINATION:-platform=iOS Simulator,name=iPhone 17,OS=26.5}" \
+      -destination "$destination" \
       -parallel-testing-enabled NO test ;;
   release)
     xcodebuild "${common[@]}" -configuration Release \

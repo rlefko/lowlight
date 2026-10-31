@@ -10,6 +10,8 @@ Use one focused behavior change per PR. Titles start with an emoji and use short
 
 `./scripts/build test` runs the launch/About/dismiss/relaunch UI smoke test. `./scripts/build release` builds the unsigned device app used by size reporting. The shell has no logical model to unit test yet; introduce Swift Testing with planner and state-machine behavior. Use XCTest/XCUITest for UI and appropriate performance coverage.
 
+Tests create a temporary device using the runtime and device type pinned in [toolchain.env](../config/toolchain.env), wait for it to boot, and delete only that device afterward. Install the pinned runtime in Xcode Settings > Components for local development. CI initializes Xcode and downloads that exact runtime only if it is missing; it never substitutes another OS version. Set `SIMULATOR_DESTINATION` to an explicit Xcode destination to use an existing device instead.
+
 CI runs Quality, Build and Tests, Audio Regression, Size Budget, CodeQL, and an always-running CI Gate. Audio Regression reports that it is not applicable only while engine code is absent; adding audio code requires real regression tests. Long renders, physical-device energy trials, and signed exports stay outside commit hooks and ordinary PR checks.
 
 Manual workflow runs require a `size_base` commit/ref. PRs compare against their actual merge base; main-branch runs compare against the previous head. A missing project counts as a first size baseline only when the base tree is empty.
@@ -28,3 +30,4 @@ Tool versions and SHA pins were checked against upstream sources on October 30, 
 - [Required check behavior](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks)
 - [Pull request approval restrictions](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews)
 - [Xcode app thinning reports](https://developer.apple.com/documentation/xcode/reducing-your-app-s-size)
+- [Installing Xcode simulator runtimes](https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components)
