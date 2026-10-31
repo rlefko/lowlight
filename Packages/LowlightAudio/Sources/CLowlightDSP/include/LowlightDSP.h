@@ -59,6 +59,32 @@ uint32_t ll_mixer_dropped_events(const LLMixer *mixer);
 uint64_t ll_mixer_position(const LLMixer *mixer);
 uint32_t ll_mixer_sample_bytes(const LLMixer *mixer);
 
+enum { LL_GLUE_LATENCY = 399 };
+typedef struct LLGlue LLGlue;
+// Compressed harmony before room/.92 scaling; rhythm/control share its latency.
+typedef struct {
+    float tonal[2], bass[2], drums[2], duck;
+} LLGlueFrame;
+
+// Separate, single-owner 32 kHz processor. Setup/destruction require an idle renderer.
+// Focus 0=guitar, 1=piano; input_frames is known and at most 2^52-399. Empty is valid.
+LLGlue *ll_glue_create(uint64_t input_frames, uint8_t focus);
+void ll_glue_destroy(LLGlue *glue);
+void ll_glue_reset(LLGlue *glue); // Preserves focus/length; clears all signal history.
+// Allocation/free/lock/I/O-free. Consumes <= the remaining input length and writes
+// one physical frame per input. Initial 399 frames are silence with duck=1.
+// Requires finite fields, duck in 0...1, and finite Float focus sum/linked power.
+// Validate the entire call before advancing; failure zeroes provided output.
+// Caller supplies full count storage; overlapping input/output is rejected (output is still cleared).
+// Count 0 permits null buffers.
+bool ll_glue_process(LLGlue *glue, const LLBusFrame *input, LLGlueFrame *output, uint32_t frames);
+// Only after all input is consumed. Emits exactly 399 more physical frames for a
+// nonempty stream (none for empty), reflecting detector boundaries, then succeeds
+// with written=0. Clears unused capacity. written is required; capacity 0 permits
+// null output. Overlapping output/written is rejected. Failure sets written=0,
+// clears provided output, and preserves state.
+bool ll_glue_drain(LLGlue *glue, LLGlueFrame *output, uint32_t capacity, uint32_t *written);
+
 #ifdef __cplusplus
 }
 #endif
