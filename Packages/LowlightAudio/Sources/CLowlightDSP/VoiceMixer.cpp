@@ -46,6 +46,52 @@ struct Voice {
     int32_t pending = -1;
     bool active = false;
 };
+constexpr uint32_t duckFrames = 8960;
+struct Lowpass {
+    double b0 = 0, b1 = 0, a1 = 0, a2 = 0;
+    double first[2]{}, second[2]{};
+    void configure(double cutoff) {
+        const double tangent = std::tan(pi * cutoff / 32000);
+        const double denominator = 1 + tangent / std::sqrt(.5) + tangent * tangent;
+        b0 = tangent * tangent / denominator; b1 = 2 * b0;
+        a1 = 2 * (tangent * tangent - 1) / denominator;
+        a2 = (1 - tangent / std::sqrt(.5) + tangent * tangent) / denominator;
+    }
+    float process(float input, uint32_t channel) {
+        const double result = b0 * input + first[channel];
+        first[channel] = b1 * input - a1 * result + second[channel];
+        second[channel] = b0 * input - a2 * result;
+        return normal(static_cast<float>(result));
+    }
+};
+struct Buses {
+    Lowpass filters[4]{};
+    float duck[duckFrames]{};
+    float drumGain = 0, hatGain = 0, bassGain = 0;
+    uint32_t duckAge = duckFrames;
+    bool configured = false;
+    void reset() {
+        for (auto &filter : filters)
+            for (uint32_t ch = 0; ch < 2; ++ch) filter.first[ch] = filter.second[ch] = 0;
+        duckAge = duckFrames;
+    }
+    LLBusFrame process(const float (&stems)[7][2]) {
+        LLBusFrame result{};
+        result.duck = duckAge < duckFrames ? duck[duckAge++] : 1;
+        for (uint32_t ch = 0; ch < 2; ++ch) {
+            result.guitar[ch] = normal(stems[0][ch]);
+            result.piano[ch] = normal(stems[1][ch]);
+            result.bass[ch] = normal((stems[2][ch] * 1.20f) * bassGain);
+            const float kick = filters[0].process(stems[3][ch], ch) * .50f;
+            const float stick = filters[1].process(stems[4][ch], ch) * .44f;
+            float drums = (kick + stick) * drumGain;
+            drums += (filters[2].process(stems[5][ch], ch) * .42f) * hatGain;
+            drums += filters[3].process(stems[6][ch], ch) * .24f;
+            result.drums[ch] = normal(drums);
+        }
+        return result;
+    }
+};
 }
 
 struct LLMixer {
@@ -53,6 +99,7 @@ struct LLMixer {
     Sample samples[LL_SAMPLE_LIMIT]{};
     Event events[LL_EVENT_LIMIT]{};
     Voice voices[LL_VOICE_LIMIT]{};
+    Buses buses{};
     uint32_t samplesUsed = 0, floatsUsed = 0, eventCount = 0, next = 0;
     uint32_t steals = 0, dropped = 0;
     uint32_t sharedVoices = LL_VOICE_LIMIT;
@@ -70,6 +117,19 @@ LLMixer *ll_mixer_create() {
 void ll_mixer_destroy(LLMixer *mixer) {
     if (mixer) { delete[] mixer->pcm; delete mixer; }
 }
+bool ll_mixer_configure_buses(LLMixer *m, double energy) {
+    if (!m || m->loaded || !std::isfinite(energy) || energy < 0 || energy > 1) return false;
+    constexpr double cutoffs[] = {280, 1050, 1450, 1200};
+    for (uint32_t i = 0; i < 4; ++i) m->buses.filters[i].configure(cutoffs[i]);
+    for (uint32_t i = 0; i < duckFrames; ++i)
+        m->buses.duck[i] = static_cast<float>(1 - .055 * std::exp(-static_cast<double>(i) / 32000 / .105));
+    m->buses.drumGain = static_cast<float>(.85 + .45 * energy);
+    m->buses.hatGain = static_cast<float>(.9 + .35 * energy);
+    m->buses.bassGain = static_cast<float>(.98 + .06 * energy);
+    m->buses.configured = true;
+    m->buses.reset();
+    return true;
+}
 int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint32_t channels) {
     if (!m || !pcm || m->loaded || m->samplesUsed == LL_SAMPLE_LIMIT || !frames ||
         frames > sampleFramesLimit || (channels != 1 && channels != 2)) return -1;
@@ -86,6 +146,7 @@ int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint3
 void ll_mixer_reset(LLMixer *m) {
     if (!m) return;
     for (auto &voice : m->voices) voice = Voice{};
+    m->buses.reset();
     m->position = 0; m->next = 0; m->steals = 0; m->dropped = 0;
 }
 bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
@@ -204,23 +265,28 @@ float bassSample(const Voice &v, const Event &e, const Sample &s, const float *p
     if (v.fade) value *= static_cast<double>(v.fade - 1) / (LL_STEAL_FRAMES - 1);
     return normal(static_cast<float>(value));
 }
-void renderFrame(LLMixer &m, float *output) {
-    while (m.next < m.eventCount && m.events[m.next].note.start_frame <= m.position)
+void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
+    while (m.next < m.eventCount && m.events[m.next].note.start_frame <= m.position) {
+        // Score-keyed, even when a silent/overloaded kick is never admitted to a voice.
+        if (m.events[m.next].note.instrument == 3) m.buses.duckAge = 0;
         schedule(m, m.next++);
+    }
     float left = 0, right = 0;
+    float stems[7][2]{};
     for (auto &v : m.voices) {
         if (!v.active) continue;
         const auto &e = m.events[v.event];
         const auto &s = m.samples[e.note.sample_index];
+        float voiceLeft, voiceRight;
         if (e.note.instrument == 2) {
             const float sample = bassSample(v, e, s, m.pcm);
-            left += sample * e.left; right += sample * e.right;
+            voiceLeft = sample * e.left; voiceRight = sample * e.right;
         } else if (e.note.instrument >= 3) {
             const float sample = m.pcm[s.offset + v.age];
             const float fade = v.fade ? static_cast<float>(v.fade - 1) / (LL_STEAL_FRAMES - 1) : 1;
             // Preserve the accepted per-hit rounding: pan first, then velocity gain.
-            left += ((sample * e.left) * e.gain) * fade;
-            right += ((sample * e.right) * e.gain) * fade;
+            voiceLeft = ((sample * e.left) * e.gain) * fade;
+            voiceRight = ((sample * e.right) * e.gain) * fade;
         } else {
             const uint32_t offset = s.offset + v.age * s.channels;
             const float gain = envelope(v, e);
@@ -228,8 +294,14 @@ void renderFrame(LLMixer &m, float *output) {
             const float r = m.pcm[offset + s.channels - 1] * gain;
             const float mid = (l + r) * .5f;
             const float side = (l - r) * .5f * (e.note.instrument ? .75f : 0);
-            left += (mid + side) * e.left;
-            right += (mid - side) * e.right;
+            voiceLeft = (mid + side) * e.left;
+            voiceRight = (mid - side) * e.right;
+        }
+        // Preserve the original slot-order dry sum independently of instrument routing.
+        left += voiceLeft; right += voiceRight;
+        if (m.buses.configured) {
+            stems[e.note.instrument][0] += voiceLeft;
+            stems[e.note.instrument][1] += voiceRight;
         }
         ++v.age;
         if (v.fade) --v.fade;
@@ -238,7 +310,11 @@ void renderFrame(LLMixer &m, float *output) {
             else v.active = false;
         }
     }
-    output[0] = normal(left); output[1] = normal(right);
+    if (output) { output[0] = normal(left); output[1] = normal(right); }
+    if (m.buses.configured) {
+        const auto frame = m.buses.process(stems);
+        if (busOutput) *busOutput = frame;
+    }
     ++m.position;
 }
 }
@@ -252,7 +328,20 @@ bool ll_mixer_render(LLMixer *m, float *output, uint32_t frames) {
     FlushSubnormals mode;
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
-        for (; offset < end; ++offset) renderFrame(*m, output + uint64_t{offset} * 2);
+        for (; offset < end; ++offset) renderFrame(*m, output + uint64_t{offset} * 2, nullptr);
+    }
+    return true;
+}
+bool ll_mixer_render_buses(LLMixer *m, LLBusFrame *output, uint32_t frames) {
+    if (frames && !output) return false;
+    if (!m || !m->loaded || !m->buses.configured || frames > timelineLimit - m->position) {
+        for (uint32_t i = 0; i < frames; ++i) output[i] = LLBusFrame{};
+        return false;
+    }
+    FlushSubnormals mode;
+    for (uint32_t offset = 0; offset < frames;) {
+        const uint32_t end = offset + std::min(256u, frames - offset);
+        for (; offset < end; ++offset) renderFrame(*m, nullptr, output + offset);
     }
     return true;
 }

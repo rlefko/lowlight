@@ -22,11 +22,20 @@ typedef struct {
     uint8_t priority; // 0 bed/support/percussion, 1 answer, 2 protected melody
     uint8_t midi; // Bass 31...57; percussion 1 for side-stick, otherwise 0; ignored for guitar/piano.
 } LLEvent;
+// Separate rack inputs/outputs preserve the future (processed tonal + bass)*duck + drums order.
+// Guitar/piano remain dry; bass has energy gain but is not ducked. No mastering or rack fades.
+typedef struct {
+    float guitar[2], piano[2], bass[2], drums[2];
+    float duck;
+} LLBusFrame;
 
 // Setup/destruction require an idle renderer. Owns bounded PCM/event copies.
 // No operation is thread safe; one owner must serialize setup and rendering.
 LLMixer *ll_mixer_create(void);
 void ll_mixer_destroy(LLMixer *mixer);
+// Optional, off-thread setup before the first score load. Finite energy in 0...1.
+// Designs fixed filters and the duck table; invalid calls leave all state untouched.
+bool ll_mixer_configure_buses(LLMixer *mixer, double energy);
 // Returns a sample index, or -1. Only permitted before loading the first score.
 int32_t ll_mixer_add_sample(LLMixer *mixer, const float *pcm, uint32_t frames, uint32_t channels);
 // Sorted absolute 32 kHz starts; gate/release lengths come from canonical endpoints.
@@ -39,6 +48,11 @@ void ll_mixer_reset(LLMixer *mixer);
 // Allocation/free/lock/I/O-free. Writes every stereo frame; handles 256-frame subblocks.
 // Caller supplies 2*frames floats, disjoint from immutable PCM. No concurrent calls.
 bool ll_mixer_render(LLMixer *mixer, float *output, uint32_t frames);
+// Requires configured buses; shares the same voices/clock as dry rendering.
+// Both output views advance configured bus state, so switching views loses no filter history.
+// Writes every frame (zeros on failure); caller supplies disjoint storage for frames structs.
+// Filters continue after active_voices reaches zero. Reset/reload clears filters and ducking.
+bool ll_mixer_render_buses(LLMixer *mixer, LLBusFrame *output, uint32_t frames);
 uint32_t ll_mixer_active_voices(const LLMixer *mixer);
 uint32_t ll_mixer_steals(const LLMixer *mixer);
 uint32_t ll_mixer_dropped_events(const LLMixer *mixer);

@@ -6,6 +6,9 @@ import LowlightPlanning
 
 public enum VoiceMixerError: Error { case invalidScore, capacityExceeded }
 
+/// Separate raw harmonic buses, processed rhythm buses, and the shared kick-duck factor.
+public typealias RhythmBusFrame = LLBusFrame
+
 /// Single-owner render session. Construction/preparation/destruction run off the callback.
 /// The C kernel owns immutable PCM and score copies; no borrowed Swift array survives setup.
 public final class TonalVoiceMixer {
@@ -15,8 +18,14 @@ public final class TonalVoiceMixer {
         let note, roundRobin, layer: Int
     }
 
-    public init(preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double) throws {
+    public init(
+        preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
+        busEnergy: Double? = nil
+    ) throws {
         guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite else {
+            throw VoiceMixerError.invalidScore
+        }
+        if let busEnergy, !busEnergy.isFinite || !(0...1).contains(busEnergy) {
             throw VoiceMixerError.invalidScore
         }
         var previous: Int64 = -1
@@ -29,6 +38,9 @@ public final class TonalVoiceMixer {
         }
         guard let handle = ll_mixer_create() else { throw VoiceMixerError.capacityExceeded }
         do {
+            if let busEnergy, !ll_mixer_configure_buses(handle, busEnergy) {
+                throw VoiceMixerError.invalidScore
+            }
             var slots: [Key: UInt32] = [:]
             var score: [LLEvent] = []
             for event in events {
@@ -103,6 +115,13 @@ public final class TonalVoiceMixer {
     public func render(into buffer: UnsafeMutableBufferPointer<Float>) -> Bool {
         guard buffer.count.isMultiple(of: 2), buffer.count / 2 <= UInt32.max else { return false }
         return ll_mixer_render(handle, buffer.baseAddress, UInt32(buffer.count / 2))
+    }
+
+    /// Requires busEnergy at construction. Bass remains before ducking for a later shared mix.
+    /// Both render views advance the same voices, filters, duck envelope, and playhead.
+    public func renderBuses(into buffer: UnsafeMutableBufferPointer<RhythmBusFrame>) -> Bool {
+        guard buffer.count <= UInt32.max else { return false }
+        return ll_mixer_render_buses(handle, buffer.baseAddress, UInt32(buffer.count))
     }
 
     public func reset() { ll_mixer_reset(handle) }
