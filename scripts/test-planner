@@ -4,4 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 ./scripts/toolchain
-xcrun swift test --package-path Packages/LowlightPlanning --scratch-path .build/PlanningTests
+configuration="${1:-debug}"
+case "$configuration" in
+  debug|release) ;;
+  *) echo 'Usage: scripts/test-planner [debug|release]' >&2; exit 2 ;;
+esac
+xcrun swift test --configuration "$configuration" --package-path Packages/LowlightPlanning --scratch-path .build/PlanningTests
