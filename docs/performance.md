@@ -45,7 +45,7 @@ Xcode task timings remain in the job log. Detailed CodeQL logs and a database bu
 
 ### CodeQL archive setup
 
-The native job now analyzes Swift and C++ together, with guards for all 17 tracked Swift sources/manifests and both C++ implementation/header files. Python runs separately. Setup uses the official CodeQL 2.27.3 `.tar.zst` bundles instead of `.tar.gz`; the action revision, CLI version, query packs, runner, fresh build, compilation-cache settings, categories, and required checks remain unchanged. The `/language:swift` category is the existing native comparison key.
+PRs 7–11 analyzed Swift and C++ together in one native job, with guards for all 17 tracked Swift sources/manifests and both C++ implementation/header files. Python runs separately. Setup uses the official CodeQL 2.27.3 `.tar.zst` bundles instead of `.tar.gz`; the action revision, CLI version, query packs, runner, fresh build, compilation-cache settings, categories, and required checks remain unchanged. The `/language:swift` category is the existing native comparison key.
 
 The [pinned action's extraction code](https://github.com/github/codeql-action/blob/9b3254085494b55a0f7c4c2b3d2d52cc712ce370/src/tar.ts) supports Zstandard with BSD tar ≥3.4.3 or GNU tar ≥1.31 and zstd available on PATH. The macOS runner provides BSD tar 3.5.3 and zstd 1.5.7; the Linux logs show GNU tar 1.35 and working Zstandard extraction. No new installer or permanent benchmark job is added.
 
@@ -70,3 +70,27 @@ Retained macOS gzip baselines both missed the tool cache:
 Download, extraction, and initialization use adjacent timestamped log markers; trace/job times use GitHub's whole-second step metadata. Both runs used the same macOS image and tool versions, but separate workers with unrecorded CPU contention. The archive alone was identical while download/extraction already varied from 59.6 to 73.8 seconds. Compare those setup phases separately from compilation and analysis; whole-job variation is not an archive-speed measurement. Python's existing tool-cache hit provides no cold-extraction timing comparison.
 
 Validation retains the 13 coverage-guard tests, the actual extracted-source inventories, CLI version and query counts, final analysis diagnostics/findings, aggregate CodeQL check, and CI Gate. Tool-archive caching is separate from compilation caching: the actual app and both packages still receive a fresh traced build. The slower trace remains a separate profiling concern.
+
+### Parallel native CodeQL analysis
+
+Swift and C++ now use separate `macos-26-intel` matrix jobs, following [GitHub’s recommendation to analyze languages in parallel](https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options#languages-to-be-analyzed). Each job still builds the actual unsigned Release arm64 iPhone app and both local packages from a clean, separate DerivedData directory. The Xcode/Swift/CodeQL pins, query suites, all three compilation-cache/driver flags, extraction guards, and merge protection remain unchanged. Python keeps its Linux job. No product, sample-bank, or renderer source changes accompany this CI change.
+
+The Swift category remains `/language:swift`, the existing comparison key. C++ gains `/language:cpp`; Python retains `/language:python`. The Swift and C++ jobs each require their corresponding extracted-source inventory, and CI Gate requires the entire matrix to succeed. The new C++ category must be checked alongside the preserved Swift category; successful upload alone does not establish a complete or passing scan.
+
+The change removes serial C++ work from the Swift job at the cost of one additional fresh app build and an additional concurrent Mac runner. In PR 11’s combined job, C++ finalization and query/SARIF processing consumed about 98 seconds after build tracing. Parallelism can shorten the native critical path when the C++ job finishes before Swift. The remaining Swift package-resolution and extraction cost still needs profiling; no compilation caching or target omission is used to conceal it.
+
+For measurement, report the native wall span from the first native job start to the last native job finish, and the time from workflow creation to that finish. The longest individual job omits delays when the jobs start at different times; the sum measures runner use, not elapsed feedback time. Report queue delay and whole-workflow completion separately. The matched manual runs use nondefault branches, identical application/package/toolchain source trees, the same workflow trigger, and debug disabled. A main-push or PR run has different analysis context and is supplementary evidence, not a matched timing treatment.
+
+The first matched pair used [combined run 41227008751](https://github.com/rlefko/lowlight/actions/runs/41227008751) and [split run 41227070866](https://github.com/rlefko/lowlight/actions/runs/41227070866). App/package/project/test/toolchain/build-script/reference-tool Git objects are identical. All three native jobs missed the tool cache and both C++ executions restored the same 32,597,260-byte TRAP cache from `fbc0b56`; CodeQL extraction caching is distinct from the disabled compiler caches.
+
+| First matched pair | Init | Fresh trace | Analysis | Native job |
+| --- | ---: | ---: | ---: | ---: |
+| Combined Swift/C++ | 1m55s | 9m38s | 2m18s | 14m22s |
+| Split Swift | 49s | 8m27s | 2m30s | 12m10s |
+| Split C++ | 58s | 1m18s | 50s | 3m27s |
+
+The observed native execution span fell by 132 seconds, while summed native runner time rose from 14m22s to 15m37s. This is not a stable percentage improvement: initialization alone accounts for 66 seconds of the difference, including identical archive extraction taking 68.4 seconds versus 24.1 seconds on different workers. The candidate’s C++ job queued for 7m51s during concurrent main/baseline/candidate workflows; this is not a controlled estimate of ordinary PR queue cost. It still finished before Swift, so native span equals the Swift job duration in this trial.
+
+The first pair reached native completion 14m57s versus 12m46s after workflow creation. However, the complete workflows reached CI Gate in 15m02s versus 16m46s: the candidate’s Build and Tests job waited for a runner, then its downstream audio check finished after CodeQL. This trial does not establish faster overall PR feedback.
+
+In the completed first pair, the actual native SARIF rule-ID union is identical: 27 Swift plus 58 C++ rules match the combined 85; Python’s 43 rule IDs also match. Normalized source inventories are identical, with all 17 tracked Swift sources/manifests and both C++ files verified. Swift’s inventory additionally includes the public C header. Those analyses have zero errors, warnings, and findings, and Swift reports zero unresolved AST nodes. The [PR’s aggregate CodeQL status](https://github.com/rlefko/lowlight/pull/12/checks) and new-category acceptance require separate verification on its merge commit. A second matched pair uses [combined run 41228406940](https://github.com/rlefko/lowlight/actions/runs/41228406940) and [split run 41228473706](https://github.com/rlefko/lowlight/actions/runs/41228473706) with the same respective source commits and inputs; the PR description records the completed repeat alongside its final checks.
