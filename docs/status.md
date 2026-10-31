@@ -4,7 +4,7 @@
 | --- | --- |
 | 1. Establish the Project Foundation | [PR #1](https://github.com/rlefko/lowlight/pull/1) merged; [hosted results](https://github.com/rlefko/lowlight/pull/1/checks) passed |
 | 2. Preserve the Audio Reference | [PR #2](https://github.com/rlefko/lowlight/pull/2) merged; [hosted results](https://github.com/rlefko/lowlight/pull/2/checks) passed |
-| 3. Add Deterministic Song Planning | Song plans/checkpoints merged in [PR #3](https://github.com/rlefko/lowlight/pull/3), with [hosted checks](https://github.com/rlefko/lowlight/pull/3/checks) passed; note events/shared timing implemented and [locally validated](validation-events.md), pending hosted checks and owner review |
+| 3. Add Deterministic Song Planning | Song plans/checkpoints merged in [PR #3](https://github.com/rlefko/lowlight/pull/3), with [hosted checks](https://github.com/rlefko/lowlight/pull/3/checks) passed; note events/shared timing in [PR #4](https://github.com/rlefko/lowlight/pull/4), [locally validated](validation-events.md), with [hosted checks](https://github.com/rlefko/lowlight/pull/4/checks) and owner review required before merge |
 | 4. Match the Accepted Instrument Sound | Planned |
 | 5. Blend Continuous Sessions | Planned |
 | 6. Support Background Playback | Planned |
