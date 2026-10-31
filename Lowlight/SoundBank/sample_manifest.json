@@ -1,0 +1,2012 @@
+[
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C2_v1_rr1_Player.wav",
+    "blob_sha": "d9a3a86ade95ae1015e6847728c209b67a829710",
+    "instrument": "piano",
+    "source_note": "C2",
+    "nominal_midi": 36,
+    "root_midi": 48,
+    "automatic_root_midi": 48,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 130.21326120158855,
+      "correlation": 0.9796042746727499,
+      "cents": -7.952568677973715
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 32.551749739933555,
+        "correlation": 0.9285805761224317,
+        "cents": -8.03582952962247
+      },
+      {
+        "octave_shift": 0,
+        "hz": 65.10788046429323,
+        "correlation": 0.962658509542211,
+        "cents": -7.919334190842515
+      },
+      {
+        "octave_shift": 12,
+        "hz": 130.21326120158855,
+        "correlation": 0.9796042746727499,
+        "cents": -7.952568677973715
+      },
+      {
+        "octave_shift": 24,
+        "hz": 272.22222222222223,
+        "correlation": -0.7724134082757029,
+        "cents": 68.73758270755334
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C2_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "eba9adfb3977605a494830081d4e9e4ff0a4efd017439fe402a208aca9f11d7a",
+    "source_bytes": 2939740,
+    "asset": "assets/piano/GPiano_sus_C2_v1_rr1_Player.flac",
+    "asset_sha256": "579f3043bc14c53412041889e085c47e18b82fece04c4ed2950267b4c37f53fe",
+    "packed_bytes": 295964,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 88.08315548047528,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C2_v2_rr1_Player.wav",
+    "blob_sha": "3e64901412fe7935e3a1152b0b7a2d93645e53ef",
+    "instrument": "piano",
+    "source_note": "C2",
+    "nominal_midi": 36,
+    "root_midi": 48,
+    "automatic_root_midi": 48,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 130.56193296179072,
+      "correlation": 0.9823660474242791,
+      "cents": -3.323042584766836
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 32.613495333829434,
+        "correlation": 0.9408835076171002,
+        "cents": -4.75505903909895
+      },
+      {
+        "octave_shift": 0,
+        "hz": 65.25656764995257,
+        "correlation": 0.9678582675281451,
+        "cents": -3.9702141076351407
+      },
+      {
+        "octave_shift": 12,
+        "hz": 130.56193296179072,
+        "correlation": 0.9823660474242791,
+        "cents": -3.323042584766836
+      },
+      {
+        "octave_shift": 24,
+        "hz": 272.22222222222223,
+        "correlation": -0.48959183842959625,
+        "cents": 68.73758270755334
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C2_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "00838dbdbcb0dffd02529c38fa84bc514931634b485fc2ad6ecc62fe98d27a62",
+    "source_bytes": 4116252,
+    "asset": "assets/piano/GPiano_sus_C2_v2_rr1_Player.flac",
+    "asset_sha256": "acdfc51eff9ae6a25b83d5323db2ebeff5ae6355d303c482287f4d224a20816a",
+    "packed_bytes": 240735,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 17,
+    "original_sample_rate": 44100,
+    "normalization_gain": 20.564168579415725,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C3_v1_rr1_Player.wav",
+    "blob_sha": "f1aad3b5a4eea04cfe4cd05ef85691eeaeedd435",
+    "instrument": "piano",
+    "source_note": "C3",
+    "nominal_midi": 48,
+    "root_midi": 60,
+    "automatic_root_midi": 60,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 261.0223927746924,
+      "correlation": 0.9809572150428246,
+      "cents": -3.995933636681268
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 65.25737180597726,
+        "correlation": 0.9272173252600489,
+        "cents": -3.948880259365374
+      },
+      {
+        "octave_shift": 0,
+        "hz": 130.51326673559313,
+        "correlation": 0.9597983966819293,
+        "cents": -3.9684706369629605
+      },
+      {
+        "octave_shift": 12,
+        "hz": 261.0223927746924,
+        "correlation": 0.9809572150428246,
+        "cents": -3.995933636681268
+      },
+      {
+        "octave_shift": 24,
+        "hz": 526.257002482753,
+        "correlation": -0.536062545421129,
+        "cents": 9.916801620694537
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C3_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "eb52431464cc160cb7c3576d5087b6cc67326fd903b620088c0874f6bcff4a8e",
+    "source_bytes": 2374332,
+    "asset": "assets/piano/GPiano_sus_C3_v1_rr1_Player.flac",
+    "asset_sha256": "bd0d5ae68375ea564c3c6a3997e054754c2283796087a9a427be485a55c26180",
+    "packed_bytes": 314456,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 127.58682686022549,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C3_v2_rr1_Player.wav",
+    "blob_sha": "2449d26c97873705e234ad85b94e0c651018d4a5",
+    "instrument": "piano",
+    "source_note": "C3",
+    "nominal_midi": 48,
+    "root_midi": 60,
+    "automatic_root_midi": 60,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 261.0366171174913,
+      "correlation": 0.9850335440254471,
+      "cents": -3.9015930885112047
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 65.25664184435868,
+        "correlation": 0.9456497299415704,
+        "cents": -3.968245756958432
+      },
+      {
+        "octave_shift": 0,
+        "hz": 130.51720339522006,
+        "correlation": 0.9656815114686284,
+        "cents": -3.9162523715410105
+      },
+      {
+        "octave_shift": 12,
+        "hz": 261.0366171174913,
+        "correlation": 0.9850335440254471,
+        "cents": -3.9015930885112047
+      },
+      {
+        "octave_shift": 24,
+        "hz": 520.0708468014985,
+        "correlation": -0.1565039052080326,
+        "cents": -10.554426671478057
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C3_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "fce33012fe900309abafd1a4d6d254d142b0cbf33834c7a72c2fd1ada4e746e1",
+    "source_bytes": 4283328,
+    "asset": "assets/piano/GPiano_sus_C3_v2_rr1_Player.flac",
+    "asset_sha256": "beea0fd928ea92a2bc773a3cdd73dba8998b2222b66708c49448cf3ea16e5a4f",
+    "packed_bytes": 236440,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 20.76487909099001,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C4_v1_rr1_Player.wav",
+    "blob_sha": "3f44173e0c32ca3caab64725d980b51a3c7faad0",
+    "instrument": "piano",
+    "source_note": "C4",
+    "nominal_midi": 60,
+    "root_midi": 72,
+    "automatic_root_midi": 72,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 522.3808567068223,
+      "correlation": 0.9903201228112545,
+      "cents": -2.881794291176883
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 130.53983409332184,
+        "correlation": 0.9576312208694857,
+        "cents": -3.61609547415939
+      },
+      {
+        "octave_shift": 0,
+        "hz": 261.1340981488055,
+        "correlation": 0.9812578855147709,
+        "cents": -3.2552049339256373
+      },
+      {
+        "octave_shift": 12,
+        "hz": 522.3808567068223,
+        "correlation": 0.9903201228112545,
+        "cents": -2.881794291176883
+      },
+      {
+        "octave_shift": 24,
+        "hz": 1050.0,
+        "correlation": -0.9684315638589073,
+        "cents": 5.7766788345905695
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C4_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "f921d4737ee847ecb55ce251a94e1841069b70e206b00342676954992ea7d0dc",
+    "source_bytes": 1768284,
+    "asset": "assets/piano/GPiano_sus_C4_v1_rr1_Player.flac",
+    "asset_sha256": "4309f167329c1616a4a740a2b55a82365b8189ad1ec56d06d7cbe087af00c455",
+    "packed_bytes": 299240,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 110.35123881145789,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C4_v2_rr1_Player.wav",
+    "blob_sha": "09dfd90293a537066bd825dac73f823bf46d0aa9",
+    "instrument": "piano",
+    "source_note": "C4",
+    "nominal_midi": 60,
+    "root_midi": 72,
+    "automatic_root_midi": 72,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 521.9481258568428,
+      "correlation": 0.9916312088651164,
+      "cents": -4.316511582280042
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 130.47066566184952,
+        "correlation": 0.9589680831256239,
+        "cents": -4.533658151529642
+      },
+      {
+        "octave_shift": 0,
+        "hz": 260.96576885229956,
+        "correlation": 0.9823867721678086,
+        "cents": -4.371533200154675
+      },
+      {
+        "octave_shift": 12,
+        "hz": 521.9481258568428,
+        "correlation": 0.9916312088651164,
+        "cents": -4.316511582280042
+      },
+      {
+        "octave_shift": 24,
+        "hz": 1050.0,
+        "correlation": -0.958597179566178,
+        "cents": 5.7766788345905695
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C4_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "69845de40a38ed6501746520f9f385ae56200a4372faed48178e64a32a75e58c",
+    "source_bytes": 2613976,
+    "asset": "assets/piano/GPiano_sus_C4_v2_rr1_Player.flac",
+    "asset_sha256": "dc912ce9fd61662073a87b3195f161db7b29e91c1d353cefe08a6e9830580223",
+    "packed_bytes": 214084,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 16.0133300325305,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C5_v1_rr1_Player.wav",
+    "blob_sha": "1bd041f897a0bbb593db9e93676a91476b9777df",
+    "instrument": "piano",
+    "source_note": "C5",
+    "nominal_midi": 72,
+    "root_midi": 84,
+    "automatic_root_midi": 84,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 1050.0,
+      "correlation": 0.9396632601954555,
+      "cents": 5.7766788345905695
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 261.58964012263806,
+        "correlation": 0.9659723025726177,
+        "cents": -0.23774114650033418
+      },
+      {
+        "octave_shift": 0,
+        "hz": 523.1768019711719,
+        "correlation": 0.9818676356370599,
+        "cents": -0.24594193509415227
+      },
+      {
+        "octave_shift": 12,
+        "hz": 1050.0,
+        "correlation": 0.9396632601954555,
+        "cents": 5.7766788345905695
+      },
+      {
+        "octave_shift": 24,
+        "hz": 2093.9965290348773,
+        "correlation": -0.9546754646249469,
+        "cents": 0.8203464321808633
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C5_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "94186af4a11f4a5aa4a550615bd923ff12bdc2db22ea0cbfd24a58bca77308c0",
+    "source_bytes": 1284188,
+    "asset": "assets/piano/GPiano_sus_C5_v1_rr1_Player.flac",
+    "asset_sha256": "d5db15ff29657c0b503f4af31fdc124988e5d4d8e055a64c56397d3ee08431a6",
+    "packed_bytes": 271071,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 96.89932284689753,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C5_v2_rr1_Player.wav",
+    "blob_sha": "197b04e4b6bbaf93ecb4bf436b5c4831a5afdec3",
+    "instrument": "piano",
+    "source_note": "C5",
+    "nominal_midi": 72,
+    "root_midi": 84,
+    "automatic_root_midi": 84,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 1050.0,
+      "correlation": 0.9435471136998099,
+      "cents": 5.7766788345905695
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 261.529804899198,
+        "correlation": 0.9766931483885468,
+        "cents": -0.633783685505456
+      },
+      {
+        "octave_shift": 0,
+        "hz": 523.0488280410711,
+        "correlation": 0.9892276652433315,
+        "cents": -0.669469747705262
+      },
+      {
+        "octave_shift": 12,
+        "hz": 1050.0,
+        "correlation": 0.9435471136998099,
+        "cents": 5.7766788345905695
+      },
+      {
+        "octave_shift": 24,
+        "hz": 2094.0948864671614,
+        "correlation": -0.9833969246868589,
+        "cents": 0.9016625826118977
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C5_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "f56e64651eed9bdc88abb53eff3beb9a6e89d787f29fef7758f04b6da09397c9",
+    "source_bytes": 1706624,
+    "asset": "assets/piano/GPiano_sus_C5_v2_rr1_Player.flac",
+    "asset_sha256": "59d966df4754beaad40d31aef4785c734eed3852e4e3c143e147f178b5e8487f",
+    "packed_bytes": 179599,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 16.712100422975517,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_E2_v1_rr1_Player.wav",
+    "blob_sha": "9f851e4fbe415d4fc2e9abba9721a289d75c15e4",
+    "instrument": "piano",
+    "source_note": "E2",
+    "nominal_midi": 40,
+    "root_midi": 52,
+    "automatic_root_midi": 52,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 164.32139846920356,
+      "correlation": 0.9871275021788419,
+      "cents": -5.179790521540027
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 41.0769440520725,
+        "correlation": 0.9526040172080791,
+        "cents": -5.323315952327039
+      },
+      {
+        "octave_shift": 0,
+        "hz": 82.1558888118633,
+        "correlation": 0.9757271936768555,
+        "cents": -5.281155426162857
+      },
+      {
+        "octave_shift": 12,
+        "hz": 164.32139846920356,
+        "correlation": 0.9871275021788419,
+        "cents": -5.179790521540027
+      },
+      {
+        "octave_shift": 24,
+        "hz": 327.11986175690356,
+        "correlation": -0.41206869979082467,
+        "cents": -13.22099855884692
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_E2_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "9fca1df9661fc3ea3cc32b5e5e605672a7d63bea56d5f04ca33e1d2eebf34b89",
+    "source_bytes": 3284080,
+    "asset": "assets/piano/GPiano_sus_E2_v1_rr1_Player.flac",
+    "asset_sha256": "09b11ca6aed854269bfa8333e2e79ba35d1c8b69290e2d2899b69fe2f6814054",
+    "packed_bytes": 284014,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 68.17323886973793,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_E2_v2_rr1_Player.wav",
+    "blob_sha": "c0ff0593494a3a66b47ec83380b127d65d578065",
+    "instrument": "piano",
+    "source_note": "E2",
+    "nominal_midi": 40,
+    "root_midi": 52,
+    "automatic_root_midi": 52,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 164.2772479973542,
+      "correlation": 0.9893191978666578,
+      "cents": -5.645007292392822
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 41.06918003165609,
+        "correlation": 0.9558390499873287,
+        "cents": -5.650570261461731
+      },
+      {
+        "octave_shift": 0,
+        "hz": 82.13911482638316,
+        "correlation": 0.9786249988173402,
+        "cents": -5.634662158073329
+      },
+      {
+        "octave_shift": 12,
+        "hz": 164.2772479973542,
+        "correlation": 0.9893191978666578,
+        "cents": -5.645007292392822
+      },
+      {
+        "octave_shift": 24,
+        "hz": 327.38739701069136,
+        "correlation": -0.22894324576685363,
+        "cents": -11.805686015633569
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_E2_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "d6db864de30223e61c90c4d6c77c47590ae8683e3e821cf4cd781ebdc0c084a9",
+    "source_bytes": 3875488,
+    "asset": "assets/piano/GPiano_sus_E2_v2_rr1_Player.flac",
+    "asset_sha256": "bc3178ab9ad886d6b23704b0f88a6bcdeeb95226d2fa6a4a76b29e074013038b",
+    "packed_bytes": 228540,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 20.84165280094828,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_E3_v1_rr1_Player.wav",
+    "blob_sha": "ca7e6be66103bb3bd979b8d1ae8d0741cc15cc95",
+    "instrument": "piano",
+    "source_note": "E3",
+    "nominal_midi": 52,
+    "root_midi": 64,
+    "automatic_root_midi": 64,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 328.0224707369641,
+      "correlation": 0.983330812533204,
+      "cents": -8.450650771911178
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 82.01556218926456,
+        "correlation": 0.9511549362860819,
+        "cents": -8.240723423111685
+      },
+      {
+        "octave_shift": 0,
+        "hz": 164.04816998247244,
+        "correlation": 0.9731848242782551,
+        "cents": -8.060828315633588
+      },
+      {
+        "octave_shift": 12,
+        "hz": 328.0224707369641,
+        "correlation": 0.983330812533204,
+        "cents": -8.450650771911178
+      },
+      {
+        "octave_shift": 24,
+        "hz": 668.1818181818181,
+        "correlation": -0.9637002474480749,
+        "cents": 23.284642938958534
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_E3_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "3986177d766ad67acaeb8d0d53114c4380dea65bc1632938dc597006e5123771",
+    "source_bytes": 1680460,
+    "asset": "assets/piano/GPiano_sus_E3_v1_rr1_Player.flac",
+    "asset_sha256": "4246f7f42b5c8d64a039eae2cfcdaa5be98d6a75684ea0b83cea8806c0b6c04f",
+    "packed_bytes": 333700,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 247.50681414578125,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_E3_v2_rr1_Player.wav",
+    "blob_sha": "169ffb7b4ff65de84f17d4a366270c7fb1c647d6",
+    "instrument": "piano",
+    "source_note": "E3",
+    "nominal_midi": 52,
+    "root_midi": 64,
+    "automatic_root_midi": 64,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 328.17504200029543,
+      "correlation": 0.9892410814201483,
+      "cents": -7.6455987391895635
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 82.0354478675426,
+        "correlation": 0.969916114093114,
+        "cents": -7.821015388635902
+      },
+      {
+        "octave_shift": 0,
+        "hz": 164.08079126450033,
+        "correlation": 0.9853237762555564,
+        "cents": -7.71660344659231
+      },
+      {
+        "octave_shift": 12,
+        "hz": 328.17504200029543,
+        "correlation": 0.9892410814201483,
+        "cents": -7.6455987391895635
+      },
+      {
+        "octave_shift": 24,
+        "hz": 668.1818181818181,
+        "correlation": -0.9577032554990595,
+        "cents": 23.284642938958534
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_E3_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "51727d51e9174cd141ea202e25871a56fbd32f799d7f440d7bbeba0f1d29dc7c",
+    "source_bytes": 2694956,
+    "asset": "assets/piano/GPiano_sus_E3_v2_rr1_Player.flac",
+    "asset_sha256": "dec8ec909558a43ab480e2ac22cdc4c1ea0635d709f5d565d1a38df5a3a8a26b",
+    "packed_bytes": 250355,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 27.580925603986366,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_E4_v1_rr1_Player.wav",
+    "blob_sha": "9792f61419d73cf6f7a49e00fc611a1b82975617",
+    "instrument": "piano",
+    "source_note": "E4",
+    "nominal_midi": 64,
+    "root_midi": 76,
+    "automatic_root_midi": 76,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 658.6078490768908,
+      "correlation": 0.9816033884517112,
+      "cents": -1.7005817655017237
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 164.6694796475095,
+        "correlation": 0.9543032837496588,
+        "cents": -1.5164049831304156
+      },
+      {
+        "octave_shift": 0,
+        "hz": 329.36671139559735,
+        "correlation": 0.9605929617712139,
+        "cents": -1.37052683566442
+      },
+      {
+        "octave_shift": 12,
+        "hz": 658.6078490768908,
+        "correlation": 0.9816033884517112,
+        "cents": -1.7005817655017237
+      },
+      {
+        "octave_shift": 24,
+        "hz": 1317.55596241656,
+        "correlation": -0.9518989957597938,
+        "cents": -1.2534256878097576
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_E4_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "2bbea3d9e280e7b87605eaa01853b9e81c8ce21eae1db61cfb6fa33b94ca449f",
+    "source_bytes": 1608616,
+    "asset": "assets/piano/GPiano_sus_E4_v1_rr1_Player.flac",
+    "asset_sha256": "99d33e4b62c7d630f8f2376da9ea4592322d9b9688c6ed969fa7892cf4ec7bf2",
+    "packed_bytes": 282930,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 13,
+    "original_sample_rate": 44100,
+    "normalization_gain": 110.61645614323406,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_E4_v2_rr1_Player.wav",
+    "blob_sha": "0727f2fc450bdf059038fbd39ee4e8e194f574ad",
+    "instrument": "piano",
+    "source_note": "E4",
+    "nominal_midi": 64,
+    "root_midi": 76,
+    "automatic_root_midi": 76,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 658.5068861276518,
+      "correlation": 0.9812470165937598,
+      "cents": -1.9659959941748861
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 164.65046048350342,
+        "correlation": 0.9509388747915464,
+        "cents": -1.7163723725063167
+      },
+      {
+        "octave_shift": 0,
+        "hz": 329.3325049561619,
+        "correlation": 0.9583774800190427,
+        "cents": -1.5503337983298984
+      },
+      {
+        "octave_shift": 12,
+        "hz": 658.5068861276518,
+        "correlation": 0.9812470165937598,
+        "cents": -1.9659959941748861
+      },
+      {
+        "octave_shift": 24,
+        "hz": 1317.9584436296623,
+        "correlation": -0.9527661304368975,
+        "cents": -0.7246566671961557
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_E4_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "0b3357ea1c4313d196defebd8d1f02291889c6d1484f94652fa68b82768315c8",
+    "source_bytes": 2139416,
+    "asset": "assets/piano/GPiano_sus_E4_v2_rr1_Player.flac",
+    "asset_sha256": "5e59da25dfa92d362a9236fa4e123bc404ecca51454bbcd6ef46963a593a6419",
+    "packed_bytes": 199586,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 8,
+    "original_sample_rate": 44100,
+    "normalization_gain": 26.0327097086991,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_G#2_v1_rr1_Player.wav",
+    "blob_sha": "4877419343a30c043d676ac53630691d546a2056",
+    "instrument": "piano",
+    "source_note": "G#2",
+    "nominal_midi": 44,
+    "root_midi": 56,
+    "automatic_root_midi": 56,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 207.34422490443885,
+      "correlation": 0.9350998555753719,
+      "cents": -2.570790670580967
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 51.79449670835305,
+        "correlation": 0.8304475549090663,
+        "cents": -3.959362940494546
+      },
+      {
+        "octave_shift": 0,
+        "hz": 103.60106405038745,
+        "correlation": 0.8890872049955713,
+        "cents": -3.75764387827635
+      },
+      {
+        "octave_shift": 12,
+        "hz": 207.34422490443885,
+        "correlation": 0.9350998555753719,
+        "cents": -2.570790670580967
+      },
+      {
+        "octave_shift": 24,
+        "hz": 414.97613098482594,
+        "correlation": -0.036566668213638874,
+        "cents": -1.3702007489023038
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_G%232_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "053d5e2e25cbff8b3c65905963d1aa184003a1a44268f4ca5cce45e412789296",
+    "source_bytes": 2431284,
+    "asset": "assets/piano/GPiano_sus_G#2_v1_rr1_Player.flac",
+    "asset_sha256": "9ceb2c7d2e1a25acff5affcb3356e5105dbcf2c0db0090d249a7b37f21abb154",
+    "packed_bytes": 335992,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 237.68806802449257,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_G#2_v2_rr1_Player.wav",
+    "blob_sha": "ffab430d9b09f8b235ada01c3007a810c386435c",
+    "instrument": "piano",
+    "source_note": "G#2",
+    "nominal_midi": 44,
+    "root_midi": 56,
+    "automatic_root_midi": 56,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 207.1258688436701,
+      "correlation": 0.9802711128164964,
+      "cents": -4.394929434264829
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 51.769328749845066,
+        "correlation": 0.9308933463539263,
+        "cents": -4.800807863555311
+      },
+      {
+        "octave_shift": 0,
+        "hz": 103.55542881070501,
+        "correlation": 0.9594616165370411,
+        "cents": -4.520403287478818
+      },
+      {
+        "octave_shift": 12,
+        "hz": 207.1258688436701,
+        "correlation": 0.9802711128164964,
+        "cents": -4.394929434264829
+      },
+      {
+        "octave_shift": 24,
+        "hz": 409.6098978890315,
+        "correlation": -0.2851170171531598,
+        "cents": -23.903535730485576
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_G%232_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "f3447b7e8a841de457cc77f68919c9d8005f7859201253f7a76982819c96d4f9",
+    "source_bytes": 3987640,
+    "asset": "assets/piano/GPiano_sus_G#2_v2_rr1_Player.flac",
+    "asset_sha256": "a1306c3cd0496e93eb465f2e2fc8aa51070ed51de4b55907b57fc10e6a777f5b",
+    "packed_bytes": 285258,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 76.48171472757849,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_G#3_v1_rr1_Player.wav",
+    "blob_sha": "85d2aad154563f2a6875e7dcd094bcf904c11d5c",
+    "instrument": "piano",
+    "source_note": "G#3",
+    "nominal_midi": 56,
+    "root_midi": 68,
+    "automatic_root_midi": 68,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 414.52214413074995,
+      "correlation": 0.9830264636591572,
+      "cents": -3.265219947033583
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 103.64783907845182,
+        "correlation": 0.9542971844496493,
+        "cents": -2.9761823469145305
+      },
+      {
+        "octave_shift": 0,
+        "hz": 207.2869609708382,
+        "correlation": 0.9775005385992471,
+        "cents": -3.0489856334318524
+      },
+      {
+        "octave_shift": 12,
+        "hz": 414.52214413074995,
+        "correlation": 0.9830264636591572,
+        "cents": -3.265219947033583
+      },
+      {
+        "octave_shift": 24,
+        "hz": 882.0,
+        "correlation": -0.8858887760403185,
+        "cents": 103.93015843943306
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_G%233_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "a812c31c7f474ee603a7a3eb83e6e285ee87878344ce9a372bd00730281852c5",
+    "source_bytes": 2157608,
+    "asset": "assets/piano/GPiano_sus_G#3_v1_rr1_Player.flac",
+    "asset_sha256": "7e033c1cafd678085bcfeda2193189154af4424e76eef606d1df8afa12e0b243",
+    "packed_bytes": 296915,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 43,
+    "original_sample_rate": 44100,
+    "normalization_gain": 93.98517811241639,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_G#3_v2_rr1_Player.wav",
+    "blob_sha": "5031d170f49d26db6f5e01dd0d74108816631454",
+    "instrument": "piano",
+    "source_note": "G#3",
+    "nominal_midi": 56,
+    "root_midi": 68,
+    "automatic_root_midi": 68,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 414.56719326405647,
+      "correlation": 0.9848817077412968,
+      "cents": -3.077084386677781
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 103.62253513349148,
+        "correlation": 0.9569466958421512,
+        "cents": -3.398886763551421
+      },
+      {
+        "octave_shift": 0,
+        "hz": 207.25245785160976,
+        "correlation": 0.9791179325320779,
+        "cents": -3.3371752348690973
+      },
+      {
+        "octave_shift": 12,
+        "hz": 414.56719326405647,
+        "correlation": 0.9848817077412968,
+        "cents": -3.077084386677781
+      },
+      {
+        "octave_shift": 24,
+        "hz": 882.0,
+        "correlation": -0.8784471802824362,
+        "cents": 103.93015843943306
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_G%233_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "5d2c5634dbed1cbd2f760d756f045247089b2e2962184fa3fcf47cf9c8fd4277",
+    "source_bytes": 3272344,
+    "asset": "assets/piano/GPiano_sus_G#3_v2_rr1_Player.flac",
+    "asset_sha256": "5d662711aa22a0308f459c2895eb49d44e4ab24e9da5c5811aa1f391729c25f8",
+    "packed_bytes": 237108,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 28.858694993205336,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_G#4_v1_rr1_Player.wav",
+    "blob_sha": "4b8bd147a5af7046789b5a5cec0312af6d85c1a8",
+    "instrument": "piano",
+    "source_note": "G#4",
+    "nominal_midi": 68,
+    "root_midi": 80,
+    "automatic_root_midi": 80,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 831.5881950233606,
+      "correlation": 0.9654345303140508,
+      "cents": 2.0389054306562007
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 207.71316449004541,
+        "correlation": 0.9029403078735304,
+        "cents": 0.5069569238181162
+      },
+      {
+        "octave_shift": 0,
+        "hz": 415.46868796745554,
+        "correlation": 0.934964996898357,
+        "cents": 0.6834733784303556
+      },
+      {
+        "octave_shift": 12,
+        "hz": 831.5881950233606,
+        "correlation": 0.9654345303140508,
+        "cents": 2.0389054306562007
+      },
+      {
+        "octave_shift": 24,
+        "hz": 1696.1538461538462,
+        "correlation": -0.7249319198227008,
+        "cents": 36.02992439979238
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_G%234_v1_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "09f8fc60ff5fde5ca7bc80f189885c2678df7405adf27a251139eae8c39c6390",
+    "source_bytes": 1381584,
+    "asset": "assets/piano/GPiano_sus_G#4_v1_rr1_Player.flac",
+    "asset_sha256": "8fcaad701ac91168c11b09fa02e93fb443ede5e1c84662eab27249d66a4fe675",
+    "packed_bytes": 316403,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 198.8095277511404,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_G#4_v2_rr1_Player.wav",
+    "blob_sha": "eba43cc3dd52a4f30945711e425c020b5efc1b8d",
+    "instrument": "piano",
+    "source_note": "G#4",
+    "nominal_midi": 68,
+    "root_midi": 80,
+    "automatic_root_midi": 80,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 830.9732833486858,
+      "correlation": 0.9721570973858663,
+      "cents": 0.7582838226660052
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 207.63027705992678,
+        "correlation": 0.9572949900153922,
+        "cents": -0.1840256646173487
+      },
+      {
+        "octave_shift": 0,
+        "hz": 415.2138709052674,
+        "correlation": 0.957250547495905,
+        "cents": -0.3786603656055399
+      },
+      {
+        "octave_shift": 12,
+        "hz": 830.9732833486858,
+        "correlation": 0.9721570973858663,
+        "cents": 0.7582838226660052
+      },
+      {
+        "octave_shift": 24,
+        "hz": 1696.1538461538462,
+        "correlation": -0.9335640063660022,
+        "cents": 36.02992439979238
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_G%234_v2_rr1_Player.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "5a90fad68dbcd5610412bd23838c8c70b2fc1acd268980ae66773d595e9b1aa0",
+    "source_bytes": 1910796,
+    "asset": "assets/piano/GPiano_sus_G#4_v2_rr1_Player.flac",
+    "asset_sha256": "2058eaecdbeab7ba09ad108b5e6fe1eda99e49ebfcc2e8cc781892919aede192",
+    "packed_bytes": 166898,
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 166400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 83.83968844711539,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_A#0_v1_rr1.wav",
+    "blob_sha": "6b42c2b752ac8aa098fa512b1c068229036f9d55",
+    "instrument": "bass",
+    "source_note": "A#0",
+    "nominal_midi": 22,
+    "root_midi": 34,
+    "automatic_root_midi": 34,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 58.3423283342039,
+      "correlation": 0.9281367996151347,
+      "cents": 2.1336128398000858
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 14.591717690832775,
+        "correlation": 0.8297933647998748,
+        "cents": 2.861724932192008
+      },
+      {
+        "octave_shift": 0,
+        "hz": 29.183330847361088,
+        "correlation": 0.8750631296434394,
+        "cents": 2.8555236858701805
+      },
+      {
+        "octave_shift": 12,
+        "hz": 58.3423283342039,
+        "correlation": 0.9281367996151347,
+        "cents": 2.1336128398000858
+      },
+      {
+        "octave_shift": 24,
+        "hz": 116.16374976594213,
+        "correlation": 0.06094685434362605,
+        "cents": -5.612313225779758
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_A%230_v1_rr1.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "c172382a1c8db63d1893e909da3c0f7f96a60371dce0cfe712e64fd622066fbe",
+    "source_bytes": 344328,
+    "asset": "assets/bass/BKCtbss_Pizz_A#0_v1_rr1.flac",
+    "asset_sha256": "10782e7b97f32b743b6859bee218ddc97819006cb1769c775f7ebe9e629971ee",
+    "packed_bytes": 40819,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 62445,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 32.26135077402634,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_A#0_v1_rr2.wav",
+    "blob_sha": "74b090dd2b40841aa3657f35859ae5810ed3344e",
+    "instrument": "bass",
+    "source_note": "A#0",
+    "nominal_midi": 22,
+    "root_midi": 34,
+    "automatic_root_midi": 34,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 58.34117194903762,
+      "correlation": 0.9031831683451035,
+      "cents": 2.099298247438786
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 14.594128961514459,
+        "correlation": 0.7787783507199617,
+        "cents": 3.147786458168469
+      },
+      {
+        "octave_shift": 0,
+        "hz": 29.185186207057065,
+        "correlation": 0.8272499734944878,
+        "cents": 2.9655851382464427
+      },
+      {
+        "octave_shift": 12,
+        "hz": 58.34117194903762,
+        "correlation": 0.9031831683451035,
+        "cents": 2.099298247438786
+      },
+      {
+        "octave_shift": 24,
+        "hz": 115.78195977568946,
+        "correlation": 0.14510003635255325,
+        "cents": -11.311650617896406
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_A%230_v1_rr2.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "a82a509344a7e03e81f937b0daf647d55c3d47ec01867deeb41463d1d39209af",
+    "source_bytes": 326372,
+    "asset": "assets/bass/BKCtbss_Pizz_A#0_v1_rr2.flac",
+    "asset_sha256": "c7adde55400aeada3dcc8d14dd86eae6c68cc887ae9a4c40e2c3f9a9f8e42079",
+    "packed_bytes": 34036,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 59187,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 23.669668358368256,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_C#2_v1_rr1.wav",
+    "blob_sha": "16b7ca596182a49fe693b81ed925df8d2fc1be59",
+    "instrument": "bass",
+    "source_note": "C#2",
+    "nominal_midi": 37,
+    "root_midi": 49,
+    "automatic_root_midi": 25,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": -12,
+      "hz": 34.63085495173132,
+      "correlation": 0.6061734946580263,
+      "cents": -0.8483368294560607
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 34.63085495173132,
+        "correlation": 0.6061734946580263,
+        "cents": -0.8483368294560607
+      },
+      {
+        "octave_shift": 0,
+        "hz": 69.23793709380988,
+        "correlation": 0.27450422728482393,
+        "cents": -1.4426531155886793
+      },
+      {
+        "octave_shift": 12,
+        "hz": 135.53948623708757,
+        "correlation": 0.4610552169458586,
+        "cents": -38.54837885865498
+      },
+      {
+        "octave_shift": 24,
+        "hz": 286.3636363636364,
+        "correlation": -0.647821504070397,
+        "cents": 56.41373733522147
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C%232_v1_rr1.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "41804fc70cf82bd1c475611e315b14b1adf5effbd3369028302a681b54064b3f",
+    "source_bytes": 513824,
+    "asset": "assets/bass/BKCtbss_Pizz_C#2_v1_rr1.flac",
+    "asset_sha256": "c23dd00d17c4b4aa550598d83b3c3c612051374005e1d55c69024a5519801f5c",
+    "packed_bytes": 50677,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 80000,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 19.676009545446423,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_C#2_v1_rr2.wav",
+    "blob_sha": "1538275fda063011eae150b531752b410186c2b6",
+    "instrument": "bass",
+    "source_note": "C#2",
+    "nominal_midi": 37,
+    "root_midi": 49,
+    "automatic_root_midi": 25,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": -12,
+      "hz": 34.77758541844214,
+      "correlation": 0.6504845924932733,
+      "cents": 6.471382705189727
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 34.77758541844214,
+        "correlation": 0.6504845924932733,
+        "cents": 6.471382705189727
+      },
+      {
+        "octave_shift": 0,
+        "hz": 69.36793012726204,
+        "correlation": 0.1212534825460169,
+        "cents": 1.8046615349214743
+      },
+      {
+        "octave_shift": 12,
+        "hz": 133.63636363636363,
+        "correlation": 0.45941616913949085,
+        "cents": -63.0290709258761
+      },
+      {
+        "octave_shift": 24,
+        "hz": 286.3636363636364,
+        "correlation": -0.6983988277729816,
+        "cents": 56.41373733522147
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_C%232_v1_rr2.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "326fa0536c5487af2a500423e6b6d1c2acfe005cb40268c7c2f152b6ca71517c",
+    "source_bytes": 498308,
+    "asset": "assets/bass/BKCtbss_Pizz_C#2_v1_rr2.flac",
+    "asset_sha256": "2c2bb8f0f5abfb67c51576e1a653c2ca4194b0c63e2f6ac9525e5620469d40f8",
+    "packed_bytes": 47186,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 80000,
+    "removed_leading_frames": 9,
+    "original_sample_rate": 44100,
+    "normalization_gain": 17.070456631809503,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_D1_v1_rr1.wav",
+    "blob_sha": "623693ad1479a3e1da230fe62b8d012406412d86",
+    "instrument": "bass",
+    "source_note": "D1",
+    "nominal_midi": 26,
+    "root_midi": 38,
+    "automatic_root_midi": 38,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 73.49258917971254,
+      "correlation": 0.9733261815259385,
+      "cents": 1.8005927950237848
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 18.3980714481947,
+        "correlation": 0.8897599999478291,
+        "cents": 4.147512525305496
+      },
+      {
+        "octave_shift": 0,
+        "hz": 36.755961705328325,
+        "correlation": 0.9496395906552045,
+        "cents": 2.2559812525090113
+      },
+      {
+        "octave_shift": 12,
+        "hz": 73.49258917971254,
+        "correlation": 0.9733261815259385,
+        "cents": 1.8005927950237848
+      },
+      {
+        "octave_shift": 24,
+        "hz": 142.25806451612902,
+        "correlation": -0.9725257948915459,
+        "cents": -54.79170015998243
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_D1_v1_rr1.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "c4db29ae6949cb6c0d24201bb444c1d5b3806505bae47785cb199f5f0f4f02d2",
+    "source_bytes": 856252,
+    "asset": "assets/bass/BKCtbss_Pizz_D1_v1_rr1.flac",
+    "asset_sha256": "19c25e04c01c582cf1ba49116d81ed384f1142af9a3812a893ca5fb20afc320b",
+    "packed_bytes": 54588,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 80000,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 34.637547770700095,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_D1_v1_rr2.wav",
+    "blob_sha": "6b66446765a55ddcad2fbfdf3b47fdc6737bc540",
+    "instrument": "bass",
+    "source_note": "D1",
+    "nominal_midi": 26,
+    "root_midi": 38,
+    "automatic_root_midi": 38,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 73.12005004359406,
+      "correlation": 0.9680902371337409,
+      "cents": -6.997473027100164
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 18.324234293775916,
+        "correlation": 0.8714989135152386,
+        "cents": -2.814445091440046
+      },
+      {
+        "octave_shift": 0,
+        "hz": 36.58762830984402,
+        "correlation": 0.9417616324039493,
+        "cents": -5.690862295929636
+      },
+      {
+        "octave_shift": 12,
+        "hz": 73.12005004359406,
+        "correlation": 0.9680902371337409,
+        "cents": -6.997473027100164
+      },
+      {
+        "octave_shift": 24,
+        "hz": 152.06896551724137,
+        "correlation": -0.8914388780193718,
+        "cents": 60.666678151181245
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_D1_v1_rr2.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "4f17f7c828a9d9123c8c6498a27aa6b7a2772a5b937183f3d622f41f56ce21ce",
+    "source_bytes": 1062672,
+    "asset": "assets/bass/BKCtbss_Pizz_D1_v1_rr2.flac",
+    "asset_sha256": "37ff06a7de489749eb2b88fd2cdb4eea439a9192a0fd853d25714ea0f04a9a47",
+    "packed_bytes": 57226,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 80000,
+    "removed_leading_frames": 45,
+    "original_sample_rate": 44100,
+    "normalization_gain": 29.952541679552468,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E0_v1_rr1.wav",
+    "blob_sha": "8e025f9d9f072fd42a12ff27bad023f95016203f",
+    "instrument": "bass",
+    "source_note": "E0",
+    "nominal_midi": 16,
+    "root_midi": 28,
+    "automatic_root_midi": 4,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": -12,
+      "hz": 10.291467659842777,
+      "correlation": 0.5901302679050037,
+      "cents": -1.5794558625705262
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 10.291467659842777,
+        "correlation": 0.5901302679050037,
+        "cents": -1.5794558625705262
+      },
+      {
+        "octave_shift": 0,
+        "hz": 20.5940948571393,
+        "correlation": 0.4289826610419255,
+        "cents": -0.6410797047076209
+      },
+      {
+        "octave_shift": 12,
+        "hz": 41.03766029800737,
+        "correlation": 0.4536015492573215,
+        "cents": -6.979766186469746
+      },
+      {
+        "octave_shift": 24,
+        "hz": 82.95905303677172,
+        "correlation": 0.3361440434064805,
+        "cents": 11.561368992443748
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_E0_v1_rr1.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "7901d4aa056d2a6057a264ce98fc9e66a7ce48575d077a30f14083aa798cd188",
+    "source_bytes": 423964,
+    "asset": "assets/bass/BKCtbss_Pizz_E0_v1_rr1.flac",
+    "asset_sha256": "6b4e916b0a4d1b2df08c8979578d87c5dcef57a45ab9ceff610aa497242a8f37",
+    "packed_bytes": 65738,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 76891,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 102.45630246638254,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_E0_v1_rr2.wav",
+    "blob_sha": "548f3bf22840c6477487df248e1a2d6417ad7175",
+    "instrument": "bass",
+    "source_note": "E0",
+    "nominal_midi": 16,
+    "root_midi": 28,
+    "automatic_root_midi": 28,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 40.88796666593541,
+      "correlation": 0.6039958869682539,
+      "cents": -13.306358018169018
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 10.282399834807606,
+        "correlation": 0.6106292551994575,
+        "cents": -3.1055207575115524
+      },
+      {
+        "octave_shift": 0,
+        "hz": 20.56096468029619,
+        "correlation": 0.47742116350716374,
+        "cents": -3.428396901509864
+      },
+      {
+        "octave_shift": 12,
+        "hz": 40.88796666593541,
+        "correlation": 0.6039958869682539,
+        "cents": -13.306358018169018
+      },
+      {
+        "octave_shift": 24,
+        "hz": 86.47058823529412,
+        "correlation": 0.13880357357521486,
+        "cents": 83.33346193847302
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_E0_v1_rr2.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "5287fecaedbfce87737d53c77bc19aa78322ef498f143ca2b71bc1ee8dc17845",
+    "source_bytes": 412812,
+    "asset": "assets/bass/BKCtbss_Pizz_E0_v1_rr2.flac",
+    "asset_sha256": "e7360e011f448cbcde0eeb7e707d3d931cbb63c7cd915b785330375cc8f1920e",
+    "packed_bytes": 54850,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 74868,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 56.66357410565177,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_G#1_v1_rr1.wav",
+    "blob_sha": "1b3774619e9ae958177bc6bd4429d32fbef0c0c8",
+    "instrument": "bass",
+    "source_note": "G#1",
+    "nominal_midi": 32,
+    "root_midi": 44,
+    "automatic_root_midi": 44,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 102.61417692434256,
+      "correlation": 0.9496610679715973,
+      "cents": -20.32815176932765
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 25.59550026927241,
+        "correlation": 0.7369463627484839,
+        "cents": -24.249697116384336
+      },
+      {
+        "octave_shift": 0,
+        "hz": 51.297832846922915,
+        "correlation": 0.8900050701865593,
+        "cents": -20.640488372719545
+      },
+      {
+        "octave_shift": 12,
+        "hz": 102.61417692434256,
+        "correlation": 0.9496610679715973,
+        "cents": -20.32815176932765
+      },
+      {
+        "octave_shift": 24,
+        "hz": 218.31683168316832,
+        "correlation": -0.9367470839661055,
+        "cents": 86.70380686694932
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_G%231_v1_rr1.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "bf377a41759c17794901957edc89ff48fb405f98879549916d9b228492f7f8d1",
+    "source_bytes": 601752,
+    "asset": "assets/bass/BKCtbss_Pizz_G#1_v1_rr1.flac",
+    "asset_sha256": "0fcf0c69536645b2e0e77a7c382ca92187c55e22562dedd48b115456cd21d005",
+    "packed_bytes": 41130,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 80000,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 12.68124022069361,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vsco",
+    "path": "Strings/Solo Contrabass/Pizz/BKCtbss_Pizz_G#1_v1_rr2.wav",
+    "blob_sha": "51b5c8bbabf1760a072fc557652fb84bcaf827d8",
+    "instrument": "bass",
+    "source_note": "G#1",
+    "nominal_midi": 32,
+    "root_midi": 44,
+    "automatic_root_midi": 44,
+    "mapping_note": "Explicit library octave convention; spectral review overrides automatic octave estimation",
+    "pitch_estimate": {
+      "octave_shift": 12,
+      "hz": 103.13197476802179,
+      "correlation": 0.9623025117381834,
+      "cents": -11.614198747958442
+    },
+    "pitch_candidates": [
+      {
+        "octave_shift": -12,
+        "hz": 25.757308606975297,
+        "correlation": 0.7747645162945225,
+        "cents": -13.339718213505273
+      },
+      {
+        "octave_shift": 0,
+        "hz": 51.57542712683742,
+        "correlation": 0.907940693779139,
+        "cents": -11.29730559075601
+      },
+      {
+        "octave_shift": 12,
+        "hz": 103.13197476802179,
+        "correlation": 0.9623025117381834,
+        "cents": -11.614198747958442
+      },
+      {
+        "octave_shift": 24,
+        "hz": 218.31683168316832,
+        "correlation": -0.8406491738131824,
+        "cents": 86.70380686694932
+      }
+    ],
+    "source_url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Solo%20Contrabass/Pizz/BKCtbss_Pizz_G%231_v1_rr2.wav",
+    "source_commit": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+    "source_sha256": "25ff38b5300151dd040fd4934e67dc668d3d63a66c4733d9971428116d1b08bc",
+    "source_bytes": 537212,
+    "asset": "assets/bass/BKCtbss_Pizz_G#1_v1_rr2.flac",
+    "asset_sha256": "a96146954f915d134c7e3223b6b3339eada3f4041c948323f809769767b06135",
+    "packed_bytes": 43827,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 80000,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 16.602475264359754,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v1_rr1_Mid.wav",
+    "blob_sha": "3e4a102b031a342c58f59e9985ee6111e31b4077",
+    "instrument": "hat",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v1_rr1_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "88447fa285b9592cfb7ff2b333977b032e667215f3db0f84d6ff0f4953e39980",
+    "source_bytes": 210708,
+    "asset": "assets/hat/HiHat_HitC_v1_rr1_Mid.flac",
+    "asset_sha256": "7015971355eee964ba5d9929aab9120ce21536850e382b939540f444cd445a13",
+    "packed_bytes": 32318,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 38064,
+    "removed_leading_frames": 195,
+    "original_sample_rate": 44100,
+    "normalization_gain": 107.97504490934037,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v1_rr2_Mid.wav",
+    "blob_sha": "544c9224faae29cbb09bca54575248105a9b9530",
+    "instrument": "hat",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v1_rr2_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "6545c09b04b4cd8dbf004d24d7a8a560b7d6272deb598ae263b3e1a0fa9832b2",
+    "source_bytes": 234640,
+    "asset": "assets/hat/HiHat_HitC_v1_rr2_Mid.flac",
+    "asset_sha256": "1691171217aaaf4a9f5d88dd3abdae97b818ed3d7975919a994a29fd7ad244d8",
+    "packed_bytes": 32623,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 38400,
+    "removed_leading_frames": 132,
+    "original_sample_rate": 44100,
+    "normalization_gain": 64.45929825780888,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v2_rr1_Mid.wav",
+    "blob_sha": "6855f948794d15bbc636996256cab0a14839e6a1",
+    "instrument": "hat",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v2_rr1_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "e1fb54c9a030800038abcebbed1c056fb74bdeec627315f3cd5fd893c6e6b031",
+    "source_bytes": 247272,
+    "asset": "assets/hat/HiHat_HitC_v2_rr1_Mid.flac",
+    "asset_sha256": "eff845c8be9160038a73eca75201e0e73ec130a6adb27ef0482a4a1c1e11777c",
+    "packed_bytes": 29879,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 38400,
+    "removed_leading_frames": 233,
+    "original_sample_rate": 44100,
+    "normalization_gain": 26.276116861316858,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v2_rr2_Mid.wav",
+    "blob_sha": "7c01881e59793e38511450ff217fb7eee60809fa",
+    "instrument": "hat",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v2_rr2_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "72830eafed387f4b4b5904d4d6f1da23e13b48986fa1bc09d7c5771eafbb3a1a",
+    "source_bytes": 250072,
+    "asset": "assets/hat/HiHat_HitC_v2_rr2_Mid.flac",
+    "asset_sha256": "1bb5cf397979acaeee8c168540137e5eff94de197b22151d00076caf6e68bdbf",
+    "packed_bytes": 30322,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 38400,
+    "removed_leading_frames": 233,
+    "original_sample_rate": 44100,
+    "normalization_gain": 28.56043232459504,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitO_rr1_Mid.wav",
+    "blob_sha": "e55c1c8af186f34aee593b05f621aed9b11915b9",
+    "instrument": "hat",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitO_rr1_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "fa492ec14cc6924b43ad5fcf9e9a0f406d926998835bde2eb5847cd15ad25be7",
+    "source_bytes": 1026612,
+    "asset": "assets/hat/HiHat_HitO_rr1_Mid.flac",
+    "asset_sha256": "9fcac1feb2106b21c30bce6c18623b3a1b654251646b4e5852d82a360550bd7a",
+    "packed_bytes": 61384,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 38400,
+    "removed_leading_frames": 277,
+    "original_sample_rate": 44100,
+    "normalization_gain": 4.035167560824652,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Membranophones/Struck Membranophones/Snare Drum, Modern 1/Snare2_HitSN_v3_rr1_Mid.wav",
+    "blob_sha": "3dac9ffaeb90b28e98f45b36d52022ddc6415d94",
+    "instrument": "snare",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Snare%20Drum%2C%20Modern%201/Snare2_HitSN_v3_rr1_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "3d71765aa0d1e13260abeb003720aef0841432df601883177bf70e97d9af6c99",
+    "source_bytes": 305304,
+    "asset": "assets/snare/Snare2_HitSN_v3_rr1_Mid.flac",
+    "asset_sha256": "da2ee6fdd87ad5a067aff34047210db2c5b76ff3537ad8d45fa9fb03e798761b",
+    "packed_bytes": 19287,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 22400,
+    "removed_leading_frames": 82,
+    "original_sample_rate": 44100,
+    "normalization_gain": 24.743206192284934,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Membranophones/Struck Membranophones/Snare Drum, Modern 1/Snare2_HitSN_v3_rr2_Mid.wav",
+    "blob_sha": "aa39fd92afe2526a9744513074cb724c372e5326",
+    "instrument": "snare",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Snare%20Drum%2C%20Modern%201/Snare2_HitSN_v3_rr2_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "770a0b6bfe95583c11014d5f9af9c94c425a15bd05234c86213aec356a2ffe29",
+    "source_bytes": 231264,
+    "asset": "assets/snare/Snare2_HitSN_v3_rr2_Mid.flac",
+    "asset_sha256": "d82e93fa2edaae077df499121c68e7cf3e5642a7b5b0667867e71ad04293b443",
+    "packed_bytes": 19025,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 22400,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 21.936389488831058,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Membranophones/Struck Membranophones/Snare Drum, Modern 1/Snare2_stick_v1_rr1_Mid.wav",
+    "blob_sha": "9c4d6ddd95c68b9827701aea23609f4b88425e3c",
+    "instrument": "snare",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Snare%20Drum%2C%20Modern%201/Snare2_stick_v1_rr1_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "98258bc22a11aca0a8eb1d50a2e0a82cbe6357d30e0b55116db0b188015ff648",
+    "source_bytes": 132812,
+    "asset": "assets/snare/Snare2_stick_v1_rr1_Mid.flac",
+    "asset_sha256": "0683c8c4980588040e9b4e7fa035abff41d0431158542afed737e534e606002e",
+    "packed_bytes": 17302,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 22400,
+    "removed_leading_frames": 283,
+    "original_sample_rate": 44100,
+    "normalization_gain": 14.378713756079204,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Membranophones/Struck Membranophones/Snare Drum, Modern 1/Snare2_stick_v1_rr2_Mid.wav",
+    "blob_sha": "a690f94ddce564005c1949ae5239230c95b83814",
+    "instrument": "snare",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Snare%20Drum%2C%20Modern%201/Snare2_stick_v1_rr2_Mid.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "a51181312d92049c2082d116efe96a32305b41c81c06b6c254a94cd2efd08bb1",
+    "source_bytes": 150356,
+    "asset": "assets/snare/Snare2_stick_v1_rr2_Mid.flac",
+    "asset_sha256": "a8c2474ec21e32a5482dfef33dc449153db8d392e0341507812a02470953b211",
+    "packed_bytes": 16591,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 22400,
+    "removed_leading_frames": 286,
+    "original_sample_rate": 44100,
+    "normalization_gain": 12.4196155755451,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Membranophones/Struck Membranophones/Bass Drum 2/bassdrum_hit_mp1.wav",
+    "blob_sha": "a9fbaffbbb4665858790fde514fd665697752ad0",
+    "instrument": "kick",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Bass%20Drum%202/bassdrum_hit_mp1.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "d0f0a99ddc9b025518e1bb8c00eaf3a8ce53cdcd9c8434584901c535469bb6f3",
+    "source_bytes": 1737466,
+    "asset": "assets/kick/bassdrum_hit_mp1.flac",
+    "asset_sha256": "773065b68d9a7970a1c30ef120217610a89ce73524458c6dcfa80c521503e004",
+    "packed_bytes": 13268,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 25600,
+    "removed_leading_frames": 1972,
+    "original_sample_rate": 44100,
+    "normalization_gain": 7.427004159239954,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Membranophones/Struck Membranophones/Bass Drum 2/bassdrum_hit_mp2.wav",
+    "blob_sha": "1faea85013dfefb955e47b30f3de8f152e6ebfd8",
+    "instrument": "kick",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Bass%20Drum%202/bassdrum_hit_mp2.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "aaa4678532ced3b8844fe44e34e919d49d3d608d3a81fe54fc25c47902a5ca90",
+    "source_bytes": 1697842,
+    "asset": "assets/kick/bassdrum_hit_mp2.flac",
+    "asset_sha256": "ce85f5300ccd70f31c7125c9a3f047b9ead6db376d8d1d0b064bb313bed32713",
+    "packed_bytes": 13655,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 25600,
+    "removed_leading_frames": 3696,
+    "original_sample_rate": 44100,
+    "normalization_gain": 7.888161536849773,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerLowFaster_Down_rr1.wav",
+    "blob_sha": "8a36588b7cd3ae89c74c0fde1a3f875b04c8e2b5",
+    "instrument": "shaker",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Shaker%2C%20Small/Mid_ShakerLowFaster_Down_rr1.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "4f8c887b138696c2dc47003d6b35a2be29da33e548afc4e43e07a4a60723ef65",
+    "source_bytes": 29920,
+    "asset": "assets/shaker/Mid_ShakerLowFaster_Down_rr1.flac",
+    "asset_sha256": "bc6f5c191cc907a46827b47f68d468b18864d718b6165401cbfb647f3ffe5489",
+    "packed_bytes": 8464,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 5419,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 48.95217273739306,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerLowFaster_Down_rr2.wav",
+    "blob_sha": "2ae540c44c8ae6606eff07d57817a7d3daf5b407",
+    "instrument": "shaker",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Shaker%2C%20Small/Mid_ShakerLowFaster_Down_rr2.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "c448de8d6f3bfe410d3ea3ef672a9065dbf40b4d042e0f73e9eecce1e64b7116",
+    "source_bytes": 20440,
+    "asset": "assets/shaker/Mid_ShakerLowFaster_Down_rr2.flac",
+    "asset_sha256": "64c1802f2290752a3b100eac6b4b437888bc47eae3b32b0eeaebe5528f0dcb02",
+    "packed_bytes": 5766,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 3700,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 33.4815616506506,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerLowFaster_Up_rr1.wav",
+    "blob_sha": "bd5135b8f390e37b9ad65c39aa0b3a15b87c311e",
+    "instrument": "shaker",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Shaker%2C%20Small/Mid_ShakerLowFaster_Up_rr1.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "411cc7d4b5c9731be16f4e9c91f3f292ee5c88b669e403609998b366b6393371",
+    "source_bytes": 21020,
+    "asset": "assets/shaker/Mid_ShakerLowFaster_Up_rr1.flac",
+    "asset_sha256": "e471406bc0fe1a31ae1bae4ce33c14468b00c989351a8d637b0735d1683eb796",
+    "packed_bytes": 5901,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 3805,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 17.846684444455896,
+    "license": "CC0-1.0"
+  },
+  {
+    "repo": "vcsl",
+    "path": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerLowFaster_Up_rr2.wav",
+    "blob_sha": "fd25af874cd4dd934faf670403182aa8a57d3a59",
+    "instrument": "shaker",
+    "source_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Shaker%2C%20Small/Mid_ShakerLowFaster_Up_rr2.wav",
+    "source_commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+    "source_sha256": "800dde7afd5e2a11093865b1ef63947721efebc3878bf1ca74fcfb57e48bd857",
+    "source_bytes": 14620,
+    "asset": "assets/shaker/Mid_ShakerLowFaster_Up_rr2.flac",
+    "asset_sha256": "7b80cf7345a87043aa2e18c500e77a992a718e7e0c147736fc832b5cf5207023",
+    "packed_bytes": 4065,
+    "sample_rate": 32000,
+    "channels": 1,
+    "frames": 2644,
+    "removed_leading_frames": 0,
+    "original_sample_rate": 44100,
+    "normalization_gain": 18.11421377585594,
+    "license": "CC0-1.0"
+  }
+]

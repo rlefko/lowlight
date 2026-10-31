@@ -4,6 +4,7 @@
 - [Architecture and real-time boundaries](architecture.md)
 - [Music and controls](music.md)
 - [Sound bank and parity](audio-reference.md)
+- [Sound-bank provenance and checks](sound-bank.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)

@@ -1,0 +1,104 @@
+// Copyright (C) 2026 Ryan Lefkowitz
+// SPDX-License-Identifier: GPL-3.0-only
+
+import AVFAudio
+import CryptoKit
+import Foundation
+import Testing
+
+private struct Inventory: Decodable {
+    let schemaVersion, assetCount, compressedBytes: Int
+    let pcmEncoding: String
+    let assets: [Asset]
+    struct Asset: Decodable {
+        let path, sha256, pcmSha256, license: String
+        let bytes, frames, channels, sampleRate: Int
+    }
+}
+
+struct SoundBankTests {
+    @Test func bundledBankDecodesWithoutChangingSamples() throws {
+        let app = try #require(Bundle.main.resourceURL)
+        let bank = app.appendingPathComponent("SoundBank")
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let inventory = try decoder.decode(
+            Inventory.self, from: Data(contentsOf: bank.appendingPathComponent("inventory.json")))
+        #expect(inventory.schemaVersion == 1)
+        #expect(inventory.pcmEncoding == "interleaved float32 little-endian")
+        #expect(inventory.assetCount == 77 && inventory.assets.count == 77)
+        #expect(inventory.compressedBytes == 8_825_758)
+        #expect(inventory.assets.reduce(0) { $0 + $1.bytes } == inventory.compressedBytes)
+        let paths = Set(inventory.assets.map(\.path))
+        #expect(paths.count == 77)
+        let metadata: Set<String> = [
+            "inventory.json", "manifest-checksums.json", "sample_manifest.json",
+            "electric_guitar_manifest.json", "licenses/FreePats_Electric_Jazz_LICENSE.txt",
+            "licenses/FreePats_Electric_Jazz_README.txt", "licenses/VCSL_CC0.txt",
+            "licenses/VSCO_CC0.txt",
+        ]
+        #expect(try files(in: bank) == paths.union(metadata))
+        let bundled = try files(in: app)
+        #expect(
+            Set(bundled.filter { $0.hasSuffix(".flac") }) == Set(paths.map { "SoundBank/" + $0 }))
+        #expect(
+            !bundled.contains { path in
+                ["py", "pyc", "wav", "m4a", "mp3", "zip"].contains(
+                    URL(fileURLWithPath: path).pathExtension)
+                    || path.lowercased().contains("fixtures/")
+                    || path.lowercased().contains("reference/")
+            })
+        for asset in inventory.assets {
+            try autoreleasepool {
+                let url = bank.appendingPathComponent(asset.path)
+                let compressed = try Data(contentsOf: url)
+                #expect(compressed.count == asset.bytes, "\(asset.path)")
+                #expect(hex(SHA256.hash(data: compressed)) == asset.sha256, "\(asset.path)")
+                #expect(asset.license == "CC0-1.0" && asset.sampleRate == 32_000)
+                try verifyPCM(url, asset: asset)
+            }
+        }
+    }
+
+    private func verifyPCM(_ url: URL, asset: Inventory.Asset) throws {
+        let file = try AVAudioFile(
+            forReading: url, commonFormat: .pcmFormatFloat32, interleaved: true)
+        #expect(file.processingFormat.sampleRate == Double(asset.sampleRate), "\(asset.path)")
+        try #require(Int(file.processingFormat.channelCount) == asset.channels, "\(asset.path)")
+        #expect(file.length == Int64(asset.frames), "\(asset.path)")
+        let buffer = try #require(
+            AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4096))
+        var hash = SHA256()
+        var frames = 0
+        while file.framePosition < file.length {
+            try file.read(into: buffer)
+            if buffer.frameLength == 0 { break }
+            let pointer = try #require(buffer.floatChannelData?[0])
+            let samples = UnsafeBufferPointer(
+                start: pointer, count: Int(buffer.frameLength) * asset.channels)
+            let finite = samples.allSatisfy(\.isFinite)
+            #expect(finite, "\(asset.path)")
+            let littleEndianWords = samples.map { $0.bitPattern.littleEndian }
+            littleEndianWords.withUnsafeBytes { hash.update(bufferPointer: $0) }
+            frames += Int(buffer.frameLength)
+        }
+        #expect(frames == asset.frames, "\(asset.path)")
+        #expect(hex(hash.finalize()) == asset.pcmSha256, "\(asset.path)")
+    }
+
+    private func hex(_ digest: SHA256.Digest) -> String {
+        digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func files(in directory: URL) throws -> Set<String> {
+        let enumerator = try #require(FileManager.default.enumerator(atPath: directory.path))
+        return try Set(
+            enumerator.allObjects.compactMap { item -> String? in
+                let path = try #require(item as? String)
+                let values = try directory.appendingPathComponent(path).resourceValues(forKeys: [
+                    .isRegularFileKey
+                ])
+                return values.isRegularFile == true ? path : nil
+            })
+    }
+}

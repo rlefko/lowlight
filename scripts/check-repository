@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 # SPDX-License-Identifier: GPL-3.0-only
-require 'pathname'
-
 root = File.expand_path('..', __dir__)
 Dir.chdir(root)
 abort 'Complete GPL v3 text is missing' unless File.read('LICENSE').include?('END OF TERMS AND CONDITIONS')
@@ -13,7 +11,9 @@ Dir.glob('{README.md,docs/**/*.md}').each do |path|
     abort "Broken documentation link in #{path}: #{link}" unless File.exist?(target)
   end
 end
-# Foundation has no runtime sound bank; later import must update this reviewed inventory.
-unexpected = Dir.glob('Lowlight/**/*').select { |path| File.file?(path) && !path.end_with?('.swift') }
+abort 'Sound-bank validation failed' unless system('./scripts/verify-bank')
+unexpected = Dir.glob('Lowlight/**/*').select do |path|
+  File.file?(path) && !path.end_with?('.swift') && !path.start_with?('Lowlight/SoundBank/')
+end
 abort "Unexpected app resources: #{unexpected.join(', ')}" unless unexpected.empty?
-puts 'Documentation links, license, credits, and foundation resource inventory passed'
+puts 'Documentation links, license, credits, and app resource inventory passed'

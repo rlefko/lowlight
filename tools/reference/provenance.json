@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "archive_sha256": "64f61c7bc012aa862a26cfc0de28a03681acdde1174992f970f1b5d281c2ca61",
+  "source_plan": "output/V09_Continuous_Focus_2_Hours_session.json",
+  "source_plan_sha256": "35e075268fea6ef1a8118b83bf277fc8ccd7bb41baacd051340cb593ece03b1f",
+  "source_song_id": 0,
+  "python_version": "3.12.14",
+  "clips": [
+    {
+      "file": "focus-body.flac",
+      "start_frame": 512000,
+      "frames": 256000,
+      "purpose": "First-song body, 16\u201324 seconds"
+    },
+    {
+      "file": "outgoing-tail.flac",
+      "start_frame": 3328000,
+      "frames": 256000,
+      "purpose": "Outgoing rack only, 104\u2013112 seconds; no successor mix"
+    }
+  ],
+  "reproduction_tolerances": {
+    "maximum_absolute_error": 2e-06,
+    "rms_error": 2e-07,
+    "loudness_lu": 0.01
+  },
+  "files": {
+    "tests/fixtures/v9/events.json": "be9c954e9c2d115314a83a0971accfc3972cd7bd3e86276e4776ae0d72aadf11",
+    "tests/fixtures/v9/song.json": "327f340f6e0a949b97064af7c493b838d02bc7ba909015515bdfc78e9b6b364f",
+    "tools/reference/v9/instruments.py": "0f245822e1bf754ee116f7e737af2f8c4f707a0aa351c6e42842970aeb02fbd7",
+    "tools/reference/v9/master_stream.py": "bf5ee08187d921288ac58c2d14d1df40ee49cbdc73e2220c74d353c6307e36ff",
+    "tools/reference/v9/render_room.py": "247b0e5f2d961e62fbef2342d7e36606e52381ea72dc4300997bf7ef026befd4",
+    "tools/reference/v9/room_composer.py": "40859490f7109b9d6d7404a16190182f50e42582ee592994bda0e127a9a18837",
+    "tools/reference/v9/session_planner.py": "42454d9630ee62445d4dd24e7e1d283db693c760633c85d329fccfa1d2913e50",
+    "tools/reference/v9/session_render.py": "b2a3fdddd4abafa8cdb9bc0dde2686e6d7c4bb2cc7bb7ba3ed9627d91a415d6e",
+    "tests/fixtures/v9/focus-body.flac": "1269f4116faedb06cca0f6dae1b47be4bc7bb9a0d9f2e1c72348840335d12a25",
+    "tests/fixtures/v9/outgoing-tail.flac": "a39b40056d71cf68a74b9f1611cd6a1fcee8f94ddfe7ff4904ac6b12b5f2c8d2",
+    "tests/fixtures/v9/measurements.json": "d057897017cf1b4bdc2292dd0a53153580ccce692f7c204eab14f7f9f7bbab72"
+  },
+  "dependency_versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "soundfile": "0.14.0",
+    "numba": "0.68.1",
+    "pyloudnorm": "0.1.1",
+    "llvmlite": "0.50.0",
+    "cffi": "2.1.1",
+    "pycparser": "3.12",
+    "future": "1.0.0",
+    "typing-extensions": "4.16.0"
+  }
+}

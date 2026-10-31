@@ -1,0 +1,781 @@
+{
+  "schema_version": 1,
+  "sample_rate": 32000,
+  "asset_count": 77,
+  "compressed_bytes": 8825758,
+  "decoded_float32_bytes": 55605692,
+  "pcm_encoding": "interleaved float32 little-endian",
+  "pcm_decoder": "FFmpeg 7.1; pcm_f32le; source rate and channels unchanged",
+  "assets": [
+    {
+      "path": "assets/bass/BKCtbss_Pizz_A#0_v1_rr1.flac",
+      "sha256": "10782e7b97f32b743b6859bee218ddc97819006cb1769c775f7ebe9e629971ee",
+      "bytes": 40819,
+      "frames": 62445,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "a54c0ce5a5f049e1acff1de28706d7676d87ae0a9cd2664e7c140b313cc523ce",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_A#0_v1_rr2.flac",
+      "sha256": "c7adde55400aeada3dcc8d14dd86eae6c68cc887ae9a4c40e2c3f9a9f8e42079",
+      "bytes": 34036,
+      "frames": 59187,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "a06cc32ef0ebf17df49ed5ebe3781085c9ab586a295708e63ffdfcb096d00515",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_C#2_v1_rr1.flac",
+      "sha256": "c23dd00d17c4b4aa550598d83b3c3c612051374005e1d55c69024a5519801f5c",
+      "bytes": 50677,
+      "frames": 80000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "a772b77c01ffa990fbd734123baa03bdc0232b2b9ebcade9c77b7c04846ddc4f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_C#2_v1_rr2.flac",
+      "sha256": "2c2bb8f0f5abfb67c51576e1a653c2ca4194b0c63e2f6ac9525e5620469d40f8",
+      "bytes": 47186,
+      "frames": 80000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "1922cfb235ff11d0546e2a1398eb2a7b602d3d9012e4e9396d35ec82779edc76",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_D1_v1_rr1.flac",
+      "sha256": "19c25e04c01c582cf1ba49116d81ed384f1142af9a3812a893ca5fb20afc320b",
+      "bytes": 54588,
+      "frames": 80000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "1147392641892a7a7a8209ea672721736f826a4e828aab039c768f95210b1b03",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_D1_v1_rr2.flac",
+      "sha256": "37ff06a7de489749eb2b88fd2cdb4eea439a9192a0fd853d25714ea0f04a9a47",
+      "bytes": 57226,
+      "frames": 80000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "cebce9b7af435d4690f1827803b0976bfeb5cbc36029115feb5d438a876080ad",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_E0_v1_rr1.flac",
+      "sha256": "6b4e916b0a4d1b2df08c8979578d87c5dcef57a45ab9ceff610aa497242a8f37",
+      "bytes": 65738,
+      "frames": 76891,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "c8006530bff17cb5357c82a0554248caf2189c8d3a87eec20c3dc13bdf359cb3",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_E0_v1_rr2.flac",
+      "sha256": "e7360e011f448cbcde0eeb7e707d3d931cbb63c7cd915b785330375cc8f1920e",
+      "bytes": 54850,
+      "frames": 74868,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "4d0494b349ef5237167cd9df272df860e8e93eaeb5db52655583917a14f29463",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_G#1_v1_rr1.flac",
+      "sha256": "0fcf0c69536645b2e0e77a7c382ca92187c55e22562dedd48b115456cd21d005",
+      "bytes": 41130,
+      "frames": 80000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "63dad17ecf5107cf594f56e035c9cfd2f2053f22eee76c7e0998b29b182f4d7d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/bass/BKCtbss_Pizz_G#1_v1_rr2.flac",
+      "sha256": "a96146954f915d134c7e3223b6b3339eada3f4041c948323f809769767b06135",
+      "bytes": 43827,
+      "frames": 80000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "58e8e7a1c4bb99481faf977b79157c05f9648575fae76f3fdaf9d18284d479fa",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_48_0.flac",
+      "sha256": "0bc8d050892f47c6aceb54d78366758f72e3aa5b30030a2534db067e54bfe0c9",
+      "bytes": 76951,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "4323e8c97b3cd72e00108598d68e35d86b6f0f73a7db5f3b49896d1c108f82cb",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_48_1.flac",
+      "sha256": "43b8350995f0b6ea8ca7332d29d458619b62c0e5b0d349ecaa3b63c9882006a8",
+      "bytes": 78959,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "944904232e5af3e1d135648d687b1c9871e704040b7561d848af4b5fad90039f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_48_2.flac",
+      "sha256": "e810b2f1c3111ae0977da323d4708eed381e38b37e0ca297c9e0b7da881fc775",
+      "bytes": 76613,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "d958077d7fc71e69fecb8775c9ccc2321337cd56d6a0a89c3478037c57521759",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_48_3.flac",
+      "sha256": "728c9cc8efbe923e185f88428c19342530223883d864d83c8d272146a54f05d5",
+      "bytes": 72001,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "869958e13231a03a83e6af0cd0bb48723cabf676b53a3f058a61842338436cb2",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_50_0.flac",
+      "sha256": "e9aa1fd1adcfb2b798243ab48ee4f9c9fbd6e207f1b5cfd86a71d304b848f4d8",
+      "bytes": 83651,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "a64b8c822389b93f96ec36cbbaa8f94841971755bc775bbeca91697902c5963b",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_50_1.flac",
+      "sha256": "6cf8d702e33bb61c9076e3384151ee5e98ec2b650a5d19e9cc6ce4a17a8ed4d7",
+      "bytes": 81948,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "5ce6234dee8a57817e25f387e9278af9abfee1965e9d27f0a5efde45e844d1a8",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_50_2.flac",
+      "sha256": "764eefe74a8cb475ef81479ab581f32cee522559416d35ee301c4266434e8d57",
+      "bytes": 78479,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "2fc28933052e52566533af938fbc18aa30a18aa1d64b1b4e50aa218a7dc32342",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_50_3.flac",
+      "sha256": "d1841fe4998de762f77e53cd6712f3009cda8f41c9dc9e2ea0a3743561396f26",
+      "bytes": 83136,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "3f6cf3390551a3a02ccadb0a84bf3d6ce2e34e5a45c4e935929ebc13be5e589e",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_52_0.flac",
+      "sha256": "318a05bdc630bbc7195e977e5a2d12f0283af17a67f7362f995a36dc132fe744",
+      "bytes": 76057,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "46232357f12f1388b8e782b0ec8c929e892fc9dd90a7adce2f7177464a557873",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_52_1.flac",
+      "sha256": "a7fe281939ed2a873ae38f59025fd05256fb0e50e0548ae431762965768ab2b5",
+      "bytes": 74696,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "59db94b9795e1fb6d67abb092a458e80c8f828076a38fd626f8c5bc86b5021db",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_52_2.flac",
+      "sha256": "89b97f062de21cb5fdc6c5e02a631a89466967d5082e1ea655385d016e19e7f5",
+      "bytes": 72988,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "1e3aab721dbdbfe4a34f7d65c0972138a534cbe5a48f0ccd7ea0199a2b162862",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_52_3.flac",
+      "sha256": "95a07e675c0209c9b7d743ddd897d4de01b207b0705a6389302c759c63257a2e",
+      "bytes": 77874,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "9c051bf35a8fe5c1bf007aef9ec665aa1267c9c32f6197a86a5d612456bb4f56",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_55_0.flac",
+      "sha256": "af85046a830cdb5f7a6cf2802c24fc26800717d3ea18c3948f5d02764ee61c61",
+      "bytes": 84694,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "735b8a68b169eb4f70fcd434f49319be4bd1cdc50e463f7b777984082ced332f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_55_1.flac",
+      "sha256": "6ee7001c3bffcccfec13655a5ff575eaf97abf7ee3f92c525eebf8cfd113c755",
+      "bytes": 86552,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "adf3a64c511df862b072caa6883c82d0e1279b6c99887e37a5af6f1d6cbb48ff",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_55_2.flac",
+      "sha256": "1fe8dd8b7719d771df01bbd6d95d5a2ee5a5a38a23e247de98713df7e016e16a",
+      "bytes": 84716,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "0fa32a37a39aad78b5b429f8048d7de00f178fb81e072fdc686d3322e562f3cf",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_55_3.flac",
+      "sha256": "986d106dd1c709548f44246afff9b2a3e8fec80caca63e7b364b882cda14bfc2",
+      "bytes": 84673,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "e960846aa5a5014389585d3acdd99acd24c07171959d9e083ab820ec777c284c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_59_0.flac",
+      "sha256": "b0d4ad10ccd9503e1273ad32f19faab315fd97487a1e2cf09ed882eef062069b",
+      "bytes": 92952,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "33bcd86426f97c4d9ce631d8eae286d6e6612e4940bc24558b37a37922afe017",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_59_1.flac",
+      "sha256": "d6de138b5cca45121338e6dc4e59e05aea38483b1cc167da5ed23b08d783c2df",
+      "bytes": 92605,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "814cbe072c93e208fc25b683278f9af11c21b05a5ab7b3efaf8739928000afb7",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_59_2.flac",
+      "sha256": "65d00371ec84fdad2a3d3a1ffdd06b269c99c8e7431b46aa0baf4bb64a9c827c",
+      "bytes": 102015,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "6313481b2332b75f5f8e7a0080eb1be856c81967be6a0f5e19416c0ca1ce665a",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_59_3.flac",
+      "sha256": "a0c43a968c033042d0fa377258fefb8a7e330305cca213a48ccef4157b86b25e",
+      "bytes": 96649,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "b8623f6e5a91e7434f97fbb4e1467e3a9ef1bb3c8ec3aca1f46e895e8c68635c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_61_0.flac",
+      "sha256": "d88d720263520e47246707e328d216f0cd3d0ac08b1320ba6f2dce8ae5d02f53",
+      "bytes": 83746,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "caedb57e86351427d75038dc7b3f1f66e19c48d9899787bab8b468e4216c4324",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_61_1.flac",
+      "sha256": "aba8f66dbbf4e3041d34f1e5bccf39e531d932d9dc7c163c3475b48e0bbcd33d",
+      "bytes": 81399,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "10e7e1821d55ff232fcea922b23f7861bd63052be6b66f066d4f60a327af7aee",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_61_2.flac",
+      "sha256": "af35d97ba0955b019729b97db43bda26f6a8954c0c31a4ba986d138cc64e59b7",
+      "bytes": 81057,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "f324a599efc2ebe6c2534a1087d5dc3c55d003cd659db8ea42c48ce4a469d326",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_61_3.flac",
+      "sha256": "b4baf64d2faeca83121822b85acf8100c0dc7e9e639b6c0f6d79427282a5ab00",
+      "bytes": 82712,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "b46b71f86949db2ca8a2cb1bff5fbdd0985b71564b5277add5f012cad846fad1",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_64_0.flac",
+      "sha256": "d317eb5e5a90004b196e64335be9621af19a3de05585c861bd1641a5ebbafc6a",
+      "bytes": 96044,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "c5010434624042c41e19f58bc46026cf0cbdecb126adf399d283a45063b53631",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_64_1.flac",
+      "sha256": "1a33bc238d999c5937962bce50b53e4cf3bc88295983ad58de970f03aaaed37f",
+      "bytes": 99507,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "4b01adf6baf59a28fe49d8261096e89fb33cc14a63ab16542f81bf9d816c1268",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_64_2.flac",
+      "sha256": "4571330a6ea9aed8ebd4b93276eb6caa99a7d51a03c8af88e53a2bbf4ae23a51",
+      "bytes": 94127,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "edf0be88f8f2b0520479c3ec651eb6c31276a75182c190c0292c7d45289ffc10",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_64_3.flac",
+      "sha256": "f92c14bc8e9bb8aec32db27cb4d71d20d3c546699724a0be489fb7c3528d6b8e",
+      "bytes": 101281,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "3619db0ffcc2bda879c9befc7c70ce522342323e3e920f05652b9dc19cc19103",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_67_0.flac",
+      "sha256": "6781f69d93e1931b5f943ba499eca33257abf977c31ebe16954984112a3087bf",
+      "bytes": 91111,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "e3a715911659150ed39a390fac350add3137e9593943d4dbb67dacc2fbba6b10",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_67_1.flac",
+      "sha256": "ee64a169ea58da19937d2398bf2a68cfe9e2f066a0ff027d88ec21efc4f0a4e6",
+      "bytes": 98045,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "e900279bc4f8a8e0fed4672fab548bf90c037f3cc89eb01daa21b177a1876659",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_67_2.flac",
+      "sha256": "b821c6f6729cbd54e084e58b05613590a62e0fd8946facdbd6df62668c985f20",
+      "bytes": 92070,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "76888a84147cfd6fef90514f34cdd039ca53c1de54f7654fd48ec3f213a7e68c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/electric_guitar/electric_67_3.flac",
+      "sha256": "c534f858b8f17bccb58e62511576110aac60218493cf7695a2ccbc503e35aaf5",
+      "bytes": 97235,
+      "frames": 192000,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "5d499baef63f07bf5f5a908be8ef3f35feb29c9dab90b67bce8fee93cb5aa3d4",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/hat/HiHat_HitC_v1_rr1_Mid.flac",
+      "sha256": "7015971355eee964ba5d9929aab9120ce21536850e382b939540f444cd445a13",
+      "bytes": 32318,
+      "frames": 38064,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "c177b4754b99f6e54b9f211396b9fec0bb41e457f43fcaee71667207550f2c6e",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/hat/HiHat_HitC_v1_rr2_Mid.flac",
+      "sha256": "1691171217aaaf4a9f5d88dd3abdae97b818ed3d7975919a994a29fd7ad244d8",
+      "bytes": 32623,
+      "frames": 38400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "bf042184101c58acc3a66aaca8afa19f43b46fa4519318d91e41523585683503",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/hat/HiHat_HitC_v2_rr1_Mid.flac",
+      "sha256": "eff845c8be9160038a73eca75201e0e73ec130a6adb27ef0482a4a1c1e11777c",
+      "bytes": 29879,
+      "frames": 38400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "8f5e2cfce1eee23cd2dbe75421d91b345ca1b5c891a71fc1aa7b67a9544b290c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/hat/HiHat_HitC_v2_rr2_Mid.flac",
+      "sha256": "1bb5cf397979acaeee8c168540137e5eff94de197b22151d00076caf6e68bdbf",
+      "bytes": 30322,
+      "frames": 38400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "be5f88d6258db8e1b68cb3bdd230f170cae426dffb83048922e4a7b1ac8e7986",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/hat/HiHat_HitO_rr1_Mid.flac",
+      "sha256": "9fcac1feb2106b21c30bce6c18623b3a1b654251646b4e5852d82a360550bd7a",
+      "bytes": 61384,
+      "frames": 38400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "9a14619427c4b1345f6c48f93dad4499045c1b620899d9303a1d539661071fd5",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/kick/bassdrum_hit_mp1.flac",
+      "sha256": "773065b68d9a7970a1c30ef120217610a89ce73524458c6dcfa80c521503e004",
+      "bytes": 13268,
+      "frames": 25600,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "b5fbac0cdf87c7c78d45e945e19a474c0f1475c3124ebc461d193fa0084346af",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/kick/bassdrum_hit_mp2.flac",
+      "sha256": "ce85f5300ccd70f31c7125c9a3f047b9ead6db376d8d1d0b064bb313bed32713",
+      "bytes": 13655,
+      "frames": 25600,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "20aa1870e6a16fd8538a54879bc59c5d70893b684bef995aaaa240fcd8af5afd",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C2_v1_rr1_Player.flac",
+      "sha256": "579f3043bc14c53412041889e085c47e18b82fece04c4ed2950267b4c37f53fe",
+      "bytes": 295964,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "ef109edcfd86d30e80e89578927e8543029ee62b2b02fe611af016c9aabf13db",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C2_v2_rr1_Player.flac",
+      "sha256": "acdfc51eff9ae6a25b83d5323db2ebeff5ae6355d303c482287f4d224a20816a",
+      "bytes": 240735,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "d1ac822824979a6aaa995911bf952bd78c255e57711068dceb64c2dba05e24d2",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C3_v1_rr1_Player.flac",
+      "sha256": "bd0d5ae68375ea564c3c6a3997e054754c2283796087a9a427be485a55c26180",
+      "bytes": 314456,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "04316b9650af2b82ce247a8b8070636b5f5d00512de930c8be0fe91cce8aa962",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C3_v2_rr1_Player.flac",
+      "sha256": "beea0fd928ea92a2bc773a3cdd73dba8998b2222b66708c49448cf3ea16e5a4f",
+      "bytes": 236440,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "d438e98fff55667466d528ff7b6207d90dbac32e70ce8e58e02c4b09aa609bf4",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C4_v1_rr1_Player.flac",
+      "sha256": "4309f167329c1616a4a740a2b55a82365b8189ad1ec56d06d7cbe087af00c455",
+      "bytes": 299240,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "b2e351124b9a02410f8e64dfef983df507ca80ba8df28451219e97a1f401f943",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C4_v2_rr1_Player.flac",
+      "sha256": "dc912ce9fd61662073a87b3195f161db7b29e91c1d353cefe08a6e9830580223",
+      "bytes": 214084,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "ab623c2aee5112f3713112dbd368347d7ff308b317f143e384d56789fe1f4ec5",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C5_v1_rr1_Player.flac",
+      "sha256": "d5db15ff29657c0b503f4af31fdc124988e5d4d8e055a64c56397d3ee08431a6",
+      "bytes": 271071,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "719a2c166bcb7c27eefbde148d9ca2952ce358a2203d507c60f5ed51e596e360",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_C5_v2_rr1_Player.flac",
+      "sha256": "59d966df4754beaad40d31aef4785c734eed3852e4e3c143e147f178b5e8487f",
+      "bytes": 179599,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "7858640af14aac9b6b5cf10a113c98e691900545d5045333a148c9e5fba28034",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_E2_v1_rr1_Player.flac",
+      "sha256": "09b11ca6aed854269bfa8333e2e79ba35d1c8b69290e2d2899b69fe2f6814054",
+      "bytes": 284014,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "d908d4ca586b0b0c14cc0711d0ffb86212e4547f929a92aaa049a700df9c2900",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_E2_v2_rr1_Player.flac",
+      "sha256": "bc3178ab9ad886d6b23704b0f88a6bcdeeb95226d2fa6a4a76b29e074013038b",
+      "bytes": 228540,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "e2a131975ebd7deb84119b9af71450ea5c0e6e36359b7b60923dcafd112c2330",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_E3_v1_rr1_Player.flac",
+      "sha256": "4246f7f42b5c8d64a039eae2cfcdaa5be98d6a75684ea0b83cea8806c0b6c04f",
+      "bytes": 333700,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "19623ffe370ef0c6f8961185423b2369acddda872f690cbd0c3b29b6a9be8a5f",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_E3_v2_rr1_Player.flac",
+      "sha256": "dec8ec909558a43ab480e2ac22cdc4c1ea0635d709f5d565d1a38df5a3a8a26b",
+      "bytes": 250355,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "95f1772d645d2972180699de0b7932d4983a4bb8b2ef7e5fed1314783f527a23",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_E4_v1_rr1_Player.flac",
+      "sha256": "99d33e4b62c7d630f8f2376da9ea4592322d9b9688c6ed969fa7892cf4ec7bf2",
+      "bytes": 282930,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "200641528b12c405be630f9115f7f8da872a80784fe107d1e9d09105d0d82957",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_E4_v2_rr1_Player.flac",
+      "sha256": "5e59da25dfa92d362a9236fa4e123bc404ecca51454bbcd6ef46963a593a6419",
+      "bytes": 199586,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "b598fd5cfe1930824ef930d23038c7edc4f751a8b424dc40e70bb7c8f6514622",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_G#2_v1_rr1_Player.flac",
+      "sha256": "9ceb2c7d2e1a25acff5affcb3356e5105dbcf2c0db0090d249a7b37f21abb154",
+      "bytes": 335992,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "578f59b94f3c925a3cec919772a8929ce4cd88fe61f573ee9ac6222881019a4a",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_G#2_v2_rr1_Player.flac",
+      "sha256": "a1306c3cd0496e93eb465f2e2fc8aa51070ed51de4b55907b57fc10e6a777f5b",
+      "bytes": 285258,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "34972c7c6bc33d157ce2036f9b643c8e0e2db3c2055f842a822cf3046b94f0dd",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_G#3_v1_rr1_Player.flac",
+      "sha256": "7e033c1cafd678085bcfeda2193189154af4424e76eef606d1df8afa12e0b243",
+      "bytes": 296915,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "09efd8a1981eaaa8d5639058ca61ade89d4d01dd37ebf6d83d26cd8f43863dad",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_G#3_v2_rr1_Player.flac",
+      "sha256": "5d662711aa22a0308f459c2895eb49d44e4ab24e9da5c5811aa1f391729c25f8",
+      "bytes": 237108,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "14b030b4ea6c2800165fc05291ccc0fe5c1ec7f51403574384ff4b835682cf70",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_G#4_v1_rr1_Player.flac",
+      "sha256": "8fcaad701ac91168c11b09fa02e93fb443ede5e1c84662eab27249d66a4fe675",
+      "bytes": 316403,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "60f25eef0a03d332e861fa32dadf485b1edb3582269983d339d2f6a3503b856b",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/piano/GPiano_sus_G#4_v2_rr1_Player.flac",
+      "sha256": "2058eaecdbeab7ba09ad108b5e6fe1eda99e49ebfcc2e8cc781892919aede192",
+      "bytes": 166898,
+      "frames": 166400,
+      "channels": 2,
+      "sample_rate": 32000,
+      "pcm_sha256": "019b6616a4add906cdda9736925365e1824319062931d03cd30050c86fe30c71",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/shaker/Mid_ShakerLowFaster_Down_rr1.flac",
+      "sha256": "bc6f5c191cc907a46827b47f68d468b18864d718b6165401cbfb647f3ffe5489",
+      "bytes": 8464,
+      "frames": 5419,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "3e7e51d530a5eece0ccc51a6adc835ba0234d4616c530d1e24d4a672b8411f59",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/shaker/Mid_ShakerLowFaster_Down_rr2.flac",
+      "sha256": "64c1802f2290752a3b100eac6b4b437888bc47eae3b32b0eeaebe5528f0dcb02",
+      "bytes": 5766,
+      "frames": 3700,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "eacdbf4b04ec4fe1af63154ba72fb1352009202fac225563d3a3022b8f8a499d",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/shaker/Mid_ShakerLowFaster_Up_rr1.flac",
+      "sha256": "e471406bc0fe1a31ae1bae4ce33c14468b00c989351a8d637b0735d1683eb796",
+      "bytes": 5901,
+      "frames": 3805,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "ab6bc6473d827f5b0dcb19416c2f5e5836424fcfa99896138333be3bcaecc78e",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/shaker/Mid_ShakerLowFaster_Up_rr2.flac",
+      "sha256": "7b80cf7345a87043aa2e18c500e77a992a718e7e0c147736fc832b5cf5207023",
+      "bytes": 4065,
+      "frames": 2644,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "d31f6a75906f199ba7c41ed7c5aaa41142bd6bab5eef3c0fc801f45e781b2da0",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/snare/Snare2_HitSN_v3_rr1_Mid.flac",
+      "sha256": "da2ee6fdd87ad5a067aff34047210db2c5b76ff3537ad8d45fa9fb03e798761b",
+      "bytes": 19287,
+      "frames": 22400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "21d4cb8a5c45be5e38e6f2268a380c499c24bf02ab6481a75dacba74f09ac848",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/snare/Snare2_HitSN_v3_rr2_Mid.flac",
+      "sha256": "d82e93fa2edaae077df499121c68e7cf3e5642a7b5b0667867e71ad04293b443",
+      "bytes": 19025,
+      "frames": 22400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "0f568c2297127b84306c595ffd1fe66e903a34ad792760bee7e19b158b02cd58",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/snare/Snare2_stick_v1_rr1_Mid.flac",
+      "sha256": "0683c8c4980588040e9b4e7fa035abff41d0431158542afed737e534e606002e",
+      "bytes": 17302,
+      "frames": 22400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "68b6b635a451f61b3b8f48e24b48986834d44ebe25869c165ca0756cf741db7c",
+      "license": "CC0-1.0"
+    },
+    {
+      "path": "assets/snare/Snare2_stick_v1_rr2_Mid.flac",
+      "sha256": "a8c2474ec21e32a5482dfef33dc449153db8d392e0341507812a02470953b211",
+      "bytes": 16591,
+      "frames": 22400,
+      "channels": 1,
+      "sample_rate": 32000,
+      "pcm_sha256": "d544c6c5bf425217e61770070bb369d1282ff9b9b197a838a588d0096081ff92",
+      "license": "CC0-1.0"
+    }
+  ]
+}

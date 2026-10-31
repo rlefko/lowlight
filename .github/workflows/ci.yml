@@ -63,22 +63,21 @@ jobs:
   audio:
     name: Audio Regression
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Verify foundation-only scope
-        run: |
-          if git ls-files | grep -Ei '(^|/)(Audio|Engine|DSP|Planner|SoundBank)(/|\.)|\.(flac|wav|aif|aiff|cpp|c|h)$'; then
-            echo 'Add real audio regression checks with the engine or reference bank.' >&2
-            exit 1
-          fi
-          if git grep -nE 'AVAudio|AudioToolbox|AudioUnit|import Accelerate' -- '*.swift'; then
-            echo 'Audio code requires real regression checks.' >&2
-            exit 1
-          fi
-          echo 'Not yet applicable: this foundation contains no audio engine or sound bank.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12.14'
+          pip-version: '26.2.2'
+          cache: pip
+          cache-dependency-path: tools/reference/requirements.lock
+      - run: scripts/verify-bank
+      - run: python tools/reference/check.py --integrity
+      - run: python -m pip install --require-hashes -r tools/reference/requirements.lock
+      - run: python tools/reference/check.py --render
   size:
     name: Size Budget
     runs-on: macos-26
@@ -108,7 +107,7 @@ jobs:
               -scheme Lowlight -configuration Release -destination 'generic/platform=iOS' \
               -derivedDataPath "$RUNNER_TEMP/size-base-derived" \
               ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build
-            base_args+=("$RUNNER_TEMP/size-base-derived/Build/Products/Release-iphoneos/Lowlight.app")
+            base_args+=("$RUNNER_TEMP/size-base-derived/Build/Products/Release-iphoneos/Lowlight.app" "$base")
           elif [[ -n "$(git ls-tree "$base")" ]]; then
             echo 'Missing base project in a nonempty tree; investigate before comparing size.' >&2
             exit 1
@@ -125,9 +124,21 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
   codeql:
-    name: CodeQL
-    runs-on: macos-26
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: swift
+            os: macos-26
+            build-mode: manual
+            bundle: osx64
+          - language: python
+            os: ubuntu-24.04
+            build-mode: none
+            bundle: linux64
     permissions:
       contents: read
       actions: read
@@ -136,13 +147,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: scripts/toolchain
+      - if: matrix.language == 'swift'
+        run: scripts/toolchain
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          languages: swift
-          build-mode: manual
-          tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-osx64.tar.gz
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.3/codeql-bundle-${{ matrix.bundle }}.tar.gz
       - name: Trace a fresh app build without compilation caches
+        if: matrix.language == 'swift'
         run: |
           xcodebuild -project Lowlight.xcodeproj -scheme Lowlight \
             -configuration Release -destination 'generic/platform=iOS' \
@@ -151,7 +164,7 @@ jobs:
             SWIFT_ENABLE_COMPILE_CACHE=NO SWIFT_USE_INTEGRATED_DRIVER=NO
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          category: /language:swift
+          category: /language:${{ matrix.language }}
   gate:
     name: CI Gate
     if: always()

@@ -12,7 +12,7 @@ Use one focused behavior change per PR. Titles start with an emoji and use short
 
 Tests create a temporary device using the runtime and device type pinned in [toolchain.env](../config/toolchain.env), wait for it to boot, and delete only that device afterward. Install the pinned runtime in Xcode Settings > Components for local development. CI initializes Xcode and downloads that exact runtime only if it is missing; it never substitutes another OS version. Set `SIMULATOR_DESTINATION` to an explicit Xcode destination to use an existing device instead.
 
-CI runs Quality, Build and Tests, Audio Regression, Size Budget, CodeQL, and an always-running CI Gate. Audio Regression reports that it is not applicable only while engine code is absent; adding audio code requires real regression tests. Long renders, physical-device energy trials, and signed exports stay outside commit hooks and ordinary PR checks.
+CI runs Quality, Build and Tests, Audio Regression, Size Budget, CodeQL (Swift/Python), and an always-running CI Gate. Audio Regression verifies the bank and frozen reference, then reproduces the short sound fixtures using pinned developer dependencies. Native Swift Testing checks every bundled note's decoder output and resource membership. CodeQL analyzes the app with a clean traced build and the Python tools in a separate Linux job. Long session soaks, physical-device energy trials, and signed exports stay outside commit hooks and ordinary PR checks.
 
 Manual workflow runs require a `size_base` commit/ref. PRs compare against their actual merge base; main-branch runs compare against the previous head. A missing project counts as a first size baseline only when the base tree is empty.
 

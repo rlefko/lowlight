@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+# Copyright (C) 2026 Ryan Lefkowitz
+# SPDX-License-Identifier: GPL-3.0-only
+require 'digest'
+require 'json'
+require 'open3'
+require 'pathname'
+
+decode = ARGV.delete('--decode')
+abort 'Usage: scripts/verify-bank [--decode] [BANK_DIRECTORY]' if ARGV.length > 1
+root = File.expand_path(ARGV.first || File.join(__dir__, '../Lowlight/SoundBank'))
+originals = %w[sample_manifest.json electric_guitar_manifest.json
+               licenses/FreePats_Electric_Jazz_LICENSE.txt licenses/FreePats_Electric_Jazz_README.txt
+               licenses/VCSL_CC0.txt licenses/VSCO_CC0.txt]
+checksums = JSON.parse(File.read("#{root}/manifest-checksums.json"))
+abort 'Unknown bank provenance' unless checksums.fetch('schema_version') == 1 &&
+  checksums.fetch('source_archive_sha256') == '64f61c7bc012aa862a26cfc0de28a03681acdde1174992f970f1b5d281c2ca61'
+abort 'Incomplete manifest/license inventory' unless checksums.fetch('files').keys.sort == (originals + ['inventory.json']).sort
+checksums.fetch('files').each do |path, expected|
+  raw = File.binread("#{root}/#{path}")
+  abort "Changed reference metadata: #{path}" unless raw.bytesize == expected.fetch('bytes') &&
+    Digest::SHA256.hexdigest(raw) == expected.fetch('sha256')
+end
+
+inventory = JSON.parse(File.read("#{root}/inventory.json"))
+abort 'Unknown bank schema or PCM format' unless inventory.fetch('schema_version') == 1 &&
+  inventory.fetch('sample_rate') == 32_000 && inventory.fetch('pcm_encoding') == 'interleaved float32 little-endian'
+assets = inventory.fetch('assets')
+manifests = JSON.parse(File.read("#{root}/sample_manifest.json")) +
+            JSON.parse(File.read("#{root}/electric_guitar_manifest.json")).fetch('entries')
+paths = assets.map { |asset| asset.fetch('path') }
+abort 'Expected exactly 77 distinct active assets' unless assets.length == 77 && paths.uniq.length == 77 &&
+  inventory.fetch('asset_count') == 77 && manifests.map { |entry| entry.fetch('asset') }.sort == paths.sort
+paths.each do |path|
+  abort "Invalid bank path: #{path}" if Pathname.new(path).absolute? || path.split('/').include?('..') ||
+    !path.start_with?('assets/') || !path.end_with?('.flac')
+end
+expected_paths = (paths + originals + %w[inventory.json manifest-checksums.json]).sort
+actual_paths = Dir.glob("#{root}/**/*", File::FNM_DOTMATCH).select do |path|
+  abort "Bank symlink is not allowed: #{path}" if File.symlink?(path)
+  File.file?(path)
+end.map { |path| path.delete_prefix("#{root}/") }.sort
+abort 'Missing or unexpected sound-bank files' unless actual_paths == expected_paths
+
+source_entries = manifests.to_h { |entry| [entry.fetch('asset'), entry] }
+assets.each do |asset|
+  path = asset.fetch('path')
+  raw = File.binread("#{root}/#{path}")
+  entry = source_entries.fetch(path)
+  { 'sha256' => 'asset_sha256', 'bytes' => 'packed_bytes', 'frames' => 'frames',
+    'channels' => 'channels', 'sample_rate' => 'sample_rate', 'license' => 'license' }.each do |key, source_key|
+    abort "Manifest mismatch for #{path}: #{key}" unless asset.fetch(key) == entry.fetch(source_key)
+  end
+  abort "Corrupt asset: #{path}" unless Digest::SHA256.hexdigest(raw) == asset.fetch('sha256') &&
+    raw.bytesize == asset.fetch('bytes') && asset.fetch('license') == 'CC0-1.0'
+  abort "Invalid FLAC STREAMINFO: #{path}" unless raw.start_with?('fLaC') && (raw.getbyte(4) & 127).zero? &&
+    raw.byteslice(5, 3).unpack1('H*') == '000022'
+  packed = raw.byteslice(18, 8).unpack1('Q>')
+  abort "FLAC metadata mismatch: #{path}" unless packed >> 44 == asset.fetch('sample_rate') &&
+    ((packed >> 41) & 7) + 1 == asset.fetch('channels') && (packed & ((1 << 36) - 1)) == asset.fetch('frames')
+  abort "Missing PCM checksum: #{path}" unless asset.fetch('pcm_sha256').match?(/\A[0-9a-f]{64}\z/)
+  next unless decode
+  pcm, status = Open3.capture2('ffmpeg', '-nostdin', '-v', 'error', '-i', "#{root}/#{path}",
+                              '-map', '0:a:0', '-c:a', 'pcm_f32le', '-f', 'f32le', '-')
+  abort "Decoded samples changed: #{path}" unless status.success? &&
+    pcm.bytesize == asset.fetch('frames') * asset.fetch('channels') * 4 &&
+    Digest::SHA256.hexdigest(pcm) == asset.fetch('pcm_sha256')
+end
+compressed = assets.sum { |asset| asset.fetch('bytes') }
+decoded = assets.sum { |asset| asset.fetch('frames') * asset.fetch('channels') * 4 }
+abort 'Bank totals changed' unless compressed == 8_825_758 && decoded == 55_605_692 &&
+  inventory.fetch('compressed_bytes') == compressed && inventory.fetch('decoded_float32_bytes') == decoded
+puts "Verified 77 active CC0 notes: #{compressed} compressed bytes; #{decoded} decoded float32 bytes"
+puts 'Decoded PCM checksums match' if decode

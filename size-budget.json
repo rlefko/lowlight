@@ -2,7 +2,12 @@
   "configuration": "Release",
   "platform": "iphoneos",
   "architecture": "arm64",
-  "maximum_total_bytes": 5242880,
+  "maximum_total_bytes": 12582912,
   "allowed_growth_bytes": 1048576,
-  "allowed_growth_fraction": 0.05
+  "allowed_growth_fraction": 0.05,
+  "reviewed_growth": {
+    "base_commit": "161ed9831e9061fe77660657f9394abfa87fb383",
+    "maximum_bytes": 9500000,
+    "reason": "Import 8,975,997 bytes of accepted lossless notes, provenance, and CC0 notices, plus native license display; applies only to the foundation baseline"
+  }
 }

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "source_archive_sha256": "64f61c7bc012aa862a26cfc0de28a03681acdde1174992f970f1b5d281c2ca61",
+  "files": {
+    "electric_guitar_manifest.json": {
+      "sha256": "1af1164e3d02bf340015e9a79427c40247b34fc87f1da3991e6c3468ad726faf",
+      "bytes": 25080
+    },
+    "inventory.json": {
+      "sha256": "c8db1455222a438d52e2e12c6dd7bf280da64839b4b9d89acd8a01eea87194d0",
+      "bytes": 28514
+    },
+    "licenses/FreePats_Electric_Jazz_LICENSE.txt": {
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+      "bytes": 7048
+    },
+    "licenses/FreePats_Electric_Jazz_README.txt": {
+      "sha256": "5fd257f9e05c583419eccb0f33c3e9dc21f871ab79c7309142eddb98862d3f21",
+      "bytes": 598
+    },
+    "licenses/VCSL_CC0.txt": {
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+      "bytes": 7048
+    },
+    "licenses/VSCO_CC0.txt": {
+      "sha256": "36ffd9dc085d529a7e60e1276d73ae5a030b020313e6c5408593a6ae2af39673",
+      "bytes": 6555
+    },
+    "sample_manifest.json": {
+      "sha256": "f7c139c9d6c2f26bda5d6864e44361bf3848a12a736960c64921d3e4baa303e3",
+      "bytes": 74219
+    }
+  }
+}

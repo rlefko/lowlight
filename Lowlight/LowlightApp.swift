@@ -67,6 +67,17 @@ private struct AboutView: View {
                     Text("Original code: GNU General Public License v3.0 only (GPL-3.0-only).")
                     Text("This program comes with no warranty.")
                 }
+                Section("Sound Library") {
+                    Text(
+                        "Recordings from FreePats Electric Guitar FSBS (jazz), VSCO 2 CE, and VCSL use CC0-1.0."
+                    )
+                    NavigationLink("Sound library licenses") {
+                        ScrollView {
+                            Text(soundLibraryNotices).textSelection(.enabled).padding()
+                        }
+                        .navigationTitle("Sound Licenses")
+                    }
+                }
             }
             .navigationTitle("About Lowlight")
             .toolbar {
@@ -75,5 +86,17 @@ private struct AboutView: View {
                 }
             }
         }
+    }
+
+    private var soundLibraryNotices: String {
+        ["FreePats_Electric_Jazz_README", "FreePats_Electric_Jazz_LICENSE", "VSCO_CC0", "VCSL_CC0"]
+            .map { name in
+                guard
+                    let url = Bundle.main.url(
+                        forResource: name, withExtension: "txt", subdirectory: "SoundBank/licenses"),
+                    let text = try? String(contentsOf: url, encoding: .utf8)
+                else { return "License text is unavailable. Please reinstall the app." }
+                return text
+            }.joined(separator: "\n\n")
     }
 }

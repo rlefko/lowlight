@@ -1,0 +1,11 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+reference_python="${1:-python3.12}"
+[[ "$("$reference_python" --version)" == 'Python 3.12.14' ]] || {
+  echo 'Pass the path to Python 3.12.14: tools/reference/setup /path/to/python3.12' >&2; exit 1;
+}
+"$reference_python" -m venv .tools/reference
+.tools/reference/bin/python -m pip install --require-hashes -r tools/reference/requirements.lock
+echo 'Reference ready: .tools/reference/bin/python tools/reference/check.py --render'

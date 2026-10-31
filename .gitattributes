@@ -1,0 +1,2 @@
+# Preserve the accepted source byte for byte, including its final blank line.
+tools/reference/v9/instruments.py whitespace=-blank-at-eof
