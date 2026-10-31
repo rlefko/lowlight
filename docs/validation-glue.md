@@ -1,6 +1,6 @@
 # Linked harmonic compression
 
-The separate `HarmonicGlue` stage continues milestone 4 after the rhythm buses. It applies the accepted guitar/piano focus gains and linked compression from the unchanged v9 renderer. Its output is compressed harmony before room and `.92` dry scaling, plus delayed bass, drums, and duck control. Room, rack fades, air, mastering, transport, and playback remain later work.
+The separate `HarmonicGlue` stage continues milestone 4 after the rhythm buses. It applies the accepted guitar/piano focus gains and linked compression from the unchanged v9 renderer. Its output is compressed harmony before room and `.92` dry scaling, plus delayed bass, drums, and duck control. The [stereo room](validation-room.md) consumes this output. Rack fades, air, mastering, transport, and playback remain later work.
 
 ## Signal path and streaming contract
 

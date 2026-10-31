@@ -110,6 +110,29 @@ struct SoundBankTests {
                 && actual.duck == input.duck
         }
         #expect(aligned)
+        try verifyStereoRoom(output)
+    }
+
+    private func verifyStereoRoom(_ input: [HarmonicGlueFrame]) throws {
+        let room = try StereoRoom(space: 0.70, warmth: 0.78)
+        var output = [HarmonicGlueFrame](repeating: HarmonicGlueFrame(), count: input.count)
+        #expect(
+            output.withUnsafeMutableBufferPointer { destination in
+                input.withUnsafeBufferPointer { room.process($0, into: destination) }
+            })
+        let finite = output.allSatisfy {
+            [$0.tonal.0, $0.tonal.1, $0.bass.0, $0.bass.1, $0.drums.0, $0.drums.1, $0.duck]
+                .allSatisfy(\.isFinite)
+        }
+        let aligned = input.indices.allSatisfy {
+            output[$0].bass == input[$0].bass && output[$0].drums == input[$0].drums
+                && output[$0].duck == input[$0].duck
+        }
+        #expect(finite && aligned)
+        #expect(output.prefix(HarmonicGlue.latencyFrames).allSatisfy { $0.tonal == (0, 0) })
+        #expect(input.suffix(1600).allSatisfy { $0.tonal == (0, 0) })
+        // Voices have retired, but the causal room still contains their release tails.
+        #expect(output.suffix(1600).contains { $0.tonal.0 != 0 || $0.tonal.1 != 0 })
     }
 
     @Test func bundledTonalSamplesPrepareOnIOS() throws {
