@@ -38,3 +38,10 @@ All eight 13-second stereo Float32 WAV hashes, dimensions, finite values, native
 ## Host rendering probe
 
 An Apple M4 Max probe used C++17 `-O2 -ffp-contract=off`, 64 continuously active voices, and 256-frame callbacks. Ten retained 131,072-frame trials per mode followed warmup, with before/disabled/enabled order reversed in the second batch. Median wall time for 4.096 seconds of audio was 18.153 ms for the previous mixer, 19.057 ms for the new mixer with fades disabled, and 20.140 ms with fades enabled. Trial ranges were 17.950–18.359, 18.592–19.387, and 19.490–20.532 ms respectively. Prior/disabled checksums matched. The mixer object is 185,744 bytes, up from 185,680, with its existing PCM allocation unchanged. Builds and reference comparisons had finished before this probe; ordinary host activity was not isolated. These observations establish no iPhone callback deadline, whole-chain performance, or energy result.
+
+A separate callback probe retained all 30,720 timings per mode after 1,024 warmups. Sixty 4.096-second bursts alternated enabled/disabled order; reset ran outside timing so each burst retained 64 voices and active fade ramps. Mixers, buffers, and timing storage were prepared once. Nearest-rank percentiles include every observation; differing worst times reflect host/scheduler variation.
+
+| 256-frame callback | p99 | p99.9 | Worst |
+| --- | ---: | ---: | ---: |
+| Fades disabled | 46.083 µs | 53.542 µs | 120.375 µs |
+| Fades enabled | 48.708 µs | 55.625 µs | 106.000 µs |
