@@ -16,6 +16,6 @@ The [public repository](https://github.com/rlefko/lowlight) is configured and ad
 
 Required hosted CI and CodeQL results are tracked in each PR's checks. Keep new PRs unmerged until checks pass and the owner reviews the concrete result. Owner review is a manual handoff because the PR author cannot self-approve. No release exists yet.
 
-Current scope: a focused [CodeQL preparation and coverage improvement](performance.md#ci-performance-follow-up) before instrument DSP. Native sample voices begin milestone 4 after this infrastructure change. No native sound engine exists yet.
+Current scope: [PR #5](https://github.com/rlefko/lowlight/pull/5) measures [CodeQL preparation and coverage](performance.md#ci-performance-follow-up), with [hosted checks](https://github.com/rlefko/lowlight/pull/5/checks) and owner review required before merge. Native sample voices begin milestone 4 after this infrastructure change. No native sound engine exists yet.
 
 Release gates include sound parity, two-hour native soaks, on-device offline first launch and locked-screen playback, interruption/route behavior, energy/memory/size evidence, accessibility and appearance checks, dependency/asset license inventory, distribution-route review, and an explicit release decision. No App Store submission is authorized by completing a milestone.
