@@ -49,7 +49,7 @@ struct SoundBankTests {
             """.utf8)
         let mixer = try TonalVoiceMixer(
             preparer: TonalSamplePreparer(bankURL: bank),
-            events: NoteEvent.importReference(score), warmth: 0.78)
+            events: NoteEvent.importReference(score), warmth: 0.78, busEnergy: 0.35)
         var output = [Float](repeating: .nan, count: 99_200 * 2)
         #expect(output.withUnsafeMutableBufferPointer { mixer.render(into: $0) })
         let finite = output.allSatisfy(\.isFinite)
@@ -60,6 +60,20 @@ struct SoundBankTests {
         let silent = output[(97_600 * 2)...].allSatisfy { $0 == 0 }
         #expect(silent && mixer.activeVoices == 0 && mixer.position == 99_200)
         #expect(mixer.stolenVoices == 0 && mixer.droppedEvents == 0)
+        mixer.reset()
+        var buses = [RhythmBusFrame](repeating: RhythmBusFrame(), count: 99_200)
+        #expect(buses.withUnsafeMutableBufferPointer { mixer.renderBuses(into: $0) })
+        #expect(buses[0].duck == Float(0.945) && buses[8960].duck == 1)
+        #expect(buses.contains { abs($0.drums.0) > 0.001 && $0.duck < 1 })
+        #expect(buses[95_000..<96_000].contains { abs($0.bass.0) > 0.0001 })
+        let busFinite = buses.allSatisfy { frame in
+            [
+                frame.guitar.0, frame.guitar.1, frame.piano.0, frame.piano.1,
+                frame.bass.0, frame.bass.1, frame.drums.0, frame.drums.1, frame.duck,
+            ]
+            .allSatisfy(\.isFinite)
+        }
+        #expect(busFinite && mixer.activeVoices == 0 && mixer.position == 99_200)
     }
 
     @Test func bundledTonalSamplesPrepareOnIOS() throws {

@@ -45,6 +45,13 @@ static uint64_t floatingControl() {
     return 0;
 #endif
 }
+static bool sameFrame(const LLBusFrame &a, const LLBusFrame &b) {
+    return std::equal(a.guitar, a.guitar + 2, b.guitar) && std::equal(a.piano, a.piano + 2, b.piano) &&
+        std::equal(a.bass, a.bass + 2, b.bass) && std::equal(a.drums, a.drums + 2, b.drums) && a.duck == b.duck;
+}
+static bool sameBuses(const std::vector<LLBusFrame> &a, const std::vector<LLBusFrame> &b) {
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), sameFrame);
+}
 struct Mixer {
     LLMixer *value = ll_mixer_create();
     Mixer() { CHECK(value); }
@@ -74,6 +81,26 @@ struct Mixer {
             offset += count;
         }
         CHECK(std::all_of(output.begin(), output.end(), [](float value) { return std::isfinite(value); }));
+        return output;
+    }
+    std::vector<LLBusFrame> buses(uint32_t frames, const std::vector<uint32_t> &blocks = {256}) {
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        std::vector<LLBusFrame> output(frames, LLBusFrame{{nan, nan}, {nan, nan}, {nan, nan}, {nan, nan}, nan});
+        uint32_t offset = 0; std::size_t block = 0;
+        while (offset < frames) {
+            const uint32_t count = std::min(frames - offset, blocks[block++ % blocks.size()]);
+            const auto control = floatingControl(); auditing = true;
+            const bool result = ll_mixer_render_buses(value, output.data() + offset, count);
+            auditing = false;
+            CHECK(result && floatingControl() == control && allocations == 0 && deallocations == 0);
+            CHECK(ll_mixer_active_voices(value) <= LL_VOICE_LIMIT); offset += count;
+        }
+        for (const auto &frame : output) {
+            CHECK(std::isfinite(frame.duck));
+            for (uint32_t ch = 0; ch < 2; ++ch)
+                CHECK(std::isfinite(frame.guitar[ch]) && std::isfinite(frame.piano[ch]) &&
+                      std::isfinite(frame.bass[ch]) && std::isfinite(frame.drums[ch]));
+        }
         return output;
     }
     void reset() {
@@ -336,6 +363,96 @@ static void percussionStealingAndProtection() {
     score[0].hold_frames = 1; mixer.load(score); CHECK(longGate == mixer.render(1000));
 }
 
+static void busFiltersAndRouting() {
+    // Independent scipy.butter(2, cutoff, fs=32000) / sosfilt unit impulse at these frames.
+    constexpr uint32_t points[] = {0, 1, 16, 64, 256};
+    constexpr double impulse[][5] = {
+        {.00072719561998898325, .0028522695725005961, .024312521476271696, .0039257704401901381, -1.8774906434903657e-6},
+        {.0092497139153492353, .034317411108652898, .020435002649031513, 1.0138348947721731e-6, -2.2474050346769002e-18},
+        {.01679277795958356, .060478000761322551, -.0016612082138870521, 4.6942218049170326e-7, 1.5722569572052899e-23},
+        {.011857682643241161, .043508246422461122, .010443013428789324, -7.5993896337344949e-6, -8.1731505417544658e-20}};
+    constexpr float voiceGains[] = {.31f, .25f, .27f, .11f}, busGains[] = {.50f, .44f, .42f, .24f};
+    for (const double energy : {0.0, 1.0}) {
+        Mixer mixer; CHECK(mixer.sample(.2f, 1) == 0 && mixer.sample(.2f) == 1);
+        CHECK(ll_mixer_configure_buses(mixer.value, energy));
+        for (uint8_t kind = 0; kind < 4; ++kind) {
+            mixer.load({percussion(kind + 3)}); const auto output = mixer.buses(257, {1, 17, 239});
+            CHECK(ll_mixer_active_voices(mixer.value) == 0 && output[1].drums[0] != 0);
+            const float gain = kind < 2 ? float(.85 + .45 * energy) : (kind == 2 ? float(.9 + .35 * energy) : 1);
+            for (uint32_t index = 0; index < 5; ++index) {
+                const float filtered = float(impulse[kind][index] * ((.2f * panFactor(0)) * voiceGains[kind]));
+                CHECK(near(output[points[index]].drums[0], (filtered * busGains[kind]) * gain));
+                CHECK(output[points[index]].drums[0] == output[points[index]].drums[1]);
+            }
+            CHECK(output[0].guitar[0] == 0 && output[0].piano[0] == 0 && output[0].bass[0] == 0);
+            mixer.reset(); CHECK(sameBuses(output, mixer.buses(257, {257})));
+        }
+        for (uint8_t kind = 0; kind < 3; ++kind) {
+            auto note = event(1); note.instrument = kind; note.midi = 40;
+            mixer.load({note}); const auto dry = mixer.render(500); mixer.reset(); const auto output = mixer.buses(500);
+            for (uint32_t frame = 0; frame < 500; ++frame) {
+                const auto &bus = output[frame];
+                CHECK(bus.duck == 1 && bus.drums[0] == 0 && bus.drums[1] == 0);
+                for (uint32_t ch = 0; ch < 2; ++ch) {
+                    CHECK(bus.guitar[ch] == (kind == 0 ? dry[2 * frame + ch] : 0));
+                    CHECK(bus.piano[ch] == (kind == 1 ? dry[2 * frame + ch] : 0));
+                    CHECK(bus.bass[ch] == (kind == 2 ? (dry[2 * frame + ch] * 1.20f) * float(.98 + .06 * energy) : 0));
+                }
+            }
+        }
+    }
+}
+static void busStateAndValidation() {
+    Mixer mixer, plain; CHECK(mixer.sample(.2f, 1) == 0 && plain.sample(.2f, 1) == 0);
+    CHECK(mixer.sample(.2f) == 1 && plain.sample(.2f) == 1);
+    LLBusFrame output{{7, 7}, {7, 7}, {7, 7}, {7, 7}, 7};
+    CHECK(!ll_mixer_render_buses(mixer.value, &output, 1) && sameFrame(output, LLBusFrame{}));
+    CHECK(!ll_mixer_configure_buses(nullptr, .5)); CHECK(ll_mixer_configure_buses(mixer.value, .5));
+    for (const double invalid : {-1.0, 1.01, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
+        CHECK(!ll_mixer_configure_buses(mixer.value, invalid));
+    std::vector<LLEvent> mixed;
+    for (uint8_t kind = 0; kind < 7; ++kind) {
+        auto note = kind >= 3 ? percussion(kind, 1) : event(1); note.instrument = kind;
+        if (kind == 2) note.midi = 40;
+        note.pan = kind * .13f - .4f; note.velocity = .37f + kind * .03f; mixed.push_back(note);
+    }
+    mixer.load(mixed); plain.load(mixed); CHECK(mixer.render(4097) == plain.render(4097));
+    const auto kick = percussion(); mixer.load({kick}); plain.load({kick});
+    CHECK(!ll_mixer_render_buses(plain.value, &output, 1) && ll_mixer_position(plain.value) == 0);
+    CHECK(mixer.render(1025) == plain.render(1025)); mixer.reset(); const auto expected = mixer.buses(1025);
+    CHECK(!ll_mixer_configure_buses(mixer.value, 0));
+    mixer.reset(); CHECK(sameBuses(expected, mixer.buses(1025, {1, 17, 255, 256, 496})));
+    mixer.reset(); mixer.render(37); auto bad = kick; bad.instrument = 7;
+    CHECK(!ll_mixer_load_events(mixer.value, &bad, 1) && !ll_mixer_configure_buses(mixer.value, 1));
+    CHECK(!ll_mixer_render_buses(mixer.value, nullptr, 1) && ll_mixer_position(mixer.value) == 37);
+    CHECK(sameBuses(std::vector<LLBusFrame>(expected.begin() + 37, expected.end()), mixer.buses(988)));
+    mixer.load({kick}); CHECK(sameBuses(expected, mixer.buses(1025)));
+    mixer.load({}); const auto empty = mixer.buses(3);
+    LLBusFrame silence{}; silence.duck = 1; for (const auto &frame : empty) CHECK(sameFrame(frame, silence));
+    output = silence; CHECK(ll_mixer_render_buses(mixer.value, &output, 0) && sameFrame(output, silence));
+    CHECK(!ll_mixer_render_buses(nullptr, &output, 1) && sameFrame(output, LLBusFrame{}));
+}
+static void kickDuckingAndProtection() {
+    Mixer mixer; CHECK(mixer.sample(.2f, 1) == 0 && mixer.sample(0, 4096) == 1);
+    CHECK(ll_mixer_configure_buses(mixer.value, .5));
+    auto first = percussion(3, 0, 5); first.velocity = 0;
+    auto next = first; next.start_frame = 105; mixer.load({first, next, next});
+    const auto duck = mixer.buses(9066, {9066});
+    CHECK(duck[4].duck == 1 && duck[5].duck == .945f && duck[105].duck == .945f);
+    CHECK(near(duck[104].duck, 1 - .055 * std::exp(-99.0 / 32000 / .105)));
+    CHECK(near(duck[9064].duck, 1 - .055 * std::exp(-8959.0 / 32000 / .105)) && duck[9065].duck == 1);
+    CHECK(ll_mixer_active_voices(mixer.value) == 0);
+    for (const auto &frame : duck) CHECK(frame.drums[0] == 0 && frame.drums[1] == 0);
+    mixer.reset(); CHECK(sameBuses(duck, mixer.buses(9066, {1, 17, 255, 257, 1023})));
+    auto tone = event(1, 0, 1000, 0); tone.priority = 2;
+    std::vector<LLEvent> crowded(63, tone); crowded.push_back(bass(0, 1000, 0));
+    first.velocity = 1; crowded.push_back(first); mixer.load(crowded);
+    const auto dropped = mixer.buses(20, {1});
+    CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 1);
+    CHECK(dropped[4].duck == 1 && dropped[5].duck == .945f && dropped[5].drums[0] == 0);
+    CHECK(dropped[5].bass[0] == (bassReference(5, bass(0, 1000, 0)) * 1.20f) * 1.01f);
+}
+
 static void invalidInputsAndOwnership() {
     Mixer mixer; const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
     CHECK(ll_mixer_add_sample(mixer.value, nullptr, 1, 1) == -1);
@@ -380,6 +497,7 @@ static void invalidInputsAndOwnership() {
 
 int main() {
     timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
-    percussionSoundAndBounds(); percussionStealingAndProtection(); invalidInputsAndOwnership();
+    percussionSoundAndBounds(); percussionStealingAndProtection(); busFiltersAndRouting(); busStateAndValidation();
+    kickDuckingAndProtection(); invalidInputsAndOwnership();
     std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }
