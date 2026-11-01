@@ -15,6 +15,7 @@
 - [Linked peak protection and evidence](validation-peak.md)
 - [Song rack fades and evidence](validation-fades.md)
 - [Quiet synthetic air and evidence](validation-air.md)
+- [Song mix assembly and evidence](validation-mix.md)
 - [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)

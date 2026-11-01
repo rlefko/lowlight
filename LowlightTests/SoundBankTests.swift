@@ -190,7 +190,41 @@ struct SoundBankTests {
         #expect(input.suffix(1600).allSatisfy { $0.tonal == (0, 0) })
         // Voices have retired, but the causal room still contains their release tails.
         #expect(output.suffix(1600).contains { $0.tonal.0 != 0 || $0.tonal.1 != 0 })
+        try verifySongMix(output)
         try verifyPeakProtection(output)
+    }
+
+    private func verifySongMix(_ delayed: [HarmonicGlueFrame]) throws {
+        // The glue drain is already present; consume exactly N logical song frames.
+        let input = Array(delayed.dropFirst(HarmonicGlue.latencyFrames))
+        let mix = try SongMix(
+            takeSeed: 1_278_560_406, inputFrames: UInt32(input.count), frameOrigin: 0,
+            texture: 0.09,
+            rackFades: SongRackFades(
+                tonalOutStartFrame: 70_000, tonalOutEndFrame: 80_000, rhythmOutFrame: 75_000))
+        var output = [Float](repeating: .nan, count: input.count * 2)
+        #expect(
+            output.withUnsafeMutableBufferPointer { destination in
+                input.withUnsafeBufferPointer { mix.process($0, into: destination) }
+            })
+        let finite = output.allSatisfy(\.isFinite)
+        #expect(finite && output.contains { abs($0) > 0.001 })
+        #expect(output.suffix(3200).contains { $0 != 0 })
+        mix.reset()
+        var replay = [Float](repeating: .nan, count: output.count)
+        input.withUnsafeBufferPointer { source in
+            replay.withUnsafeMutableBufferPointer { destination in
+                for start in stride(from: 0, to: input.count, by: 127) {
+                    let end = min(start + 127, input.count)
+                    #expect(
+                        mix.process(
+                            UnsafeBufferPointer(rebasing: source[start..<end]),
+                            into: UnsafeMutableBufferPointer(
+                                rebasing: destination[(start * 2)..<(end * 2)])))
+                }
+            }
+        }
+        #expect(replay == output)
     }
 
     private func verifyPeakProtection(_ buses: [HarmonicGlueFrame]) throws {
