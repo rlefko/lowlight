@@ -36,10 +36,24 @@ public final class TonalVoiceMixer {
     /// Starts with empty signal history at the absolute origin. Events and fades
     /// use that same clock; earlier events are rejected before sample preparation.
     /// This does not seek within a song or restore notes already in progress.
+    /// Swift preparation preserves subnormals and restores caller FP state, including on failure.
     public init(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
         busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0
     ) throws {
+        handle = try PreparationMode.perform {
+            try Self.makeHandle(
+                preparer: preparer, events: events, warmth: warmth,
+                busEnergy: busEnergy, rackFades: rackFades, frameOrigin: frameOrigin)
+        }
+    }
+
+    // Validation, sample preparation, and event conversion share the preparation scope.
+    @inline(never)
+    private static func makeHandle(
+        preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
+        busEnergy: Double?, rackFades: SongRackFades?, frameOrigin: UInt64
+    ) throws -> OpaquePointer {
         guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite,
             frameOrigin <= UInt64(MusicalTime.maximumFrame)
         else {
@@ -135,7 +149,7 @@ public final class TonalVoiceMixer {
             else {
                 throw VoiceMixerError.invalidScore
             }
-            self.handle = handle
+            return handle
         } catch {
             ll_mixer_destroy(handle)
             throw error

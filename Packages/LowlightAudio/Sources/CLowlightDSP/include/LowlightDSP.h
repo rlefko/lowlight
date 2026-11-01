@@ -14,7 +14,18 @@ extern "C" {
 // with subnormal flushing, then restore the caller's ARM64 FPCR/FPSR or SSE2 MXCSR.
 // Callers may vary rounding, flush mode, and sticky status; exceptions must be masked
 // and other FP controls must retain platform defaults. This contract starts with
-// supplied PCM/canonical frames and does not cover Swift sample preparation/planning.
+// supplied PCM/canonical frames. Preparation uses the explicit gradual scope below;
+// other caller code and Swift planning are outside these native scopes.
+
+typedef void (*LLPreparationCallback)(void *context);
+// Off-audio-thread preparation scope: round-to-nearest with gradual underflow.
+// Invokes callback exactly once, synchronously on this thread; retains neither argument.
+// Context may be null and is forwarded unchanged. A null callback returns false without
+// changing FP state. Otherwise returns true after restoring the caller's full FP state.
+// Callback must return normally: capture Swift errors inside and rethrow after return.
+// No async work, thread migration, longjmp, or exceptions may escape this scope.
+// The masked-exception/default-other-controls preconditions above also apply here.
+bool ll_with_preparation_mode(LLPreparationCallback callback, void *context);
 
 enum { LL_VOICE_LIMIT = 64, LL_SAMPLE_LIMIT = 64, LL_EVENT_LIMIT = 2048,
        LL_SAMPLE_BYTES = 32 * 1024 * 1024, LL_STEAL_FRAMES = 160 };

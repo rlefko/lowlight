@@ -16,7 +16,12 @@ let package = Package(
             cxxSettings: [.unsafeFlags(["-ffp-contract=off"])]
         ),
         .target(name: "LowlightAudio", dependencies: ["CLowlightDSP", "LowlightPlanning"]),
-        .testTarget(name: "LowlightAudioTests", dependencies: ["LowlightAudio"]),
+        .target(
+            name: "CPreparationTestSupport", path: "Tests/CPreparationTestSupport",
+            publicHeadersPath: "include"
+        ),
+        .testTarget(
+            name: "LowlightAudioTests", dependencies: ["LowlightAudio", "CPreparationTestSupport"]),
     ],
     cxxLanguageStandard: .cxx17
 )

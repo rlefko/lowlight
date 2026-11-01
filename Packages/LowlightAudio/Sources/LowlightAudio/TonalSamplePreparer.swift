@@ -100,9 +100,23 @@ public struct TonalSamplePreparer: Sendable {
     }
 
     /// Velocity selects the closed-hat layer; continuous event gain remains in the renderer.
+    /// Uses round-to-nearest with gradual underflow, restoring caller FP state on return.
     public func prepare(
         instrument: TonalInstrument, note: Int, roundRobin: Int, warmth: Double,
         velocity: Double = 0.5
+    ) throws -> PreparedTonalSample {
+        try PreparationMode.perform {
+            try prepareInMode(
+                instrument: instrument, note: note, roundRobin: roundRobin,
+                warmth: warmth, velocity: velocity)
+        }
+    }
+
+    // Keep numeric work inside the synchronous callback, including validation.
+    @inline(never)
+    private func prepareInMode(
+        instrument: TonalInstrument, note: Int, roundRobin: Int, warmth: Double,
+        velocity: Double
     ) throws -> PreparedTonalSample {
         guard (0...10).contains(roundRobin), warmth.isFinite,
             velocity.isFinite, (0...1).contains(velocity)

@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <pthread.h>
 #include <type_traits>
 #include <vector>
 #if defined(__SSE2__)
@@ -85,6 +86,54 @@ template<class Function> static auto checked(Function function, const char *name
 #define SETUP(expression) checked([&] { return (expression); }, #expression, false)
 template<class Float, class Bits> static Float fromBits(Bits bits) {
     static_assert(sizeof(Float) == sizeof(Bits)); Float result; std::memcpy(&result, &bits, sizeof(result)); return result;
+}
+static uint32_t bits(float value) { uint32_t result; std::memcpy(&result, &value, sizeof(result)); return result; }
+static void checkGradualArithmetic() {
+    const auto current = state();
+#if defined(__aarch64__)
+    CHECK((current.control & ((uint64_t{3} << 22) | (uint64_t{1} << 24))) == 0);
+#else
+    CHECK((current.control & 0xe040u) == 0);
+#endif
+    volatile double halfway = fromBits<double>(uint64_t{0x3ff0000010000000});
+    volatile float smallestNormal = fromBits<float>(uint32_t{0x00800000});
+    CHECK(bits(static_cast<float>(halfway)) == 0x3f800000);
+    CHECK(bits(smallestNormal * .5f) == 0x00400000); // Preserve a real nonzero subnormal.
+    volatile float one = 1, zero = 0, raised = one / zero;
+    (void)raised; // Accrue a new sticky flag; the caller's flags must still be restored.
+}
+struct PreparationContext { LLSongGain *gain; pthread_t owner = pthread_self(); uint32_t calls = 0, nested = 0; };
+static void nestedPreparation(void *opaque) {
+    auto &context = *static_cast<PreparationContext *>(opaque); ++context.nested;
+    CHECK(pthread_equal(context.owner, pthread_self()));
+    checkGradualArithmetic();
+}
+static void preparationCallback(void *opaque) {
+    auto &context = *static_cast<PreparationContext *>(opaque); ++context.calls;
+    CHECK(pthread_equal(context.owner, pthread_self()));
+    checkGradualArithmetic();
+    CHECK(CALL(ll_with_preparation_mode(nestedPreparation, &context)));
+    const float input[]{fromBits<float>(uint32_t{0x00400000}), fromBits<float>(uint32_t{0x80400000})};
+    float output[]{7, 7};
+    CHECK(CALL(ll_song_gain_process(context.gain, input, output, 1)));
+    CHECK((bits(output[0]) & 0x7fffffff) == 0 && (bits(output[1]) & 0x7fffffff) == 0);
+    checkGradualArithmetic(); // Nested native RN+FTZ returned to preparation's RN+gradual.
+}
+static void nullContext(void *context) { CHECK(!context); checkGradualArithmetic(); }
+static void preparationBoundary(State original) {
+    auto *gain = SETUP(ll_song_gain_create(-20.5)); CHECK(gain);
+    for (uint32_t round = 0; round < 4; ++round) for (uint32_t flush = 0; flush < flushModes; ++flush) for (bool flags : {false, true}) {
+        install(mode(original, round, flush, flags));
+        PreparationContext context{gain};
+        CHECK(!CALL(ll_with_preparation_mode(nullptr, nullptr)));
+        CHECK(!CALL(ll_with_preparation_mode(nullptr, &context)) && context.calls == 0);
+        CHECK(CALL(ll_with_preparation_mode(nullContext, nullptr)));
+        CHECK(CALL(ll_with_preparation_mode(preparationCallback, &context)));
+        CHECK(context.calls == 1 && context.nested == 1);
+        CHECK(CALL(ll_with_preparation_mode(preparationCallback, &context)));
+        CHECK(context.calls == 2 && context.nested == 2); // Exactly one invocation per call.
+    }
+    SETUP(ll_song_gain_destroy(gain));
 }
 constexpr uint32_t count = 12801;
 constexpr uint64_t origin = 37;
@@ -246,6 +295,7 @@ static void rejectionAndRollback(State original) {
     }
 }
 int main() {
-    const auto original = state(); setupAndRenderModes(original); rejectionAndRollback(original); install(original);
+    const auto original = state(); preparationBoundary(original);
+    setupAndRenderModes(original); rejectionAndRollback(original); install(original);
     std::puts("Native DSP setup/render rounding independence, full FP restoration, rollback and allocation audits passed");
 }

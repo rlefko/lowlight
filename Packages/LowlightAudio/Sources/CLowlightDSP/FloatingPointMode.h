@@ -15,16 +15,18 @@
 #endif
 
 namespace lowlight {
+enum class UnderflowMode { flush, gradual };
 // Float/Double DSP with masked exceptions and otherwise default platform controls.
 // Nesting restores the enclosing mode; callers retain their exact control/status bits.
 class FloatingPointMode {
 #if defined(__aarch64__)
     uint64_t control, status;
 public:
-    FloatingPointMode() noexcept {
+    explicit FloatingPointMode(UnderflowMode underflow = UnderflowMode::flush) noexcept {
         asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
         asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = (control | (uint64_t{1} << 24)) & ~(uint64_t{3} << 22);
+        const uint64_t next = (control & ~((uint64_t{3} << 22) | (uint64_t{1} << 24))) |
+            (underflow == UnderflowMode::flush ? (uint64_t{1} << 24) : 0);
         asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
     }
     ~FloatingPointMode() {
@@ -34,8 +36,8 @@ public:
 #elif defined(__SSE2__)
     unsigned previous;
 public:
-    FloatingPointMode() noexcept : previous(_mm_getcsr()) {
-        _mm_setcsr((previous | 0x8040u) & ~0x6000u);
+    explicit FloatingPointMode(UnderflowMode underflow = UnderflowMode::flush) noexcept : previous(_mm_getcsr()) {
+        _mm_setcsr((previous & ~0xe040u) | (underflow == UnderflowMode::flush ? 0x8040u : 0));
     }
     ~FloatingPointMode() { _mm_setcsr(previous); }
 #else
