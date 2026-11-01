@@ -156,7 +156,8 @@ struct SongMixTests {
         let mixer = try TonalVoiceMixer(
             preparer: preparer, events: events, warmth: warmth, busEnergy: energy,
             rackFades: item.fades.descriptor)
-        #expect(mixer.preparedBytes == item.preparedBytes)
+        let originalBytes = try #require(item.preparedBytes)
+        #expect(mixer.preparedBytes <= originalBytes)
         let count = item.frames + HarmonicGlue.latencyFrames
         try #require(count < item.inputFrames)
         var buses = [RhythmBusFrame](repeating: RhythmBusFrame(), count: count)

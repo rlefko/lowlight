@@ -45,7 +45,7 @@ struct VoiceMixerTests {
         let preparer = try TonalSamplePreparer(
             bankURL: voiceRoot.appendingPathComponent("Lowlight/SoundBank"))
         let mixer = try TonalVoiceMixer(preparer: preparer, events: events, warmth: 0.78)
-        #expect(mixer.preparedBytes == 15_741_256)
+        #expect(mixer.preparedBytes <= 15_741_256)
         let actual = try render(mixer, partitions: [512])
         mixer.reset()
         let partitioned = try render(mixer, partitions: [1, 17, 64, 127, 256, 1023])

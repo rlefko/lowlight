@@ -77,6 +77,8 @@ struct SoundBankTests {
         let mixer = try TonalVoiceMixer(
             preparer: TonalSamplePreparer(bankURL: bank),
             events: NoteEvent.importReference(score), warmth: 0.78, busEnergy: 0.35)
+        // Short tonal gates retain only the PCM they can reach, including on iOS.
+        #expect(mixer.preparedBytes < 1_048_576)
         var output = [Float](repeating: .nan, count: 99_200 * 2)
         #expect(output.withUnsafeMutableBufferPointer { mixer.render(into: $0) })
         let finite = output.allSatisfy(\.isFinite)

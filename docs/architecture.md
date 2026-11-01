@@ -4,6 +4,8 @@ The app is a SwiftUI shell with an About sheet and the accepted sound bank. The 
 
 Responsibilities stay separate: deterministic Swift planner and event timeline, bank preparation, a small C/C++ DSP kernel, playback coordinator, persistence, and UI. Prefer a few modules with clear ownership. See the [native planning decision](adrs/002-native-planning.md) for algorithm versioning and bounded history, and the [shared-time decision](adrs/003-events-and-shared-time.md) for transitions and checkpoint limits.
 
+Score preparation fully processes and validates each unique note, then retains only the tonal/bass prefix reachable by its longest event. Percussion keeps its complete shaped body. The fixed sample/event/PCM limits and explicit capacity failures remain in force; see [sample storage validation](validation-sample-storage.md).
+
 The audio callback will render from preallocated storage only. No planning, decoding, allocation, locks, logging, I/O, async calls, or UI updates belong there. Plan one successor, use at most two song racks, and enforce 64 total voices with deterministic stealing. Handle arbitrary callback frame counts in bounded subblocks.
 
 Preserve the canonical 32 kHz signal path and convert at the output boundary. Keep effect and limiter state continuous. Offline rendering must exercise production DSP. Whole-song gain analysis needs a bounded-memory pass off the callback; its startup and CPU costs must be measured.

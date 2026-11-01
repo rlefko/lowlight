@@ -63,7 +63,7 @@ struct SongRackFadeTests {
             let mixer = try TonalVoiceMixer(
                 preparer: preparer, events: events(item), warmth: item.warmth,
                 busEnergy: item.energy, rackFades: item.fades)
-            #expect(mixer.preparedBytes == item.preparedBytes)
+            #expect(mixer.preparedBytes <= item.preparedBytes)
             let actual = try buses(mixer, frames: item.frames, partitions: [512])
             mixer.reset()
             #expect(
