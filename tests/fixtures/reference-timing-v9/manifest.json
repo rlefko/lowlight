@@ -1,0 +1,4050 @@
+{
+  "schema_version": 1,
+  "sample_rate": 32000,
+  "frame_tolerance": 0,
+  "source_sha256": {
+    "tests/fixtures/v9/events.json": "be9c954e9c2d115314a83a0971accfc3972cd7bd3e86276e4776ae0d72aadf11",
+    "tools/reference/v9/render_room.py": "247b0e5f2d961e62fbef2342d7e36606e52381ea72dc4300997bf7ef026befd4",
+    "tools/reference/v9/instruments.py": "0f245822e1bf754ee116f7e737af2f8c4f707a0aa351c6e42842970aeb02fbd7"
+  },
+  "events": [
+    {
+      "start_frame": 0,
+      "gate_end_frame": 9846,
+      "release_end_frame": 17846
+    },
+    {
+      "start_frame": 0,
+      "gate_end_frame": 2462,
+      "release_end_frame": 10462
+    },
+    {
+      "start_frame": 192,
+      "gate_end_frame": 65423,
+      "release_end_frame": 68943
+    },
+    {
+      "start_frame": 384,
+      "gate_end_frame": 90230,
+      "release_end_frame": 98141
+    },
+    {
+      "start_frame": 576,
+      "gate_end_frame": 90422,
+      "release_end_frame": 100022
+    },
+    {
+      "start_frame": 768,
+      "gate_end_frame": 73526,
+      "release_end_frame": 74422
+    },
+    {
+      "start_frame": 1152,
+      "gate_end_frame": 48911,
+      "release_end_frame": 49807
+    },
+    {
+      "start_frame": 1344,
+      "gate_end_frame": 94942,
+      "release_end_frame": 98142
+    },
+    {
+      "start_frame": 1792,
+      "gate_end_frame": 94942,
+      "release_end_frame": 98142
+    },
+    {
+      "start_frame": 24615,
+      "gate_end_frame": 27077,
+      "release_end_frame": 35077
+    },
+    {
+      "start_frame": 25063,
+      "gate_end_frame": 30479,
+      "release_end_frame": 38479
+    },
+    {
+      "start_frame": 49231,
+      "gate_end_frame": 51692,
+      "release_end_frame": 59692
+    },
+    {
+      "start_frame": 49807,
+      "gate_end_frame": 72945,
+      "release_end_frame": 82545
+    },
+    {
+      "start_frame": 61538,
+      "gate_end_frame": 71385,
+      "release_end_frame": 79385
+    },
+    {
+      "start_frame": 73846,
+      "gate_end_frame": 91569,
+      "release_end_frame": 94769
+    },
+    {
+      "start_frame": 73846,
+      "gate_end_frame": 76308,
+      "release_end_frame": 84308
+    },
+    {
+      "start_frame": 74294,
+      "gate_end_frame": 79710,
+      "release_end_frame": 87710
+    },
+    {
+      "start_frame": 74422,
+      "gate_end_frame": 94941,
+      "release_end_frame": 98141
+    },
+    {
+      "start_frame": 98462,
+      "gate_end_frame": 108308,
+      "release_end_frame": 116308
+    },
+    {
+      "start_frame": 98462,
+      "gate_end_frame": 100923,
+      "release_end_frame": 108923
+    },
+    {
+      "start_frame": 98654,
+      "gate_end_frame": 185300,
+      "release_end_frame": 188820
+    },
+    {
+      "start_frame": 98846,
+      "gate_end_frame": 188692,
+      "release_end_frame": 197307
+    },
+    {
+      "start_frame": 99038,
+      "gate_end_frame": 188884,
+      "release_end_frame": 196603
+    },
+    {
+      "start_frame": 99230,
+      "gate_end_frame": 189076,
+      "release_end_frame": 197691
+    },
+    {
+      "start_frame": 99614,
+      "gate_end_frame": 189460,
+      "release_end_frame": 198075
+    },
+    {
+      "start_frame": 99806,
+      "gate_end_frame": 181037,
+      "release_end_frame": 198268
+    },
+    {
+      "start_frame": 100254,
+      "gate_end_frame": 181485,
+      "release_end_frame": 198716
+    },
+    {
+      "start_frame": 123077,
+      "gate_end_frame": 125538,
+      "release_end_frame": 133538
+    },
+    {
+      "start_frame": 123525,
+      "gate_end_frame": 128940,
+      "release_end_frame": 136940
+    },
+    {
+      "start_frame": 147692,
+      "gate_end_frame": 157538,
+      "release_end_frame": 165538
+    },
+    {
+      "start_frame": 147692,
+      "gate_end_frame": 150154,
+      "release_end_frame": 158154
+    },
+    {
+      "start_frame": 172308,
+      "gate_end_frame": 174769,
+      "release_end_frame": 182769
+    },
+    {
+      "start_frame": 172756,
+      "gate_end_frame": 178171,
+      "release_end_frame": 186171
+    },
+    {
+      "start_frame": 196923,
+      "gate_end_frame": 206769,
+      "release_end_frame": 214769
+    },
+    {
+      "start_frame": 196923,
+      "gate_end_frame": 199385,
+      "release_end_frame": 207385
+    },
+    {
+      "start_frame": 197115,
+      "gate_end_frame": 262346,
+      "release_end_frame": 265866
+    },
+    {
+      "start_frame": 197307,
+      "gate_end_frame": 287153,
+      "release_end_frame": 295768
+    },
+    {
+      "start_frame": 197499,
+      "gate_end_frame": 287345,
+      "release_end_frame": 296920
+    },
+    {
+      "start_frame": 197691,
+      "gate_end_frame": 270449,
+      "release_end_frame": 271345
+    },
+    {
+      "start_frame": 198075,
+      "gate_end_frame": 245834,
+      "release_end_frame": 246730
+    },
+    {
+      "start_frame": 198267,
+      "gate_end_frame": 365652,
+      "release_end_frame": 388692
+    },
+    {
+      "start_frame": 198715,
+      "gate_end_frame": 366100,
+      "release_end_frame": 389140
+    },
+    {
+      "start_frame": 209969,
+      "gate_end_frame": 212431,
+      "release_end_frame": 220431
+    },
+    {
+      "start_frame": 221538,
+      "gate_end_frame": 224000,
+      "release_end_frame": 232000
+    },
+    {
+      "start_frame": 221986,
+      "gate_end_frame": 227402,
+      "release_end_frame": 235402
+    },
+    {
+      "start_frame": 246154,
+      "gate_end_frame": 256000,
+      "release_end_frame": 264000
+    },
+    {
+      "start_frame": 246154,
+      "gate_end_frame": 248615,
+      "release_end_frame": 256615
+    },
+    {
+      "start_frame": 246730,
+      "gate_end_frame": 269868,
+      "release_end_frame": 279468
+    },
+    {
+      "start_frame": 259200,
+      "gate_end_frame": 261662,
+      "release_end_frame": 269662
+    },
+    {
+      "start_frame": 270769,
+      "gate_end_frame": 288492,
+      "release_end_frame": 291692
+    },
+    {
+      "start_frame": 270769,
+      "gate_end_frame": 273231,
+      "release_end_frame": 281231
+    },
+    {
+      "start_frame": 271217,
+      "gate_end_frame": 276633,
+      "release_end_frame": 284633
+    },
+    {
+      "start_frame": 271345,
+      "gate_end_frame": 294483,
+      "release_end_frame": 296152
+    },
+    {
+      "start_frame": 295385,
+      "gate_end_frame": 305231,
+      "release_end_frame": 313231
+    },
+    {
+      "start_frame": 295385,
+      "gate_end_frame": 297846,
+      "release_end_frame": 305846
+    },
+    {
+      "start_frame": 295577,
+      "gate_end_frame": 382223,
+      "release_end_frame": 385743
+    },
+    {
+      "start_frame": 295769,
+      "gate_end_frame": 364692,
+      "release_end_frame": 382292
+    },
+    {
+      "start_frame": 295961,
+      "gate_end_frame": 364884,
+      "release_end_frame": 374484
+    },
+    {
+      "start_frame": 296153,
+      "gate_end_frame": 365076,
+      "release_end_frame": 382676
+    },
+    {
+      "start_frame": 296921,
+      "gate_end_frame": 365844,
+      "release_end_frame": 383444
+    },
+    {
+      "start_frame": 308431,
+      "gate_end_frame": 310892,
+      "release_end_frame": 318892
+    },
+    {
+      "start_frame": 320000,
+      "gate_end_frame": 322462,
+      "release_end_frame": 330462
+    },
+    {
+      "start_frame": 320448,
+      "gate_end_frame": 325863,
+      "release_end_frame": 333863
+    },
+    {
+      "start_frame": 344615,
+      "gate_end_frame": 347077,
+      "release_end_frame": 355077
+    },
+    {
+      "start_frame": 357662,
+      "gate_end_frame": 360123,
+      "release_end_frame": 368123
+    },
+    {
+      "start_frame": 363077,
+      "gate_end_frame": 372923,
+      "release_end_frame": 380923
+    },
+    {
+      "start_frame": 369231,
+      "gate_end_frame": 371692,
+      "release_end_frame": 379692
+    },
+    {
+      "start_frame": 369679,
+      "gate_end_frame": 375094,
+      "release_end_frame": 383094
+    },
+    {
+      "start_frame": 393846,
+      "gate_end_frame": 403692,
+      "release_end_frame": 411692
+    },
+    {
+      "start_frame": 393846,
+      "gate_end_frame": 396308,
+      "release_end_frame": 404308
+    },
+    {
+      "start_frame": 394038,
+      "gate_end_frame": 459269,
+      "release_end_frame": 462789
+    },
+    {
+      "start_frame": 394230,
+      "gate_end_frame": 484076,
+      "release_end_frame": 491987
+    },
+    {
+      "start_frame": 394422,
+      "gate_end_frame": 484268,
+      "release_end_frame": 491987
+    },
+    {
+      "start_frame": 394614,
+      "gate_end_frame": 442757,
+      "release_end_frame": 443653
+    },
+    {
+      "start_frame": 395190,
+      "gate_end_frame": 488788,
+      "release_end_frame": 491988
+    },
+    {
+      "start_frame": 395382,
+      "gate_end_frame": 467372,
+      "release_end_frame": 468268
+    },
+    {
+      "start_frame": 395638,
+      "gate_end_frame": 488788,
+      "release_end_frame": 491988
+    },
+    {
+      "start_frame": 406892,
+      "gate_end_frame": 409354,
+      "release_end_frame": 417354
+    },
+    {
+      "start_frame": 418462,
+      "gate_end_frame": 420923,
+      "release_end_frame": 428923
+    },
+    {
+      "start_frame": 418910,
+      "gate_end_frame": 424325,
+      "release_end_frame": 432325
+    },
+    {
+      "start_frame": 443077,
+      "gate_end_frame": 445538,
+      "release_end_frame": 453538
+    },
+    {
+      "start_frame": 443653,
+      "gate_end_frame": 466791,
+      "release_end_frame": 476391
+    },
+    {
+      "start_frame": 456123,
+      "gate_end_frame": 458585,
+      "release_end_frame": 466585
+    },
+    {
+      "start_frame": 461538,
+      "gate_end_frame": 471385,
+      "release_end_frame": 479385
+    },
+    {
+      "start_frame": 467692,
+      "gate_end_frame": 485415,
+      "release_end_frame": 488615
+    },
+    {
+      "start_frame": 467692,
+      "gate_end_frame": 470154,
+      "release_end_frame": 478154
+    },
+    {
+      "start_frame": 468140,
+      "gate_end_frame": 473556,
+      "release_end_frame": 481556
+    },
+    {
+      "start_frame": 468268,
+      "gate_end_frame": 491406,
+      "release_end_frame": 493843
+    },
+    {
+      "start_frame": 492308,
+      "gate_end_frame": 502154,
+      "release_end_frame": 510154
+    },
+    {
+      "start_frame": 492308,
+      "gate_end_frame": 494769,
+      "release_end_frame": 502769
+    },
+    {
+      "start_frame": 492500,
+      "gate_end_frame": 579146,
+      "release_end_frame": 582666
+    },
+    {
+      "start_frame": 492692,
+      "gate_end_frame": 582538,
+      "release_end_frame": 600138
+    },
+    {
+      "start_frame": 492884,
+      "gate_end_frame": 540638,
+      "release_end_frame": 550238
+    },
+    {
+      "start_frame": 493076,
+      "gate_end_frame": 582922,
+      "release_end_frame": 591537
+    },
+    {
+      "start_frame": 493460,
+      "gate_end_frame": 541219,
+      "release_end_frame": 542115
+    },
+    {
+      "start_frame": 493652,
+      "gate_end_frame": 574883,
+      "release_end_frame": 597923
+    },
+    {
+      "start_frame": 493844,
+      "gate_end_frame": 583690,
+      "release_end_frame": 601290
+    },
+    {
+      "start_frame": 494100,
+      "gate_end_frame": 575331,
+      "release_end_frame": 592562
+    },
+    {
+      "start_frame": 505354,
+      "gate_end_frame": 507815,
+      "release_end_frame": 515815
+    },
+    {
+      "start_frame": 516923,
+      "gate_end_frame": 519385,
+      "release_end_frame": 527385
+    },
+    {
+      "start_frame": 517371,
+      "gate_end_frame": 522786,
+      "release_end_frame": 530786
+    },
+    {
+      "start_frame": 541538,
+      "gate_end_frame": 544000,
+      "release_end_frame": 552000
+    },
+    {
+      "start_frame": 542114,
+      "gate_end_frame": 589868,
+      "release_end_frame": 591345
+    },
+    {
+      "start_frame": 553846,
+      "gate_end_frame": 563692,
+      "release_end_frame": 571692
+    },
+    {
+      "start_frame": 554585,
+      "gate_end_frame": 557046,
+      "release_end_frame": 565046
+    },
+    {
+      "start_frame": 566154,
+      "gate_end_frame": 568615,
+      "release_end_frame": 576615
+    },
+    {
+      "start_frame": 566602,
+      "gate_end_frame": 572017,
+      "release_end_frame": 580017
+    },
+    {
+      "start_frame": 590769,
+      "gate_end_frame": 600615,
+      "release_end_frame": 608615
+    },
+    {
+      "start_frame": 590769,
+      "gate_end_frame": 593231,
+      "release_end_frame": 601231
+    },
+    {
+      "start_frame": 590961,
+      "gate_end_frame": 656192,
+      "release_end_frame": 659712
+    },
+    {
+      "start_frame": 591153,
+      "gate_end_frame": 680999,
+      "release_end_frame": 689614
+    },
+    {
+      "start_frame": 591345,
+      "gate_end_frame": 681191,
+      "release_end_frame": 690382
+    },
+    {
+      "start_frame": 591537,
+      "gate_end_frame": 681383,
+      "release_end_frame": 689998
+    },
+    {
+      "start_frame": 592113,
+      "gate_end_frame": 759498,
+      "release_end_frame": 782538
+    },
+    {
+      "start_frame": 592305,
+      "gate_end_frame": 639680,
+      "release_end_frame": 640576
+    },
+    {
+      "start_frame": 592561,
+      "gate_end_frame": 759946,
+      "release_end_frame": 782986
+    },
+    {
+      "start_frame": 603815,
+      "gate_end_frame": 606277,
+      "release_end_frame": 614277
+    },
+    {
+      "start_frame": 615385,
+      "gate_end_frame": 617846,
+      "release_end_frame": 625846
+    },
+    {
+      "start_frame": 615833,
+      "gate_end_frame": 621248,
+      "release_end_frame": 629248
+    },
+    {
+      "start_frame": 640000,
+      "gate_end_frame": 642462,
+      "release_end_frame": 650462
+    },
+    {
+      "start_frame": 640576,
+      "gate_end_frame": 663714,
+      "release_end_frame": 673314
+    },
+    {
+      "start_frame": 652308,
+      "gate_end_frame": 662154,
+      "release_end_frame": 670154
+    },
+    {
+      "start_frame": 653046,
+      "gate_end_frame": 655508,
+      "release_end_frame": 663508
+    },
+    {
+      "start_frame": 664615,
+      "gate_end_frame": 682338,
+      "release_end_frame": 685538
+    },
+    {
+      "start_frame": 664615,
+      "gate_end_frame": 667077,
+      "release_end_frame": 675077
+    },
+    {
+      "start_frame": 665063,
+      "gate_end_frame": 670479,
+      "release_end_frame": 678479
+    },
+    {
+      "start_frame": 665191,
+      "gate_end_frame": 688329,
+      "release_end_frame": 697929
+    },
+    {
+      "start_frame": 689231,
+      "gate_end_frame": 699077,
+      "release_end_frame": 707077
+    },
+    {
+      "start_frame": 689231,
+      "gate_end_frame": 691692,
+      "release_end_frame": 699692
+    },
+    {
+      "start_frame": 689423,
+      "gate_end_frame": 776069,
+      "release_end_frame": 779589
+    },
+    {
+      "start_frame": 689615,
+      "gate_end_frame": 758538,
+      "release_end_frame": 776138
+    },
+    {
+      "start_frame": 689807,
+      "gate_end_frame": 758730,
+      "release_end_frame": 768330
+    },
+    {
+      "start_frame": 689999,
+      "gate_end_frame": 758922,
+      "release_end_frame": 776522
+    },
+    {
+      "start_frame": 690383,
+      "gate_end_frame": 738142,
+      "release_end_frame": 739038
+    },
+    {
+      "start_frame": 702277,
+      "gate_end_frame": 704738,
+      "release_end_frame": 712738
+    },
+    {
+      "start_frame": 713846,
+      "gate_end_frame": 716308,
+      "release_end_frame": 724308
+    },
+    {
+      "start_frame": 714294,
+      "gate_end_frame": 719710,
+      "release_end_frame": 727710
+    },
+    {
+      "start_frame": 738462,
+      "gate_end_frame": 748308,
+      "release_end_frame": 756308
+    },
+    {
+      "start_frame": 738462,
+      "gate_end_frame": 740923,
+      "release_end_frame": 748923
+    },
+    {
+      "start_frame": 739038,
+      "gate_end_frame": 784173,
+      "release_end_frame": 787373
+    },
+    {
+      "start_frame": 751508,
+      "gate_end_frame": 753969,
+      "release_end_frame": 761969
+    },
+    {
+      "start_frame": 763077,
+      "gate_end_frame": 784000,
+      "release_end_frame": 804800
+    },
+    {
+      "start_frame": 763077,
+      "gate_end_frame": 765538,
+      "release_end_frame": 773538
+    },
+    {
+      "start_frame": 763525,
+      "gate_end_frame": 768940,
+      "release_end_frame": 776940
+    },
+    {
+      "start_frame": 775385,
+      "gate_end_frame": 777846,
+      "release_end_frame": 785846
+    },
+    {
+      "start_frame": 787692,
+      "gate_end_frame": 797538,
+      "release_end_frame": 805538
+    },
+    {
+      "start_frame": 787692,
+      "gate_end_frame": 790154,
+      "release_end_frame": 798154
+    },
+    {
+      "start_frame": 787884,
+      "gate_end_frame": 853115,
+      "release_end_frame": 856635
+    },
+    {
+      "start_frame": 788076,
+      "gate_end_frame": 877922,
+      "release_end_frame": 885833
+    },
+    {
+      "start_frame": 788268,
+      "gate_end_frame": 878114,
+      "release_end_frame": 887714
+    },
+    {
+      "start_frame": 788460,
+      "gate_end_frame": 861218,
+      "release_end_frame": 862114
+    },
+    {
+      "start_frame": 788844,
+      "gate_end_frame": 836603,
+      "release_end_frame": 837499
+    },
+    {
+      "start_frame": 789036,
+      "gate_end_frame": 882634,
+      "release_end_frame": 885834
+    },
+    {
+      "start_frame": 789484,
+      "gate_end_frame": 882634,
+      "release_end_frame": 885834
+    },
+    {
+      "start_frame": 800738,
+      "gate_end_frame": 803200,
+      "release_end_frame": 811200
+    },
+    {
+      "start_frame": 812308,
+      "gate_end_frame": 814769,
+      "release_end_frame": 822769
+    },
+    {
+      "start_frame": 812756,
+      "gate_end_frame": 818171,
+      "release_end_frame": 826171
+    },
+    {
+      "start_frame": 836923,
+      "gate_end_frame": 846769,
+      "release_end_frame": 854769
+    },
+    {
+      "start_frame": 836923,
+      "gate_end_frame": 839385,
+      "release_end_frame": 847385
+    },
+    {
+      "start_frame": 837499,
+      "gate_end_frame": 860637,
+      "release_end_frame": 870237
+    },
+    {
+      "start_frame": 849969,
+      "gate_end_frame": 852431,
+      "release_end_frame": 860431
+    },
+    {
+      "start_frame": 861538,
+      "gate_end_frame": 879261,
+      "release_end_frame": 882461
+    },
+    {
+      "start_frame": 861538,
+      "gate_end_frame": 864000,
+      "release_end_frame": 872000
+    },
+    {
+      "start_frame": 861986,
+      "gate_end_frame": 867402,
+      "release_end_frame": 875402
+    },
+    {
+      "start_frame": 862114,
+      "gate_end_frame": 882633,
+      "release_end_frame": 885833
+    },
+    {
+      "start_frame": 886154,
+      "gate_end_frame": 896000,
+      "release_end_frame": 904000
+    },
+    {
+      "start_frame": 886154,
+      "gate_end_frame": 888615,
+      "release_end_frame": 896615
+    },
+    {
+      "start_frame": 886346,
+      "gate_end_frame": 972992,
+      "release_end_frame": 976512
+    },
+    {
+      "start_frame": 886538,
+      "gate_end_frame": 976384,
+      "release_end_frame": 984999
+    },
+    {
+      "start_frame": 886730,
+      "gate_end_frame": 976576,
+      "release_end_frame": 984295
+    },
+    {
+      "start_frame": 886922,
+      "gate_end_frame": 976768,
+      "release_end_frame": 985383
+    },
+    {
+      "start_frame": 887306,
+      "gate_end_frame": 935065,
+      "release_end_frame": 935961
+    },
+    {
+      "start_frame": 887498,
+      "gate_end_frame": 968729,
+      "release_end_frame": 985960
+    },
+    {
+      "start_frame": 887946,
+      "gate_end_frame": 969177,
+      "release_end_frame": 986408
+    },
+    {
+      "start_frame": 899200,
+      "gate_end_frame": 901662,
+      "release_end_frame": 909662
+    },
+    {
+      "start_frame": 910769,
+      "gate_end_frame": 913231,
+      "release_end_frame": 921231
+    },
+    {
+      "start_frame": 911217,
+      "gate_end_frame": 916633,
+      "release_end_frame": 924633
+    },
+    {
+      "start_frame": 935385,
+      "gate_end_frame": 937846,
+      "release_end_frame": 945846
+    },
+    {
+      "start_frame": 935961,
+      "gate_end_frame": 983715,
+      "release_end_frame": 985768
+    },
+    {
+      "start_frame": 948431,
+      "gate_end_frame": 950892,
+      "release_end_frame": 958892
+    },
+    {
+      "start_frame": 953846,
+      "gate_end_frame": 963692,
+      "release_end_frame": 971692
+    },
+    {
+      "start_frame": 960000,
+      "gate_end_frame": 962462,
+      "release_end_frame": 970462
+    },
+    {
+      "start_frame": 960448,
+      "gate_end_frame": 965863,
+      "release_end_frame": 973863
+    },
+    {
+      "start_frame": 984615,
+      "gate_end_frame": 994462,
+      "release_end_frame": 1002462
+    },
+    {
+      "start_frame": 984615,
+      "gate_end_frame": 987077,
+      "release_end_frame": 995077
+    },
+    {
+      "start_frame": 984807,
+      "gate_end_frame": 1050038,
+      "release_end_frame": 1053558
+    },
+    {
+      "start_frame": 984999,
+      "gate_end_frame": 1074845,
+      "release_end_frame": 1083460
+    },
+    {
+      "start_frame": 985191,
+      "gate_end_frame": 1075037,
+      "release_end_frame": 1084612
+    },
+    {
+      "start_frame": 985383,
+      "gate_end_frame": 1058141,
+      "release_end_frame": 1059037
+    },
+    {
+      "start_frame": 985767,
+      "gate_end_frame": 1033526,
+      "release_end_frame": 1034422
+    },
+    {
+      "start_frame": 985959,
+      "gate_end_frame": 1153344,
+      "release_end_frame": 1176384
+    },
+    {
+      "start_frame": 986407,
+      "gate_end_frame": 1153792,
+      "release_end_frame": 1176832
+    },
+    {
+      "start_frame": 997662,
+      "gate_end_frame": 1000123,
+      "release_end_frame": 1008123
+    },
+    {
+      "start_frame": 1009231,
+      "gate_end_frame": 1011692,
+      "release_end_frame": 1019692
+    },
+    {
+      "start_frame": 1009679,
+      "gate_end_frame": 1015094,
+      "release_end_frame": 1023094
+    },
+    {
+      "start_frame": 1033846,
+      "gate_end_frame": 1036308,
+      "release_end_frame": 1044308
+    },
+    {
+      "start_frame": 1034422,
+      "gate_end_frame": 1057560,
+      "release_end_frame": 1067160
+    },
+    {
+      "start_frame": 1046892,
+      "gate_end_frame": 1049354,
+      "release_end_frame": 1057354
+    },
+    {
+      "start_frame": 1052308,
+      "gate_end_frame": 1062154,
+      "release_end_frame": 1070154
+    },
+    {
+      "start_frame": 1058462,
+      "gate_end_frame": 1076185,
+      "release_end_frame": 1079385
+    },
+    {
+      "start_frame": 1058462,
+      "gate_end_frame": 1060923,
+      "release_end_frame": 1068923
+    },
+    {
+      "start_frame": 1058910,
+      "gate_end_frame": 1064325,
+      "release_end_frame": 1072325
+    },
+    {
+      "start_frame": 1059038,
+      "gate_end_frame": 1082176,
+      "release_end_frame": 1083845
+    },
+    {
+      "start_frame": 1083077,
+      "gate_end_frame": 1092923,
+      "release_end_frame": 1100923
+    },
+    {
+      "start_frame": 1083077,
+      "gate_end_frame": 1085538,
+      "release_end_frame": 1093538
+    },
+    {
+      "start_frame": 1083269,
+      "gate_end_frame": 1169915,
+      "release_end_frame": 1173435
+    },
+    {
+      "start_frame": 1083461,
+      "gate_end_frame": 1152384,
+      "release_end_frame": 1169984
+    },
+    {
+      "start_frame": 1083653,
+      "gate_end_frame": 1178019,
+      "release_end_frame": 1181219
+    },
+    {
+      "start_frame": 1083845,
+      "gate_end_frame": 1152768,
+      "release_end_frame": 1170368
+    },
+    {
+      "start_frame": 1084613,
+      "gate_end_frame": 1153536,
+      "release_end_frame": 1171136
+    },
+    {
+      "start_frame": 1096123,
+      "gate_end_frame": 1098585,
+      "release_end_frame": 1106585
+    },
+    {
+      "start_frame": 1107692,
+      "gate_end_frame": 1110154,
+      "release_end_frame": 1118154
+    },
+    {
+      "start_frame": 1108140,
+      "gate_end_frame": 1113556,
+      "release_end_frame": 1121556
+    },
+    {
+      "start_frame": 1132308,
+      "gate_end_frame": 1134769,
+      "release_end_frame": 1142769
+    },
+    {
+      "start_frame": 1144615,
+      "gate_end_frame": 1154462,
+      "release_end_frame": 1162462
+    },
+    {
+      "start_frame": 1145354,
+      "gate_end_frame": 1147815,
+      "release_end_frame": 1155815
+    },
+    {
+      "start_frame": 1156923,
+      "gate_end_frame": 1159385,
+      "release_end_frame": 1167385
+    },
+    {
+      "start_frame": 1157371,
+      "gate_end_frame": 1162786,
+      "release_end_frame": 1170786
+    },
+    {
+      "start_frame": 1181538,
+      "gate_end_frame": 1191385,
+      "release_end_frame": 1199385
+    },
+    {
+      "start_frame": 1181538,
+      "gate_end_frame": 1184000,
+      "release_end_frame": 1192000
+    },
+    {
+      "start_frame": 1181730,
+      "gate_end_frame": 1246961,
+      "release_end_frame": 1250481
+    },
+    {
+      "start_frame": 1181922,
+      "gate_end_frame": 1271768,
+      "release_end_frame": 1279679
+    },
+    {
+      "start_frame": 1182114,
+      "gate_end_frame": 1271960,
+      "release_end_frame": 1279679
+    },
+    {
+      "start_frame": 1182306,
+      "gate_end_frame": 1230449,
+      "release_end_frame": 1231345
+    },
+    {
+      "start_frame": 1182882,
+      "gate_end_frame": 1276480,
+      "release_end_frame": 1279680
+    },
+    {
+      "start_frame": 1183074,
+      "gate_end_frame": 1255064,
+      "release_end_frame": 1255960
+    },
+    {
+      "start_frame": 1183330,
+      "gate_end_frame": 1276480,
+      "release_end_frame": 1279680
+    },
+    {
+      "start_frame": 1194585,
+      "gate_end_frame": 1197046,
+      "release_end_frame": 1205046
+    },
+    {
+      "start_frame": 1206154,
+      "gate_end_frame": 1208615,
+      "release_end_frame": 1216615
+    },
+    {
+      "start_frame": 1206602,
+      "gate_end_frame": 1212017,
+      "release_end_frame": 1220017
+    },
+    {
+      "start_frame": 1230769,
+      "gate_end_frame": 1233231,
+      "release_end_frame": 1241231
+    },
+    {
+      "start_frame": 1231345,
+      "gate_end_frame": 1254483,
+      "release_end_frame": 1264083
+    },
+    {
+      "start_frame": 1243077,
+      "gate_end_frame": 1252923,
+      "release_end_frame": 1260923
+    },
+    {
+      "start_frame": 1243815,
+      "gate_end_frame": 1246277,
+      "release_end_frame": 1254277
+    },
+    {
+      "start_frame": 1255385,
+      "gate_end_frame": 1273108,
+      "release_end_frame": 1276308
+    },
+    {
+      "start_frame": 1255385,
+      "gate_end_frame": 1257846,
+      "release_end_frame": 1265846
+    },
+    {
+      "start_frame": 1255833,
+      "gate_end_frame": 1261248,
+      "release_end_frame": 1269248
+    },
+    {
+      "start_frame": 1255961,
+      "gate_end_frame": 1279099,
+      "release_end_frame": 1281536
+    },
+    {
+      "start_frame": 1280000,
+      "gate_end_frame": 1289846,
+      "release_end_frame": 1297846
+    },
+    {
+      "start_frame": 1280000,
+      "gate_end_frame": 1282462,
+      "release_end_frame": 1290462
+    },
+    {
+      "start_frame": 1280192,
+      "gate_end_frame": 1366838,
+      "release_end_frame": 1370358
+    },
+    {
+      "start_frame": 1280384,
+      "gate_end_frame": 1370230,
+      "release_end_frame": 1387830
+    },
+    {
+      "start_frame": 1280576,
+      "gate_end_frame": 1328330,
+      "release_end_frame": 1337930
+    },
+    {
+      "start_frame": 1280768,
+      "gate_end_frame": 1370614,
+      "release_end_frame": 1379229
+    },
+    {
+      "start_frame": 1281152,
+      "gate_end_frame": 1328911,
+      "release_end_frame": 1329807
+    },
+    {
+      "start_frame": 1281344,
+      "gate_end_frame": 1362575,
+      "release_end_frame": 1385615
+    },
+    {
+      "start_frame": 1281536,
+      "gate_end_frame": 1371382,
+      "release_end_frame": 1388982
+    },
+    {
+      "start_frame": 1281792,
+      "gate_end_frame": 1363023,
+      "release_end_frame": 1380254
+    },
+    {
+      "start_frame": 1293046,
+      "gate_end_frame": 1295508,
+      "release_end_frame": 1303508
+    },
+    {
+      "start_frame": 1304615,
+      "gate_end_frame": 1307077,
+      "release_end_frame": 1315077
+    },
+    {
+      "start_frame": 1305063,
+      "gate_end_frame": 1310479,
+      "release_end_frame": 1318479
+    },
+    {
+      "start_frame": 1329231,
+      "gate_end_frame": 1339077,
+      "release_end_frame": 1347077
+    },
+    {
+      "start_frame": 1329231,
+      "gate_end_frame": 1331692,
+      "release_end_frame": 1339692
+    },
+    {
+      "start_frame": 1329807,
+      "gate_end_frame": 1377561,
+      "release_end_frame": 1379038
+    },
+    {
+      "start_frame": 1342277,
+      "gate_end_frame": 1344738,
+      "release_end_frame": 1352738
+    },
+    {
+      "start_frame": 1353846,
+      "gate_end_frame": 1356308,
+      "release_end_frame": 1364308
+    },
+    {
+      "start_frame": 1354294,
+      "gate_end_frame": 1359710,
+      "release_end_frame": 1367710
+    },
+    {
+      "start_frame": 1378462,
+      "gate_end_frame": 1388308,
+      "release_end_frame": 1396308
+    },
+    {
+      "start_frame": 1378462,
+      "gate_end_frame": 1380923,
+      "release_end_frame": 1388923
+    },
+    {
+      "start_frame": 1378654,
+      "gate_end_frame": 1443885,
+      "release_end_frame": 1447405
+    },
+    {
+      "start_frame": 1378846,
+      "gate_end_frame": 1468692,
+      "release_end_frame": 1477307
+    },
+    {
+      "start_frame": 1379038,
+      "gate_end_frame": 1468884,
+      "release_end_frame": 1478075
+    },
+    {
+      "start_frame": 1379230,
+      "gate_end_frame": 1469076,
+      "release_end_frame": 1477691
+    },
+    {
+      "start_frame": 1379806,
+      "gate_end_frame": 1547191,
+      "release_end_frame": 1570231
+    },
+    {
+      "start_frame": 1379998,
+      "gate_end_frame": 1427373,
+      "release_end_frame": 1428269
+    },
+    {
+      "start_frame": 1380254,
+      "gate_end_frame": 1547639,
+      "release_end_frame": 1570679
+    },
+    {
+      "start_frame": 1391508,
+      "gate_end_frame": 1393969,
+      "release_end_frame": 1401969
+    },
+    {
+      "start_frame": 1403077,
+      "gate_end_frame": 1405538,
+      "release_end_frame": 1413538
+    },
+    {
+      "start_frame": 1403525,
+      "gate_end_frame": 1408940,
+      "release_end_frame": 1416940
+    },
+    {
+      "start_frame": 1427692,
+      "gate_end_frame": 1437538,
+      "release_end_frame": 1445538
+    },
+    {
+      "start_frame": 1427692,
+      "gate_end_frame": 1430154,
+      "release_end_frame": 1438154
+    },
+    {
+      "start_frame": 1428268,
+      "gate_end_frame": 1451406,
+      "release_end_frame": 1461006
+    },
+    {
+      "start_frame": 1440738,
+      "gate_end_frame": 1443200,
+      "release_end_frame": 1451200
+    },
+    {
+      "start_frame": 1452308,
+      "gate_end_frame": 1470031,
+      "release_end_frame": 1473231
+    },
+    {
+      "start_frame": 1452308,
+      "gate_end_frame": 1454769,
+      "release_end_frame": 1462769
+    },
+    {
+      "start_frame": 1452756,
+      "gate_end_frame": 1458171,
+      "release_end_frame": 1466171
+    },
+    {
+      "start_frame": 1452884,
+      "gate_end_frame": 1476022,
+      "release_end_frame": 1485622
+    },
+    {
+      "start_frame": 1476923,
+      "gate_end_frame": 1486769,
+      "release_end_frame": 1494769
+    },
+    {
+      "start_frame": 1476923,
+      "gate_end_frame": 1479385,
+      "release_end_frame": 1487385
+    },
+    {
+      "start_frame": 1477115,
+      "gate_end_frame": 1563761,
+      "release_end_frame": 1567281
+    },
+    {
+      "start_frame": 1477307,
+      "gate_end_frame": 1546230,
+      "release_end_frame": 1563830
+    },
+    {
+      "start_frame": 1477499,
+      "gate_end_frame": 1571865,
+      "release_end_frame": 1575065
+    },
+    {
+      "start_frame": 1477691,
+      "gate_end_frame": 1546614,
+      "release_end_frame": 1564214
+    },
+    {
+      "start_frame": 1478075,
+      "gate_end_frame": 1546998,
+      "release_end_frame": 1564598
+    },
+    {
+      "start_frame": 1489969,
+      "gate_end_frame": 1492431,
+      "release_end_frame": 1500431
+    },
+    {
+      "start_frame": 1501538,
+      "gate_end_frame": 1504000,
+      "release_end_frame": 1512000
+    },
+    {
+      "start_frame": 1501986,
+      "gate_end_frame": 1507402,
+      "release_end_frame": 1515402
+    },
+    {
+      "start_frame": 1526154,
+      "gate_end_frame": 1528615,
+      "release_end_frame": 1536615
+    },
+    {
+      "start_frame": 1539200,
+      "gate_end_frame": 1541662,
+      "release_end_frame": 1549662
+    },
+    {
+      "start_frame": 1544615,
+      "gate_end_frame": 1554462,
+      "release_end_frame": 1562462
+    },
+    {
+      "start_frame": 1550769,
+      "gate_end_frame": 1571692,
+      "release_end_frame": 1592492
+    },
+    {
+      "start_frame": 1550769,
+      "gate_end_frame": 1553231,
+      "release_end_frame": 1561231
+    },
+    {
+      "start_frame": 1551217,
+      "gate_end_frame": 1556633,
+      "release_end_frame": 1564633
+    },
+    {
+      "start_frame": 1563077,
+      "gate_end_frame": 1565538,
+      "release_end_frame": 1573538
+    },
+    {
+      "start_frame": 1575385,
+      "gate_end_frame": 1585231,
+      "release_end_frame": 1593231
+    },
+    {
+      "start_frame": 1575385,
+      "gate_end_frame": 1577846,
+      "release_end_frame": 1585846
+    },
+    {
+      "start_frame": 1575577,
+      "gate_end_frame": 1662223,
+      "release_end_frame": 1665743
+    },
+    {
+      "start_frame": 1575769,
+      "gate_end_frame": 1665615,
+      "release_end_frame": 1673526
+    },
+    {
+      "start_frame": 1575961,
+      "gate_end_frame": 1672946,
+      "release_end_frame": 1682546
+    },
+    {
+      "start_frame": 1576153,
+      "gate_end_frame": 1665999,
+      "release_end_frame": 1673526
+    },
+    {
+      "start_frame": 1576537,
+      "gate_end_frame": 1666383,
+      "release_end_frame": 1673526
+    },
+    {
+      "start_frame": 1576729,
+      "gate_end_frame": 1670327,
+      "release_end_frame": 1673527
+    },
+    {
+      "start_frame": 1577177,
+      "gate_end_frame": 1670327,
+      "release_end_frame": 1673527
+    },
+    {
+      "start_frame": 1600000,
+      "gate_end_frame": 1602462,
+      "release_end_frame": 1610462
+    },
+    {
+      "start_frame": 1600448,
+      "gate_end_frame": 1605863,
+      "release_end_frame": 1613863
+    },
+    {
+      "start_frame": 1624615,
+      "gate_end_frame": 1627077,
+      "release_end_frame": 1635077
+    },
+    {
+      "start_frame": 1649231,
+      "gate_end_frame": 1651692,
+      "release_end_frame": 1659692
+    },
+    {
+      "start_frame": 1649679,
+      "gate_end_frame": 1655094,
+      "release_end_frame": 1663094
+    },
+    {
+      "start_frame": 1673846,
+      "gate_end_frame": 1683692,
+      "release_end_frame": 1691692
+    },
+    {
+      "start_frame": 1673846,
+      "gate_end_frame": 1676308,
+      "release_end_frame": 1684308
+    },
+    {
+      "start_frame": 1674038,
+      "gate_end_frame": 1760684,
+      "release_end_frame": 1764204
+    },
+    {
+      "start_frame": 1674230,
+      "gate_end_frame": 1764076,
+      "release_end_frame": 1772691
+    },
+    {
+      "start_frame": 1674422,
+      "gate_end_frame": 1768788,
+      "release_end_frame": 1771988
+    },
+    {
+      "start_frame": 1674614,
+      "gate_end_frame": 1764460,
+      "release_end_frame": 1773075
+    },
+    {
+      "start_frame": 1674998,
+      "gate_end_frame": 1764844,
+      "release_end_frame": 1773459
+    },
+    {
+      "start_frame": 1675190,
+      "gate_end_frame": 1756421,
+      "release_end_frame": 1773652
+    },
+    {
+      "start_frame": 1675638,
+      "gate_end_frame": 1756869,
+      "release_end_frame": 1774100
+    },
+    {
+      "start_frame": 1698462,
+      "gate_end_frame": 1700923,
+      "release_end_frame": 1708923
+    },
+    {
+      "start_frame": 1698910,
+      "gate_end_frame": 1704325,
+      "release_end_frame": 1712325
+    },
+    {
+      "start_frame": 1723077,
+      "gate_end_frame": 1725538,
+      "release_end_frame": 1733538
+    },
+    {
+      "start_frame": 1747692,
+      "gate_end_frame": 1750154,
+      "release_end_frame": 1758154
+    },
+    {
+      "start_frame": 1772308,
+      "gate_end_frame": 1782154,
+      "release_end_frame": 1790154
+    },
+    {
+      "start_frame": 1772308,
+      "gate_end_frame": 1774769,
+      "release_end_frame": 1782769
+    },
+    {
+      "start_frame": 1772500,
+      "gate_end_frame": 1859146,
+      "release_end_frame": 1862666
+    },
+    {
+      "start_frame": 1772692,
+      "gate_end_frame": 1862538,
+      "release_end_frame": 1880138
+    },
+    {
+      "start_frame": 1772884,
+      "gate_end_frame": 1869869,
+      "release_end_frame": 1879469
+    },
+    {
+      "start_frame": 1773076,
+      "gate_end_frame": 1862922,
+      "release_end_frame": 1880522
+    },
+    {
+      "start_frame": 1773460,
+      "gate_end_frame": 1863306,
+      "release_end_frame": 1871345
+    },
+    {
+      "start_frame": 1773652,
+      "gate_end_frame": 1941037,
+      "release_end_frame": 1964077
+    },
+    {
+      "start_frame": 1774100,
+      "gate_end_frame": 1941485,
+      "release_end_frame": 1964525
+    },
+    {
+      "start_frame": 1796923,
+      "gate_end_frame": 1799385,
+      "release_end_frame": 1807385
+    },
+    {
+      "start_frame": 1797371,
+      "gate_end_frame": 1802786,
+      "release_end_frame": 1810786
+    },
+    {
+      "start_frame": 1821538,
+      "gate_end_frame": 1824000,
+      "release_end_frame": 1832000
+    },
+    {
+      "start_frame": 1846154,
+      "gate_end_frame": 1848615,
+      "release_end_frame": 1856615
+    },
+    {
+      "start_frame": 1846602,
+      "gate_end_frame": 1852017,
+      "release_end_frame": 1860017
+    },
+    {
+      "start_frame": 1870769,
+      "gate_end_frame": 1880615,
+      "release_end_frame": 1888615
+    },
+    {
+      "start_frame": 1870769,
+      "gate_end_frame": 1873231,
+      "release_end_frame": 1881231
+    },
+    {
+      "start_frame": 1870961,
+      "gate_end_frame": 1957607,
+      "release_end_frame": 1961127
+    },
+    {
+      "start_frame": 1871345,
+      "gate_end_frame": 1965711,
+      "release_end_frame": 1968911
+    },
+    {
+      "start_frame": 1895385,
+      "gate_end_frame": 1897846,
+      "release_end_frame": 1905846
+    },
+    {
+      "start_frame": 1895833,
+      "gate_end_frame": 1901248,
+      "release_end_frame": 1909248
+    },
+    {
+      "start_frame": 1920000,
+      "gate_end_frame": 1922462,
+      "release_end_frame": 1930462
+    },
+    {
+      "start_frame": 1944615,
+      "gate_end_frame": 1947077,
+      "release_end_frame": 1955077
+    },
+    {
+      "start_frame": 1969231,
+      "gate_end_frame": 1979077,
+      "release_end_frame": 1987077
+    },
+    {
+      "start_frame": 1969231,
+      "gate_end_frame": 1971692,
+      "release_end_frame": 1979692
+    },
+    {
+      "start_frame": 1969423,
+      "gate_end_frame": 2034654,
+      "release_end_frame": 2038174
+    },
+    {
+      "start_frame": 1969615,
+      "gate_end_frame": 2059461,
+      "release_end_frame": 2067372
+    },
+    {
+      "start_frame": 1969807,
+      "gate_end_frame": 2059653,
+      "release_end_frame": 2067372
+    },
+    {
+      "start_frame": 1969999,
+      "gate_end_frame": 2018142,
+      "release_end_frame": 2019038
+    },
+    {
+      "start_frame": 1970575,
+      "gate_end_frame": 2064173,
+      "release_end_frame": 2067373
+    },
+    {
+      "start_frame": 1970767,
+      "gate_end_frame": 2042757,
+      "release_end_frame": 2043653
+    },
+    {
+      "start_frame": 1971023,
+      "gate_end_frame": 2064173,
+      "release_end_frame": 2067373
+    },
+    {
+      "start_frame": 1982277,
+      "gate_end_frame": 1984738,
+      "release_end_frame": 1992738
+    },
+    {
+      "start_frame": 1993846,
+      "gate_end_frame": 1996308,
+      "release_end_frame": 2004308
+    },
+    {
+      "start_frame": 1994294,
+      "gate_end_frame": 1999710,
+      "release_end_frame": 2007710
+    },
+    {
+      "start_frame": 2018462,
+      "gate_end_frame": 2028308,
+      "release_end_frame": 2036308
+    },
+    {
+      "start_frame": 2018462,
+      "gate_end_frame": 2020923,
+      "release_end_frame": 2028923
+    },
+    {
+      "start_frame": 2019038,
+      "gate_end_frame": 2042176,
+      "release_end_frame": 2051776
+    },
+    {
+      "start_frame": 2031508,
+      "gate_end_frame": 2033969,
+      "release_end_frame": 2041969
+    },
+    {
+      "start_frame": 2043077,
+      "gate_end_frame": 2060800,
+      "release_end_frame": 2064000
+    },
+    {
+      "start_frame": 2043077,
+      "gate_end_frame": 2045538,
+      "release_end_frame": 2053538
+    },
+    {
+      "start_frame": 2043525,
+      "gate_end_frame": 2048940,
+      "release_end_frame": 2056940
+    },
+    {
+      "start_frame": 2043653,
+      "gate_end_frame": 2066791,
+      "release_end_frame": 2069228
+    },
+    {
+      "start_frame": 2067692,
+      "gate_end_frame": 2077538,
+      "release_end_frame": 2085538
+    },
+    {
+      "start_frame": 2067692,
+      "gate_end_frame": 2070154,
+      "release_end_frame": 2078154
+    },
+    {
+      "start_frame": 2067884,
+      "gate_end_frame": 2154530,
+      "release_end_frame": 2158050
+    },
+    {
+      "start_frame": 2068076,
+      "gate_end_frame": 2157922,
+      "release_end_frame": 2175522
+    },
+    {
+      "start_frame": 2068268,
+      "gate_end_frame": 2116022,
+      "release_end_frame": 2125622
+    },
+    {
+      "start_frame": 2068460,
+      "gate_end_frame": 2158306,
+      "release_end_frame": 2166921
+    },
+    {
+      "start_frame": 2068844,
+      "gate_end_frame": 2116603,
+      "release_end_frame": 2117499
+    },
+    {
+      "start_frame": 2069036,
+      "gate_end_frame": 2150267,
+      "release_end_frame": 2173307
+    },
+    {
+      "start_frame": 2069228,
+      "gate_end_frame": 2159074,
+      "release_end_frame": 2176674
+    },
+    {
+      "start_frame": 2069484,
+      "gate_end_frame": 2150715,
+      "release_end_frame": 2167946
+    },
+    {
+      "start_frame": 2080738,
+      "gate_end_frame": 2083200,
+      "release_end_frame": 2091200
+    },
+    {
+      "start_frame": 2092308,
+      "gate_end_frame": 2094769,
+      "release_end_frame": 2102769
+    },
+    {
+      "start_frame": 2092756,
+      "gate_end_frame": 2098171,
+      "release_end_frame": 2106171
+    },
+    {
+      "start_frame": 2116923,
+      "gate_end_frame": 2119385,
+      "release_end_frame": 2127385
+    },
+    {
+      "start_frame": 2117499,
+      "gate_end_frame": 2165253,
+      "release_end_frame": 2166730
+    },
+    {
+      "start_frame": 2129969,
+      "gate_end_frame": 2132431,
+      "release_end_frame": 2140431
+    },
+    {
+      "start_frame": 2135385,
+      "gate_end_frame": 2145231,
+      "release_end_frame": 2153231
+    },
+    {
+      "start_frame": 2141538,
+      "gate_end_frame": 2144000,
+      "release_end_frame": 2152000
+    },
+    {
+      "start_frame": 2141986,
+      "gate_end_frame": 2147402,
+      "release_end_frame": 2155402
+    },
+    {
+      "start_frame": 2166154,
+      "gate_end_frame": 2176000,
+      "release_end_frame": 2184000
+    },
+    {
+      "start_frame": 2166154,
+      "gate_end_frame": 2168615,
+      "release_end_frame": 2176615
+    },
+    {
+      "start_frame": 2166346,
+      "gate_end_frame": 2231577,
+      "release_end_frame": 2235097
+    },
+    {
+      "start_frame": 2166538,
+      "gate_end_frame": 2256384,
+      "release_end_frame": 2264999
+    },
+    {
+      "start_frame": 2166730,
+      "gate_end_frame": 2256576,
+      "release_end_frame": 2265767
+    },
+    {
+      "start_frame": 2166922,
+      "gate_end_frame": 2256768,
+      "release_end_frame": 2265383
+    },
+    {
+      "start_frame": 2167498,
+      "gate_end_frame": 2334883,
+      "release_end_frame": 2357923
+    },
+    {
+      "start_frame": 2167690,
+      "gate_end_frame": 2215065,
+      "release_end_frame": 2215961
+    },
+    {
+      "start_frame": 2167946,
+      "gate_end_frame": 2335331,
+      "release_end_frame": 2358371
+    },
+    {
+      "start_frame": 2179200,
+      "gate_end_frame": 2181662,
+      "release_end_frame": 2189662
+    },
+    {
+      "start_frame": 2190769,
+      "gate_end_frame": 2193231,
+      "release_end_frame": 2201231
+    },
+    {
+      "start_frame": 2191217,
+      "gate_end_frame": 2196633,
+      "release_end_frame": 2204633
+    },
+    {
+      "start_frame": 2215385,
+      "gate_end_frame": 2217846,
+      "release_end_frame": 2225846
+    },
+    {
+      "start_frame": 2215961,
+      "gate_end_frame": 2239099,
+      "release_end_frame": 2248699
+    },
+    {
+      "start_frame": 2228431,
+      "gate_end_frame": 2230892,
+      "release_end_frame": 2238892
+    },
+    {
+      "start_frame": 2233846,
+      "gate_end_frame": 2243692,
+      "release_end_frame": 2251692
+    },
+    {
+      "start_frame": 2240000,
+      "gate_end_frame": 2257723,
+      "release_end_frame": 2260923
+    },
+    {
+      "start_frame": 2240000,
+      "gate_end_frame": 2242462,
+      "release_end_frame": 2250462
+    },
+    {
+      "start_frame": 2240448,
+      "gate_end_frame": 2245863,
+      "release_end_frame": 2253863
+    },
+    {
+      "start_frame": 2240576,
+      "gate_end_frame": 2263714,
+      "release_end_frame": 2273314
+    },
+    {
+      "start_frame": 2264615,
+      "gate_end_frame": 2274462,
+      "release_end_frame": 2282462
+    },
+    {
+      "start_frame": 2264615,
+      "gate_end_frame": 2267077,
+      "release_end_frame": 2275077
+    },
+    {
+      "start_frame": 2264807,
+      "gate_end_frame": 2351453,
+      "release_end_frame": 2354973
+    },
+    {
+      "start_frame": 2264999,
+      "gate_end_frame": 2333922,
+      "release_end_frame": 2351522
+    },
+    {
+      "start_frame": 2265191,
+      "gate_end_frame": 2334114,
+      "release_end_frame": 2343714
+    },
+    {
+      "start_frame": 2265383,
+      "gate_end_frame": 2334306,
+      "release_end_frame": 2351906
+    },
+    {
+      "start_frame": 2265767,
+      "gate_end_frame": 2313526,
+      "release_end_frame": 2314422
+    },
+    {
+      "start_frame": 2277662,
+      "gate_end_frame": 2280123,
+      "release_end_frame": 2288123
+    },
+    {
+      "start_frame": 2289231,
+      "gate_end_frame": 2291692,
+      "release_end_frame": 2299692
+    },
+    {
+      "start_frame": 2289679,
+      "gate_end_frame": 2295094,
+      "release_end_frame": 2303094
+    },
+    {
+      "start_frame": 2313846,
+      "gate_end_frame": 2316308,
+      "release_end_frame": 2324308
+    },
+    {
+      "start_frame": 2314422,
+      "gate_end_frame": 2359557,
+      "release_end_frame": 2362757
+    },
+    {
+      "start_frame": 2326154,
+      "gate_end_frame": 2336000,
+      "release_end_frame": 2344000
+    },
+    {
+      "start_frame": 2326892,
+      "gate_end_frame": 2329354,
+      "release_end_frame": 2337354
+    },
+    {
+      "start_frame": 2338462,
+      "gate_end_frame": 2359385,
+      "release_end_frame": 2380185
+    },
+    {
+      "start_frame": 2338462,
+      "gate_end_frame": 2340923,
+      "release_end_frame": 2348923
+    },
+    {
+      "start_frame": 2338910,
+      "gate_end_frame": 2344325,
+      "release_end_frame": 2352325
+    },
+    {
+      "start_frame": 2350769,
+      "gate_end_frame": 2353231,
+      "release_end_frame": 2361231
+    },
+    {
+      "start_frame": 2363077,
+      "gate_end_frame": 2372923,
+      "release_end_frame": 2380923
+    },
+    {
+      "start_frame": 2363077,
+      "gate_end_frame": 2365538,
+      "release_end_frame": 2373538
+    },
+    {
+      "start_frame": 2363269,
+      "gate_end_frame": 2428500,
+      "release_end_frame": 2432020
+    },
+    {
+      "start_frame": 2363461,
+      "gate_end_frame": 2453307,
+      "release_end_frame": 2461218
+    },
+    {
+      "start_frame": 2363653,
+      "gate_end_frame": 2453499,
+      "release_end_frame": 2463099
+    },
+    {
+      "start_frame": 2363845,
+      "gate_end_frame": 2436603,
+      "release_end_frame": 2437499
+    },
+    {
+      "start_frame": 2364229,
+      "gate_end_frame": 2411988,
+      "release_end_frame": 2412884
+    },
+    {
+      "start_frame": 2364421,
+      "gate_end_frame": 2458019,
+      "release_end_frame": 2461219
+    },
+    {
+      "start_frame": 2364869,
+      "gate_end_frame": 2458019,
+      "release_end_frame": 2461219
+    },
+    {
+      "start_frame": 2376123,
+      "gate_end_frame": 2378585,
+      "release_end_frame": 2386585
+    },
+    {
+      "start_frame": 2387692,
+      "gate_end_frame": 2390154,
+      "release_end_frame": 2398154
+    },
+    {
+      "start_frame": 2388140,
+      "gate_end_frame": 2393556,
+      "release_end_frame": 2401556
+    },
+    {
+      "start_frame": 2412308,
+      "gate_end_frame": 2414769,
+      "release_end_frame": 2422769
+    },
+    {
+      "start_frame": 2412884,
+      "gate_end_frame": 2436022,
+      "release_end_frame": 2445622
+    },
+    {
+      "start_frame": 2424615,
+      "gate_end_frame": 2434462,
+      "release_end_frame": 2442462
+    },
+    {
+      "start_frame": 2425354,
+      "gate_end_frame": 2427815,
+      "release_end_frame": 2435815
+    },
+    {
+      "start_frame": 2436923,
+      "gate_end_frame": 2454646,
+      "release_end_frame": 2457846
+    },
+    {
+      "start_frame": 2436923,
+      "gate_end_frame": 2439385,
+      "release_end_frame": 2447385
+    },
+    {
+      "start_frame": 2437371,
+      "gate_end_frame": 2442786,
+      "release_end_frame": 2450786
+    },
+    {
+      "start_frame": 2437499,
+      "gate_end_frame": 2458018,
+      "release_end_frame": 2461218
+    },
+    {
+      "start_frame": 2461538,
+      "gate_end_frame": 2471385,
+      "release_end_frame": 2479385
+    },
+    {
+      "start_frame": 2461538,
+      "gate_end_frame": 2464000,
+      "release_end_frame": 2472000
+    },
+    {
+      "start_frame": 2461730,
+      "gate_end_frame": 2548376,
+      "release_end_frame": 2551896
+    },
+    {
+      "start_frame": 2461922,
+      "gate_end_frame": 2551768,
+      "release_end_frame": 2560383
+    },
+    {
+      "start_frame": 2462114,
+      "gate_end_frame": 2551960,
+      "release_end_frame": 2559679
+    },
+    {
+      "start_frame": 2462306,
+      "gate_end_frame": 2552152,
+      "release_end_frame": 2560767
+    },
+    {
+      "start_frame": 2462690,
+      "gate_end_frame": 2510449,
+      "release_end_frame": 2511345
+    },
+    {
+      "start_frame": 2462882,
+      "gate_end_frame": 2544113,
+      "release_end_frame": 2561344
+    },
+    {
+      "start_frame": 2463330,
+      "gate_end_frame": 2544561,
+      "release_end_frame": 2561792
+    },
+    {
+      "start_frame": 2474585,
+      "gate_end_frame": 2477046,
+      "release_end_frame": 2485046
+    },
+    {
+      "start_frame": 2486154,
+      "gate_end_frame": 2488615,
+      "release_end_frame": 2496615
+    },
+    {
+      "start_frame": 2486602,
+      "gate_end_frame": 2492017,
+      "release_end_frame": 2500017
+    },
+    {
+      "start_frame": 2510769,
+      "gate_end_frame": 2520615,
+      "release_end_frame": 2528615
+    },
+    {
+      "start_frame": 2510769,
+      "gate_end_frame": 2513231,
+      "release_end_frame": 2521231
+    },
+    {
+      "start_frame": 2511345,
+      "gate_end_frame": 2559099,
+      "release_end_frame": 2561152
+    },
+    {
+      "start_frame": 2523815,
+      "gate_end_frame": 2526277,
+      "release_end_frame": 2534277
+    },
+    {
+      "start_frame": 2535385,
+      "gate_end_frame": 2537846,
+      "release_end_frame": 2545846
+    },
+    {
+      "start_frame": 2535833,
+      "gate_end_frame": 2541248,
+      "release_end_frame": 2549248
+    },
+    {
+      "start_frame": 2560000,
+      "gate_end_frame": 2569846,
+      "release_end_frame": 2577846
+    },
+    {
+      "start_frame": 2560000,
+      "gate_end_frame": 2562462,
+      "release_end_frame": 2570462
+    },
+    {
+      "start_frame": 2560192,
+      "gate_end_frame": 2625423,
+      "release_end_frame": 2628943
+    },
+    {
+      "start_frame": 2560384,
+      "gate_end_frame": 2650230,
+      "release_end_frame": 2658845
+    },
+    {
+      "start_frame": 2560576,
+      "gate_end_frame": 2650422,
+      "release_end_frame": 2659997
+    },
+    {
+      "start_frame": 2560768,
+      "gate_end_frame": 2633526,
+      "release_end_frame": 2634422
+    },
+    {
+      "start_frame": 2561152,
+      "gate_end_frame": 2608911,
+      "release_end_frame": 2609807
+    },
+    {
+      "start_frame": 2561344,
+      "gate_end_frame": 2728729,
+      "release_end_frame": 2751769
+    },
+    {
+      "start_frame": 2561792,
+      "gate_end_frame": 2729177,
+      "release_end_frame": 2752217
+    },
+    {
+      "start_frame": 2573046,
+      "gate_end_frame": 2575508,
+      "release_end_frame": 2583508
+    },
+    {
+      "start_frame": 2584615,
+      "gate_end_frame": 2587077,
+      "release_end_frame": 2595077
+    },
+    {
+      "start_frame": 2585063,
+      "gate_end_frame": 2590479,
+      "release_end_frame": 2598479
+    },
+    {
+      "start_frame": 2609231,
+      "gate_end_frame": 2619077,
+      "release_end_frame": 2627077
+    },
+    {
+      "start_frame": 2609231,
+      "gate_end_frame": 2611692,
+      "release_end_frame": 2619692
+    },
+    {
+      "start_frame": 2609807,
+      "gate_end_frame": 2632945,
+      "release_end_frame": 2642545
+    },
+    {
+      "start_frame": 2622277,
+      "gate_end_frame": 2624738,
+      "release_end_frame": 2632738
+    },
+    {
+      "start_frame": 2633846,
+      "gate_end_frame": 2651569,
+      "release_end_frame": 2654769
+    },
+    {
+      "start_frame": 2633846,
+      "gate_end_frame": 2636308,
+      "release_end_frame": 2644308
+    },
+    {
+      "start_frame": 2634294,
+      "gate_end_frame": 2639710,
+      "release_end_frame": 2647710
+    },
+    {
+      "start_frame": 2634422,
+      "gate_end_frame": 2657560,
+      "release_end_frame": 2659229
+    },
+    {
+      "start_frame": 2658462,
+      "gate_end_frame": 2668308,
+      "release_end_frame": 2676308
+    },
+    {
+      "start_frame": 2658462,
+      "gate_end_frame": 2660923,
+      "release_end_frame": 2668923
+    },
+    {
+      "start_frame": 2658654,
+      "gate_end_frame": 2745300,
+      "release_end_frame": 2748820
+    },
+    {
+      "start_frame": 2658846,
+      "gate_end_frame": 2727769,
+      "release_end_frame": 2745369
+    },
+    {
+      "start_frame": 2659038,
+      "gate_end_frame": 2727961,
+      "release_end_frame": 2737561
+    },
+    {
+      "start_frame": 2659230,
+      "gate_end_frame": 2728153,
+      "release_end_frame": 2745753
+    },
+    {
+      "start_frame": 2659998,
+      "gate_end_frame": 2707373,
+      "release_end_frame": 2708269
+    },
+    {
+      "start_frame": 2671508,
+      "gate_end_frame": 2673969,
+      "release_end_frame": 2681969
+    },
+    {
+      "start_frame": 2683077,
+      "gate_end_frame": 2685538,
+      "release_end_frame": 2693538
+    },
+    {
+      "start_frame": 2683525,
+      "gate_end_frame": 2688940,
+      "release_end_frame": 2696940
+    },
+    {
+      "start_frame": 2707692,
+      "gate_end_frame": 2710154,
+      "release_end_frame": 2718154
+    },
+    {
+      "start_frame": 2708268,
+      "gate_end_frame": 2756022,
+      "release_end_frame": 2757499
+    },
+    {
+      "start_frame": 2720738,
+      "gate_end_frame": 2723200,
+      "release_end_frame": 2731200
+    },
+    {
+      "start_frame": 2726154,
+      "gate_end_frame": 2736000,
+      "release_end_frame": 2744000
+    },
+    {
+      "start_frame": 2732308,
+      "gate_end_frame": 2734769,
+      "release_end_frame": 2742769
+    },
+    {
+      "start_frame": 2732756,
+      "gate_end_frame": 2738171,
+      "release_end_frame": 2746171
+    },
+    {
+      "start_frame": 2756923,
+      "gate_end_frame": 2766769,
+      "release_end_frame": 2774769
+    },
+    {
+      "start_frame": 2756923,
+      "gate_end_frame": 2759385,
+      "release_end_frame": 2767385
+    },
+    {
+      "start_frame": 2757115,
+      "gate_end_frame": 2822346,
+      "release_end_frame": 2825866
+    },
+    {
+      "start_frame": 2757307,
+      "gate_end_frame": 2847153,
+      "release_end_frame": 2855064
+    },
+    {
+      "start_frame": 2757499,
+      "gate_end_frame": 2847345,
+      "release_end_frame": 2855064
+    },
+    {
+      "start_frame": 2757691,
+      "gate_end_frame": 2805834,
+      "release_end_frame": 2806730
+    },
+    {
+      "start_frame": 2758267,
+      "gate_end_frame": 2851865,
+      "release_end_frame": 2855065
+    },
+    {
+      "start_frame": 2758459,
+      "gate_end_frame": 2830449,
+      "release_end_frame": 2831345
+    },
+    {
+      "start_frame": 2758715,
+      "gate_end_frame": 2851865,
+      "release_end_frame": 2855065
+    },
+    {
+      "start_frame": 2769969,
+      "gate_end_frame": 2772431,
+      "release_end_frame": 2780431
+    },
+    {
+      "start_frame": 2781538,
+      "gate_end_frame": 2784000,
+      "release_end_frame": 2792000
+    },
+    {
+      "start_frame": 2781986,
+      "gate_end_frame": 2787402,
+      "release_end_frame": 2795402
+    },
+    {
+      "start_frame": 2806154,
+      "gate_end_frame": 2808615,
+      "release_end_frame": 2816615
+    },
+    {
+      "start_frame": 2806730,
+      "gate_end_frame": 2829868,
+      "release_end_frame": 2839468
+    },
+    {
+      "start_frame": 2819200,
+      "gate_end_frame": 2821662,
+      "release_end_frame": 2829662
+    },
+    {
+      "start_frame": 2824615,
+      "gate_end_frame": 2834462,
+      "release_end_frame": 2842462
+    },
+    {
+      "start_frame": 2830769,
+      "gate_end_frame": 2848492,
+      "release_end_frame": 2851692
+    },
+    {
+      "start_frame": 2830769,
+      "gate_end_frame": 2833231,
+      "release_end_frame": 2841231
+    },
+    {
+      "start_frame": 2831217,
+      "gate_end_frame": 2836633,
+      "release_end_frame": 2844633
+    },
+    {
+      "start_frame": 2831345,
+      "gate_end_frame": 2854483,
+      "release_end_frame": 2856920
+    },
+    {
+      "start_frame": 2855385,
+      "gate_end_frame": 2865231,
+      "release_end_frame": 2873231
+    },
+    {
+      "start_frame": 2855385,
+      "gate_end_frame": 2857846,
+      "release_end_frame": 2865846
+    },
+    {
+      "start_frame": 2855577,
+      "gate_end_frame": 2942223,
+      "release_end_frame": 2945743
+    },
+    {
+      "start_frame": 2855769,
+      "gate_end_frame": 2945615,
+      "release_end_frame": 2963215
+    },
+    {
+      "start_frame": 2855961,
+      "gate_end_frame": 2903715,
+      "release_end_frame": 2913315
+    },
+    {
+      "start_frame": 2856153,
+      "gate_end_frame": 2945999,
+      "release_end_frame": 2954614
+    },
+    {
+      "start_frame": 2856537,
+      "gate_end_frame": 2904296,
+      "release_end_frame": 2905192
+    },
+    {
+      "start_frame": 2856729,
+      "gate_end_frame": 2937960,
+      "release_end_frame": 2961000
+    },
+    {
+      "start_frame": 2856921,
+      "gate_end_frame": 2946767,
+      "release_end_frame": 2964367
+    },
+    {
+      "start_frame": 2857177,
+      "gate_end_frame": 2938408,
+      "release_end_frame": 2955639
+    },
+    {
+      "start_frame": 2868431,
+      "gate_end_frame": 2870892,
+      "release_end_frame": 2878892
+    },
+    {
+      "start_frame": 2880000,
+      "gate_end_frame": 2882462,
+      "release_end_frame": 2890462
+    },
+    {
+      "start_frame": 2880448,
+      "gate_end_frame": 2885863,
+      "release_end_frame": 2893863
+    },
+    {
+      "start_frame": 2904615,
+      "gate_end_frame": 2907077,
+      "release_end_frame": 2915077
+    },
+    {
+      "start_frame": 2905191,
+      "gate_end_frame": 2952945,
+      "release_end_frame": 2954422
+    },
+    {
+      "start_frame": 2916923,
+      "gate_end_frame": 2926769,
+      "release_end_frame": 2934769
+    },
+    {
+      "start_frame": 2917662,
+      "gate_end_frame": 2920123,
+      "release_end_frame": 2928123
+    },
+    {
+      "start_frame": 2929231,
+      "gate_end_frame": 2931692,
+      "release_end_frame": 2939692
+    },
+    {
+      "start_frame": 2929679,
+      "gate_end_frame": 2935094,
+      "release_end_frame": 2943094
+    },
+    {
+      "start_frame": 2953846,
+      "gate_end_frame": 2963692,
+      "release_end_frame": 2971692
+    },
+    {
+      "start_frame": 2953846,
+      "gate_end_frame": 2956308,
+      "release_end_frame": 2964308
+    },
+    {
+      "start_frame": 2954038,
+      "gate_end_frame": 3019269,
+      "release_end_frame": 3022789
+    },
+    {
+      "start_frame": 2954230,
+      "gate_end_frame": 3044076,
+      "release_end_frame": 3052691
+    },
+    {
+      "start_frame": 2954422,
+      "gate_end_frame": 3044268,
+      "release_end_frame": 3053459
+    },
+    {
+      "start_frame": 2954614,
+      "gate_end_frame": 3044460,
+      "release_end_frame": 3053075
+    },
+    {
+      "start_frame": 2955190,
+      "gate_end_frame": 3122575,
+      "release_end_frame": 3145615
+    },
+    {
+      "start_frame": 2955382,
+      "gate_end_frame": 3002757,
+      "release_end_frame": 3003653
+    },
+    {
+      "start_frame": 2955638,
+      "gate_end_frame": 3123023,
+      "release_end_frame": 3146063
+    },
+    {
+      "start_frame": 2966892,
+      "gate_end_frame": 2969354,
+      "release_end_frame": 2977354
+    },
+    {
+      "start_frame": 2978462,
+      "gate_end_frame": 2980923,
+      "release_end_frame": 2988923
+    },
+    {
+      "start_frame": 2978910,
+      "gate_end_frame": 2984325,
+      "release_end_frame": 2992325
+    },
+    {
+      "start_frame": 3003077,
+      "gate_end_frame": 3005538,
+      "release_end_frame": 3013538
+    },
+    {
+      "start_frame": 3003653,
+      "gate_end_frame": 3026791,
+      "release_end_frame": 3036391
+    },
+    {
+      "start_frame": 3015385,
+      "gate_end_frame": 3025231,
+      "release_end_frame": 3033231
+    },
+    {
+      "start_frame": 3016123,
+      "gate_end_frame": 3018585,
+      "release_end_frame": 3026585
+    },
+    {
+      "start_frame": 3027692,
+      "gate_end_frame": 3045415,
+      "release_end_frame": 3048615
+    },
+    {
+      "start_frame": 3027692,
+      "gate_end_frame": 3030154,
+      "release_end_frame": 3038154
+    },
+    {
+      "start_frame": 3028140,
+      "gate_end_frame": 3033556,
+      "release_end_frame": 3041556
+    },
+    {
+      "start_frame": 3028268,
+      "gate_end_frame": 3051406,
+      "release_end_frame": 3061006
+    },
+    {
+      "start_frame": 3052308,
+      "gate_end_frame": 3062154,
+      "release_end_frame": 3070154
+    },
+    {
+      "start_frame": 3052308,
+      "gate_end_frame": 3054769,
+      "release_end_frame": 3062769
+    },
+    {
+      "start_frame": 3052500,
+      "gate_end_frame": 3139146,
+      "release_end_frame": 3142666
+    },
+    {
+      "start_frame": 3052692,
+      "gate_end_frame": 3121615,
+      "release_end_frame": 3139215
+    },
+    {
+      "start_frame": 3052884,
+      "gate_end_frame": 3121807,
+      "release_end_frame": 3131407
+    },
+    {
+      "start_frame": 3053076,
+      "gate_end_frame": 3121999,
+      "release_end_frame": 3139599
+    },
+    {
+      "start_frame": 3053460,
+      "gate_end_frame": 3101219,
+      "release_end_frame": 3102115
+    },
+    {
+      "start_frame": 3065354,
+      "gate_end_frame": 3067815,
+      "release_end_frame": 3075815
+    },
+    {
+      "start_frame": 3076923,
+      "gate_end_frame": 3079385,
+      "release_end_frame": 3087385
+    },
+    {
+      "start_frame": 3077371,
+      "gate_end_frame": 3082786,
+      "release_end_frame": 3090786
+    },
+    {
+      "start_frame": 3101538,
+      "gate_end_frame": 3111385,
+      "release_end_frame": 3119385
+    },
+    {
+      "start_frame": 3101538,
+      "gate_end_frame": 3104000,
+      "release_end_frame": 3112000
+    },
+    {
+      "start_frame": 3102114,
+      "gate_end_frame": 3147249,
+      "release_end_frame": 3150449
+    },
+    {
+      "start_frame": 3114585,
+      "gate_end_frame": 3117046,
+      "release_end_frame": 3125046
+    },
+    {
+      "start_frame": 3126154,
+      "gate_end_frame": 3147077,
+      "release_end_frame": 3167877
+    },
+    {
+      "start_frame": 3126154,
+      "gate_end_frame": 3128615,
+      "release_end_frame": 3136615
+    },
+    {
+      "start_frame": 3126602,
+      "gate_end_frame": 3132017,
+      "release_end_frame": 3140017
+    },
+    {
+      "start_frame": 3138462,
+      "gate_end_frame": 3140923,
+      "release_end_frame": 3148923
+    },
+    {
+      "start_frame": 3150769,
+      "gate_end_frame": 3160620,
+      "release_end_frame": 3168620
+    },
+    {
+      "start_frame": 3150769,
+      "gate_end_frame": 3153231,
+      "release_end_frame": 3161231
+    },
+    {
+      "start_frame": 3150961,
+      "gate_end_frame": 3216389,
+      "release_end_frame": 3219909
+    },
+    {
+      "start_frame": 3151153,
+      "gate_end_frame": 3241375,
+      "release_end_frame": 3250066
+    },
+    {
+      "start_frame": 3151345,
+      "gate_end_frame": 3241576,
+      "release_end_frame": 3250259
+    },
+    {
+      "start_frame": 3151537,
+      "gate_end_frame": 3241762,
+      "release_end_frame": 3250453
+    },
+    {
+      "start_frame": 3151921,
+      "gate_end_frame": 3199794,
+      "release_end_frame": 3200690
+    },
+    {
+      "start_frame": 3152113,
+      "gate_end_frame": 3250138,
+      "release_end_frame": 3251034
+    },
+    {
+      "start_frame": 3152561,
+      "gate_end_frame": 3250591,
+      "release_end_frame": 3251487
+    },
+    {
+      "start_frame": 3163823,
+      "gate_end_frame": 3166288,
+      "release_end_frame": 3174288
+    },
+    {
+      "start_frame": 3175412,
+      "gate_end_frame": 3177880,
+      "release_end_frame": 3185880
+    },
+    {
+      "start_frame": 3175861,
+      "gate_end_frame": 3181291,
+      "release_end_frame": 3189291
+    },
+    {
+      "start_frame": 3200112,
+      "gate_end_frame": 3210007,
+      "release_end_frame": 3218007
+    },
+    {
+      "start_frame": 3200112,
+      "gate_end_frame": 3202585,
+      "release_end_frame": 3210585
+    },
+    {
+      "start_frame": 3200690,
+      "gate_end_frame": 3248769,
+      "release_end_frame": 3250841
+    },
+    {
+      "start_frame": 3213225,
+      "gate_end_frame": 3215701,
+      "release_end_frame": 3223701
+    },
+    {
+      "start_frame": 3224867,
+      "gate_end_frame": 3242726,
+      "release_end_frame": 3245926
+    },
+    {
+      "start_frame": 3224867,
+      "gate_end_frame": 3227345,
+      "release_end_frame": 3235345
+    },
+    {
+      "start_frame": 3225318,
+      "gate_end_frame": 3230772,
+      "release_end_frame": 3238772
+    },
+    {
+      "start_frame": 3249678,
+      "gate_end_frame": 3259619,
+      "release_end_frame": 3267619
+    },
+    {
+      "start_frame": 3249678,
+      "gate_end_frame": 3252163,
+      "release_end_frame": 3260163
+    },
+    {
+      "start_frame": 3249872,
+      "gate_end_frame": 3337663,
+      "release_end_frame": 3341183
+    },
+    {
+      "start_frame": 3250066,
+      "gate_end_frame": 3341114,
+      "release_end_frame": 3349885
+    },
+    {
+      "start_frame": 3250260,
+      "gate_end_frame": 3341318,
+      "release_end_frame": 3350081
+    },
+    {
+      "start_frame": 3250453,
+      "gate_end_frame": 3341505,
+      "release_end_frame": 3350276
+    },
+    {
+      "start_frame": 3250841,
+      "gate_end_frame": 3299160,
+      "release_end_frame": 3300056
+    },
+    {
+      "start_frame": 3251035,
+      "gate_end_frame": 3333327,
+      "release_end_frame": 3350863
+    },
+    {
+      "start_frame": 3251487,
+      "gate_end_frame": 3333782,
+      "release_end_frame": 3351319
+    },
+    {
+      "start_frame": 3262852,
+      "gate_end_frame": 3265339,
+      "release_end_frame": 3273339
+    },
+    {
+      "start_frame": 3274547,
+      "gate_end_frame": 3277037,
+      "release_end_frame": 3285037
+    },
+    {
+      "start_frame": 3275000,
+      "gate_end_frame": 3280479,
+      "release_end_frame": 3288479
+    },
+    {
+      "start_frame": 3299472,
+      "gate_end_frame": 3301968,
+      "release_end_frame": 3309968
+    },
+    {
+      "start_frame": 3300056,
+      "gate_end_frame": 3348577,
+      "release_end_frame": 3350668
+    },
+    {
+      "start_frame": 3312705,
+      "gate_end_frame": 3315204,
+      "release_end_frame": 3323204
+    },
+    {
+      "start_frame": 3318203,
+      "gate_end_frame": 3328206,
+      "release_end_frame": 3336206
+    },
+    {
+      "start_frame": 3324454,
+      "gate_end_frame": 3326956,
+      "release_end_frame": 3334956
+    },
+    {
+      "start_frame": 3324909,
+      "gate_end_frame": 3330413,
+      "release_end_frame": 3338413
+    },
+    {
+      "start_frame": 3349885,
+      "gate_end_frame": 3441775,
+      "release_end_frame": 3450627
+    },
+    {
+      "start_frame": 3350081,
+      "gate_end_frame": 3441981,
+      "release_end_frame": 3450825
+    },
+    {
+      "start_frame": 3350276,
+      "gate_end_frame": 3442169,
+      "release_end_frame": 3451022
+    },
+    {
+      "start_frame": 3350667,
+      "gate_end_frame": 3399440,
+      "release_end_frame": 3400336
+    },
+    {
+      "start_frame": 3350863,
+      "gate_end_frame": 3450718,
+      "release_end_frame": 3451614
+    },
+    {
+      "start_frame": 3351319,
+      "gate_end_frame": 3451179,
+      "release_end_frame": 3452075
+    },
+    {
+      "start_frame": 3400336,
+      "gate_end_frame": 3449306,
+      "release_end_frame": 3451416
+    },
+    {
+      "start_frame": 3450627,
+      "gate_end_frame": 3543374,
+      "release_end_frame": 3560974
+    },
+    {
+      "start_frame": 3450825,
+      "gate_end_frame": 3550977,
+      "release_end_frame": 3560577
+    },
+    {
+      "start_frame": 3451022,
+      "gate_end_frame": 3543773,
+      "release_end_frame": 3561373
+    },
+    {
+      "start_frame": 3451417,
+      "gate_end_frame": 3544171,
+      "release_end_frame": 3561771
+    },
+    {
+      "start_frame": 3451614,
+      "gate_end_frame": 3535441,
+      "release_end_frame": 3558481
+    },
+    {
+      "start_frame": 3452075,
+      "gate_end_frame": 3535906,
+      "release_end_frame": 3558946
+    }
+  ],
+  "changed_from_absolute_endpoints": [
+    {
+      "index": 3,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 17,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 25,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 26,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 36,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 37,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 52,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 71,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 72,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 87,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 94,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 95,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 97,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 110,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 111,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 112,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 126,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 139,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 148,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 159,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 161,
+      "instrument": "bass",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 164,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 172,
+      "instrument": "piano",
+      "gate_delta": 0,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 173,
+      "instrument": "piano",
+      "gate_delta": 0,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 178,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 186,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 187,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 188,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 196,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 207,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 221,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 222,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 225,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 231,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 243,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 259,
+      "instrument": "bass",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 263,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 264,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 265,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 271,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 298,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 301,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 302,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 311,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 313,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 314,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 325,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 328,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 329,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 349,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 351,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 368,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 388,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 390,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 404,
+      "instrument": "bass",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 427,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 428,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 442,
+      "instrument": "bass",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 443,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 444,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 445,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 461,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 462,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 477,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 484,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 497,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 498,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 513,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 518,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 520,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 521,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 523,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 536,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 537,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 538,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 552,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 559,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 575,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 578,
+      "instrument": "piano",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 587,
+      "instrument": "bass",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 603,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    },
+    {
+      "index": 609,
+      "instrument": "guitar",
+      "gate_delta": 1,
+      "release_endpoint_delta": 0
+    },
+    {
+      "index": 614,
+      "instrument": "guitar",
+      "gate_delta": 0,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 615,
+      "instrument": "guitar",
+      "gate_delta": -1,
+      "release_endpoint_delta": -1
+    },
+    {
+      "index": 620,
+      "instrument": "piano",
+      "gate_delta": 1,
+      "release_endpoint_delta": 1
+    }
+  ],
+  "probes": [
+    {
+      "id": "guitar-even-half",
+      "rejected": false,
+      "event": {
+        "instrument": "guitar",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 64,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 102,
+        "release_end_frame": 102
+      },
+      "observed": {
+        "source_frames": 192000,
+        "hold_frames": 2,
+        "realized_frames": 2,
+        "requested_frames": 2
+      }
+    },
+    {
+      "id": "piano-odd-halves",
+      "rejected": false,
+      "event": {
+        "instrument": "piano",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 60,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.003140625,
+        "local_time": 0.003140625,
+        "duration": 4.6875e-05,
+        "release": 4.6875e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 102,
+        "release_end_frame": 104
+      },
+      "observed": {
+        "source_frames": 166400,
+        "hold_frames": 2,
+        "realized_frames": 4,
+        "requested_frames": 4
+      }
+    },
+    {
+      "id": "guitar-release-half",
+      "rejected": false,
+      "event": {
+        "instrument": "guitar",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 64,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0062734375,
+        "local_time": 0.0062734375,
+        "duration": 0.003140625,
+        "release": 7.8125e-05
+      },
+      "expected": {
+        "start_frame": 201,
+        "gate_end_frame": 301,
+        "release_end_frame": 303
+      },
+      "observed": {
+        "source_frames": 192000,
+        "hold_frames": 100,
+        "realized_frames": 102,
+        "requested_frames": 102
+      }
+    },
+    {
+      "id": "piano-zero-release",
+      "rejected": false,
+      "event": {
+        "instrument": "piano",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 60,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.009390625,
+        "local_time": 0.009390625,
+        "duration": 0.000109375,
+        "release": 0.0
+      },
+      "expected": {
+        "start_frame": 300,
+        "gate_end_frame": 304,
+        "release_end_frame": 304
+      },
+      "observed": {
+        "source_frames": 166400,
+        "hold_frames": 4,
+        "realized_frames": 4,
+        "requested_frames": 4
+      }
+    },
+    {
+      "id": "guitar-sample-clamp",
+      "rejected": false,
+      "event": {
+        "instrument": "guitar",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 64,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 3.90625e-05,
+        "local_time": 3.90625e-05,
+        "duration": 10.0,
+        "release": 0.2
+      },
+      "expected": {
+        "start_frame": 1,
+        "gate_end_frame": 320001,
+        "release_end_frame": 326401
+      },
+      "observed": {
+        "source_frames": 192000,
+        "hold_frames": 320000,
+        "realized_frames": 192000,
+        "requested_frames": 326400
+      }
+    },
+    {
+      "id": "bass-even-half-combined",
+      "rejected": false,
+      "event": {
+        "instrument": "bass",
+        "role": "bass",
+        "articulation": "normal",
+        "note": 41,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 102,
+        "release_end_frame": 103
+      },
+      "observed": {
+        "hold_frames": 2,
+        "realized_frames": 3,
+        "source_frames": 67272,
+        "requested_frames": 3
+      }
+    },
+    {
+      "id": "bass-odd-halves-combined",
+      "rejected": false,
+      "event": {
+        "instrument": "bass",
+        "role": "bass",
+        "articulation": "normal",
+        "note": 41,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.003140625,
+        "local_time": 0.003140625,
+        "duration": 4.6875e-05,
+        "release": 4.6875e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 102,
+        "release_end_frame": 103
+      },
+      "observed": {
+        "hold_frames": 2,
+        "realized_frames": 3,
+        "source_frames": 67272,
+        "requested_frames": 3
+      }
+    },
+    {
+      "id": "bass-zero-release",
+      "rejected": false,
+      "event": {
+        "instrument": "bass",
+        "role": "bass",
+        "articulation": "normal",
+        "note": 41,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.009390625,
+        "local_time": 0.009390625,
+        "duration": 0.000109375,
+        "release": 0.0
+      },
+      "expected": {
+        "start_frame": 300,
+        "gate_end_frame": 304,
+        "release_end_frame": 304
+      },
+      "observed": {
+        "hold_frames": 4,
+        "realized_frames": 4,
+        "source_frames": 67272,
+        "requested_frames": 4
+      }
+    },
+    {
+      "id": "bass-oscillator-beyond-sample",
+      "rejected": false,
+      "event": {
+        "instrument": "bass",
+        "role": "bass",
+        "articulation": "normal",
+        "note": 41,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 3.90625e-05,
+        "local_time": 3.90625e-05,
+        "duration": 4.0,
+        "release": 0.1
+      },
+      "expected": {
+        "start_frame": 1,
+        "gate_end_frame": 128001,
+        "release_end_frame": 131201
+      },
+      "observed": {
+        "hold_frames": 128000,
+        "realized_frames": 131200,
+        "source_frames": 67272,
+        "requested_frames": 131200
+      }
+    },
+    {
+      "id": "kick-unused-gates",
+      "rejected": false,
+      "event": {
+        "instrument": "kick",
+        "role": "drum",
+        "articulation": "normal",
+        "note": 0,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 103,
+        "release_end_frame": 103
+      },
+      "observed": {
+        "short_long_gate_pcm_bit_identical": true
+      }
+    },
+    {
+      "id": "snare-unused-gates",
+      "rejected": false,
+      "event": {
+        "instrument": "snare",
+        "role": "drum",
+        "articulation": "normal",
+        "note": 1,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 103,
+        "release_end_frame": 103
+      },
+      "observed": {
+        "short_long_gate_pcm_bit_identical": true
+      }
+    },
+    {
+      "id": "hat-unused-gates",
+      "rejected": false,
+      "event": {
+        "instrument": "hat",
+        "role": "drum",
+        "articulation": "normal",
+        "note": 0,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 103,
+        "release_end_frame": 103
+      },
+      "observed": {
+        "short_long_gate_pcm_bit_identical": true
+      }
+    },
+    {
+      "id": "shaker-unused-gates",
+      "rejected": false,
+      "event": {
+        "instrument": "shaker",
+        "role": "drum",
+        "articulation": "normal",
+        "note": 0,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 100,
+        "gate_end_frame": 103,
+        "release_end_frame": 103
+      },
+      "observed": {
+        "short_long_gate_pcm_bit_identical": true
+      }
+    },
+    {
+      "id": "absolute-onset-preserved",
+      "rejected": false,
+      "event": {
+        "instrument": "guitar",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 64,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 32.7711484375,
+        "local_time": 0.0031328125,
+        "duration": 7.8125e-05,
+        "release": 1.5625e-05
+      },
+      "expected": {
+        "start_frame": 1048677,
+        "gate_end_frame": 1048679,
+        "release_end_frame": 1048679
+      },
+      "observed": {
+        "source_frames": 192000,
+        "hold_frames": 2,
+        "realized_frames": 2,
+        "requested_frames": 2
+      }
+    },
+    {
+      "id": "zero-rounded-hold-rejected",
+      "rejected": true,
+      "event": {
+        "instrument": "guitar",
+        "role": "chord",
+        "articulation": "normal",
+        "note": 64,
+        "round_robin": 0,
+        "beat": 0,
+        "velocity": 0.5,
+        "pan": 0,
+        "time": 0.0031328125,
+        "local_time": 0.0031328125,
+        "duration": 1.5625e-05,
+        "release": 4.6875e-05
+      },
+      "expected": null,
+      "observed": {
+        "source_frames": 192000,
+        "hold_frames": 0,
+        "realized_frames": 2,
+        "requested_frames": 2
+      }
+    }
+  ]
+}
