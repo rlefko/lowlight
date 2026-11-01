@@ -1,6 +1,6 @@
 # Prepared sample storage
 
-The complete accepted 621-event score previously needed 39,363,152 bytes of prepared PCM and failed the 32 MiB mixer limit. Preparation now retains only the guitar, piano, and bass sample frames that some event using that sample can reach. The same score retains 23,363,108 bytes across 63 sample keys. The 32 MiB arena, 64 sample descriptors, 2,048 events, and voice limits remain unchanged. This makes that score preparable; it does not establish that every future score will fit.
+The complete accepted 621-event score previously needed 39,363,152 bytes of prepared PCM and failed the 32 MiB mixer limit. Preparation now retains only the guitar, piano, and bass sample frames that some event using that sample can reach. The same score now retains 23,363,076 bytes across 63 sample keys after the [reference-duration correction](validation-reference-timing.md); the original storage validation below used 23,363,108 bytes. The 32 MiB arena, 64 sample descriptors, 2,048 events, and voice limits remain unchanged. This makes that score preparable; it does not establish that every future score will fit.
 
 ## Preparation and sound preservation
 
@@ -35,8 +35,10 @@ Rendering the complete score through the mixer buses used 14,500 callbacks of at
 
 The complete-score process peaked at 46,432,256 resident bytes. Separate matched-prefix processes peaked at 36,323,328 bytes before and 28,803,072 bytes after the change. These include Swift, the decoder, and the harness, and reflect touched pages within the unchanged arena allocation. They are not whole-app working-set or physical-device memory results.
 
-## Remaining full-song gates
+## Complete-song timing follow-up
 
-A pre-gain full-song diagnostic before this change measured maximum/RMS error `2.46712e-5` / `5.70043e-7` against the unchanged original. Its maximum exceeds the existing `1e-5` score-prefix budget. The established [absolute-endpoint versus relative-duration distinction](validation-voices.md#independent-sound-comparison) affects 85 events by one frame in this score. A diagnostic changing only the original durations to those native endpoints reduces maximum/RMS error to `3.72529e-8` / `2.45829e-9`; that counterfactual is not a replacement golden or a full-song conformance pass.
+The original storage change preserved native timing. Its full-song pre-gain comparison measured maximum/RMS error `2.46712e-5` / `5.70043e-7`; the maximum exceeded the existing `1e-5` score-prefix budget. A diagnostic that changed only original durations to native endpoints identified 85 one-frame envelope differences, but was never accepted as a replacement golden.
 
-This storage change preserves the existing native output and timing. Complete-song parity, whole-song fixed-gain analysis, rack orchestration, playback, and physical-device memory/energy evidence remain separate work.
+The subsequent [reference-duration correction](validation-reference-timing.md) fixes the importer while preserving the native planner clock. The complete accepted first song now passes against the unchanged original at maximum/RMS `3.35276e-8` / `2.45718e-9`. The corrected timing changes 15 retained sample lengths by one frame, reducing used PCM by 32 bytes. The storage algorithm, capacity limits, and historical profile above are unchanged.
+
+Body selection, production rack preparation/replay, nonzero-origin reference mapping, playback, and physical-device memory/energy evidence remain separate work.

@@ -27,5 +27,6 @@
 - [Native planning validation](validation-planning.md)
 - [Note events and shared time decision](adrs/003-events-and-shared-time.md)
 - [Event and transition validation](validation-events.md)
+- [Reference note duration validation](validation-reference-timing.md)
 - [Milestones and release gates](status.md)
 - [Foundation validation](validation-foundation.md)
