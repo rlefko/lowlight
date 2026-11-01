@@ -1,40 +1,17 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
 constexpr uint32_t window = 800, delay = LL_GLUE_LATENCY + 1;
 constexpr uint64_t inputLimit = (uint64_t{1} << 52) - LL_GLUE_LATENCY;
 float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
 
-struct FlushSubnormals {
-#if defined(__aarch64__)
-    uint64_t control, status;
-    FlushSubnormals() {
-        asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
-        asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = control | (uint64_t{1} << 24);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~FlushSubnormals() {
-        asm volatile("msr fpcr, %0" : : "r"(control) : "memory");
-        asm volatile("msr fpsr, %0" : : "r"(status) : "memory");
-    }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    FlushSubnormals() { _mm_setcsr(previous | 0x8040); }
-    ~FlushSubnormals() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 void clear(LLGlueFrame *output, uint32_t frames) {
     if (output) for (uint32_t i = 0; i < frames; ++i) output[i] = LLGlueFrame{};
 }
@@ -56,7 +33,7 @@ struct LLGlue {
     double attack = std::exp(-1 / (.012 * 32000)), release = std::exp(-1 / (.22 * 32000));
 
     bool prepare(const LLBusFrame &input, LLGlueFrame &frame, float &power) const {
-        if (!std::isfinite(input.duck) || input.duck < 0 || input.duck > 1) return false;
+        if (!lowlight::unitInterval(input.duck)) return false;
         for (uint32_t ch = 0; ch < 2; ++ch) {
             if (!std::isfinite(input.guitar[ch]) || !std::isfinite(input.piano[ch]) ||
                 !std::isfinite(input.bass[ch]) || !std::isfinite(input.drums[ch])) return false;
@@ -107,7 +84,7 @@ struct LLGlue {
 
 LLGlue *ll_glue_create(uint64_t inputFrames, uint8_t focus) {
     if (inputFrames > inputLimit || focus > 1) return nullptr;
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     auto *glue = new (std::nothrow) LLGlue;
     if (glue) {
         glue->total = inputFrames;
@@ -123,7 +100,7 @@ void ll_glue_reset(LLGlue *glue) {
     for (auto &frame : glue->pending) frame = LLGlueFrame{};
 }
 bool ll_glue_process(LLGlue *glue, const LLBusFrame *input, LLGlueFrame *output, uint32_t frames) {
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     if (!glue || (frames && (!input || !output)) || frames > glue->total - glue->consumed ||
         overlaps(input, uint64_t{frames} * sizeof(*input), output, uint64_t{frames} * sizeof(*output))) {
         clear(output, frames); return false;
@@ -143,7 +120,7 @@ bool ll_glue_process(LLGlue *glue, const LLBusFrame *input, LLGlueFrame *output,
     return true;
 }
 bool ll_glue_drain(LLGlue *glue, LLGlueFrame *output, uint32_t capacity, uint32_t *written) {
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     if (written && overlaps(output, uint64_t{capacity} * sizeof(*output), written, sizeof(*written))) {
         clear(output, capacity); return false;
     }

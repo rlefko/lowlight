@@ -1,14 +1,12 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
 constexpr double pi = 3.14159265358979323846;
@@ -30,27 +28,6 @@ constexpr uint32_t storageFrames = [] {
 }();
 float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
 
-struct FlushSubnormals {
-#if defined(__aarch64__)
-    uint64_t control, status;
-    FlushSubnormals() {
-        asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
-        asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = control | (uint64_t{1} << 24);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~FlushSubnormals() {
-        asm volatile("msr fpcr, %0" : : "r"(control) : "memory");
-        asm volatile("msr fpsr, %0" : : "r"(status) : "memory");
-    }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    FlushSubnormals() { _mm_setcsr(previous | 0x8040); }
-    ~FlushSubnormals() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 struct Delay {
     uint32_t offset = 0, length = 0, position = 0;
     void configure(uint32_t &cursor, uint32_t frames) { offset = cursor; length = frames; cursor += frames; }
@@ -146,7 +123,7 @@ struct LLRoom {
 };
 
 LLRoom *ll_room_create(double space, double warmth) {
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     if (!unitInterval(space) || !unitInterval(warmth)) return nullptr;
     auto *room = new (std::nothrow) LLRoom;
     if (!room) return nullptr;
@@ -175,7 +152,7 @@ void ll_room_reset(LLRoom *room) {
     room->highpass.reset(); room->lowpass.reset();
 }
 bool ll_room_process(LLRoom *room, const LLGlueFrame *input, LLGlueFrame *output, uint32_t frames) {
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     const auto a = reinterpret_cast<uintptr_t>(input), b = reinterpret_cast<uintptr_t>(output);
     const uint64_t bytes = uint64_t{frames} * sizeof(*input);
     if (!room || (frames && (!input || !output)) || (a <= b ? b - a < bytes : a - b < bytes)) {

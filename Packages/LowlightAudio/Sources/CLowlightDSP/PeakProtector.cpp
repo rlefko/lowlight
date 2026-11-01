@@ -1,38 +1,15 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
 constexpr uint32_t window = LL_PEAK_LATENCY + 1;
 float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
-struct FlushSubnormals {
-#if defined(__aarch64__)
-    uint64_t control, status;
-    FlushSubnormals() {
-        asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
-        asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = control | (uint64_t{1} << 24);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~FlushSubnormals() {
-        asm volatile("msr fpcr, %0" : : "r"(control) : "memory");
-        asm volatile("msr fpsr, %0" : : "r"(status) : "memory");
-    }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    FlushSubnormals() { _mm_setcsr(previous | 0x8040); }
-    ~FlushSubnormals() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 void clear(float *output, uint32_t frames) {
     if (output) for (uint64_t i = 0; i < uint64_t{frames} * 2; ++i) output[i] = 0;
 }
@@ -75,7 +52,7 @@ struct LLPeakProtector {
 
 LLPeakProtector *ll_peak_create(uint8_t mode) {
     if (mode > LL_PEAK_SESSION) return nullptr;
-    FlushSubnormals flush;
+    lowlight::FloatingPointMode flush;
     auto *protector = new (std::nothrow) LLPeakProtector;
     if (protector) protector->ceiling = static_cast<float>(std::pow(10.0, (mode ? -2.2 : -5.0) / 20));
     return protector;
@@ -90,7 +67,7 @@ void ll_peak_reset(LLPeakProtector *protector) {
     for (auto &frame : protector->pending) { frame[0] = 0; frame[1] = 0; }
 }
 bool ll_peak_process(LLPeakProtector *protector, const float *input, float *output, uint32_t frames) {
-    FlushSubnormals flush;
+    lowlight::FloatingPointMode flush;
     const uint64_t samples = uint64_t{frames} * 2, bytes = samples * sizeof(float);
     if (!protector || protector->closed || (frames && (!input || !output)) ||
         overlaps(input, bytes, output, bytes)) {
@@ -116,7 +93,7 @@ bool ll_peak_process(LLPeakProtector *protector, const float *input, float *outp
     return true;
 }
 bool ll_peak_drain(LLPeakProtector *protector, float *output, uint32_t capacity, uint32_t *written) {
-    FlushSubnormals flush;
+    lowlight::FloatingPointMode flush;
     if (written && overlaps(output, uint64_t{capacity} * 2 * sizeof(float), written, sizeof(*written))) {
         clear(output, capacity); return false;
     }
