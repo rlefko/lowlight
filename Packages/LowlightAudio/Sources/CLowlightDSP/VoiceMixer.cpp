@@ -1,14 +1,12 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "RackFades.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
 constexpr double pi = 3.14159265358979323846;
@@ -17,24 +15,6 @@ constexpr uint32_t sampleFramesLimit = 215513;
 float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
 void increment(uint32_t &value) { if (value != UINT32_MAX) ++value; }
 
-// Scoped thread-local FP mode; preserve the host's exact state on return.
-struct FlushSubnormals {
-#if defined(__aarch64__)
-    uint64_t previous;
-    FlushSubnormals() {
-        asm volatile("mrs %0, fpcr" : "=r"(previous) : : "memory");
-        const uint64_t next = previous | (uint64_t{1} << 24);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~FlushSubnormals() { asm volatile("msr fpcr, %0" : : "r"(previous) : "memory"); }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    FlushSubnormals() { _mm_setcsr(previous | 0x8040); }
-    ~FlushSubnormals() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 struct Sample { uint32_t offset = 0, frames = 0, channels = 0; };
 struct Event {
     LLEvent note{};
@@ -125,7 +105,8 @@ bool ll_mixer_configure_origin(LLMixer *m, uint64_t frameOrigin) {
     return true;
 }
 bool ll_mixer_configure_buses(LLMixer *m, double energy) {
-    if (!m || m->loaded || !std::isfinite(energy) || energy < 0 || energy > 1) return false;
+    lowlight::FloatingPointMode mode;
+    if (!m || m->loaded || !lowlight::unitInterval(energy)) return false;
     constexpr double cutoffs[] = {280, 1050, 1450, 1200};
     for (uint32_t i = 0; i < 4; ++i) m->buses.filters[i].configure(cutoffs[i]);
     for (uint32_t i = 0; i < duckFrames; ++i)
@@ -138,10 +119,12 @@ bool ll_mixer_configure_buses(LLMixer *m, double energy) {
     return true;
 }
 bool ll_mixer_configure_fades(LLMixer *m, const LLRackFades *fades) {
+    lowlight::FloatingPointMode mode;
     if (!m || !fades || m->loaded || !m->buses.configured) return false;
     return m->buses.fades.configure(*fades);
 }
 int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint32_t channels) {
+    lowlight::FloatingPointMode mode;
     if (!m || !pcm || m->loaded || m->samplesUsed == LL_SAMPLE_LIMIT || !frames ||
         frames > sampleFramesLimit || (channels != 1 && channels != 2)) return -1;
     const uint32_t count = frames * channels;
@@ -161,6 +144,7 @@ void ll_mixer_reset(LLMixer *m) {
     m->position = m->origin; m->next = 0; m->steals = 0; m->dropped = 0;
 }
 bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
+    lowlight::FloatingPointMode mode;
     if (!m || count > LL_EVENT_LIMIT || (count && !events)) return false;
     bool hasBass = false;
     for (uint32_t i = 0; i < count; ++i) {
@@ -168,7 +152,7 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
         if (e.start_frame < m->origin || e.sample_index >= m->samplesUsed ||
             (i && e.start_frame < events[i - 1].start_frame) || !e.hold_frames ||
             e.hold_frames > 16 * 32000 || e.release_frames > 5 * 32000 ||
-            !std::isfinite(e.velocity) || e.velocity < 0 || e.velocity > 1 ||
+            !lowlight::unitInterval(e.velocity) ||
             !std::isfinite(e.pan) || e.pan < -1 || e.pan > 1 || e.instrument > 6 ||
             e.connected > 1 || e.priority > 2) return false;
         const bool bass = e.instrument == 2;
@@ -337,7 +321,7 @@ bool ll_mixer_render(LLMixer *m, float *output, uint32_t frames) {
         for (uint64_t i = 0; i < uint64_t{frames} * 2; ++i) output[i] = 0;
         return false;
     }
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
         for (; offset < end; ++offset) renderFrame(*m, output + uint64_t{offset} * 2, nullptr);
@@ -350,7 +334,7 @@ bool ll_mixer_render_buses(LLMixer *m, LLBusFrame *output, uint32_t frames) {
         for (uint32_t i = 0; i < frames; ++i) output[i] = LLBusFrame{};
         return false;
     }
-    FlushSubnormals mode;
+    lowlight::FloatingPointMode mode;
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
         for (; offset < end; ++offset) renderFrame(*m, nullptr, output + offset);

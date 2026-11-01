@@ -1,37 +1,14 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
-struct RenderMode {
-#if defined(__aarch64__)
-    uint64_t control, status;
-    RenderMode() {
-        asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
-        asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = (control | (uint64_t{1} << 24)) & ~(uint64_t{3} << 22);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~RenderMode() {
-        asm volatile("msr fpcr, %0" : : "r"(control) : "memory");
-        asm volatile("msr fpsr, %0" : : "r"(status) : "memory");
-    }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    RenderMode() { _mm_setcsr((previous | 0x8040u) & ~0x6000u); }
-    ~RenderMode() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
 bool valid(const LLGlueFrame &frame) {
     uint32_t duck;
@@ -57,7 +34,7 @@ struct LLSongMix {
 
 LLSongMix *ll_song_mix_create(uint32_t takeSeed, uint32_t inputFrames, uint64_t frameOrigin,
                             double texture, const LLRackFades *fades) {
-    RenderMode mode;
+    lowlight::FloatingPointMode mode;
     LLAir *air = ll_air_create(takeSeed, inputFrames, frameOrigin, texture, fades);
     if (!air) return nullptr;
     auto *mix = new (std::nothrow) LLSongMix;
@@ -81,7 +58,7 @@ void ll_song_mix_reset(LLSongMix *mix) {
     for (uint32_t ch = 0; ch < 2; ++ch) mix->first[ch] = mix->second[ch] = 0;
 }
 bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output, uint32_t frames) {
-    RenderMode mode;
+    lowlight::FloatingPointMode mode;
     const auto a = reinterpret_cast<uintptr_t>(input), b = reinterpret_cast<uintptr_t>(output);
     const uint64_t inputBytes = uint64_t{frames} * sizeof(*input), outputBytes = uint64_t{frames} * 2 * sizeof(*output);
     if (!mix || frames > mix->frames - mix->position || (frames && (!input || !output)) ||

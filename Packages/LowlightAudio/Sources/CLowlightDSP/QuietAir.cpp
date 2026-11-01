@@ -3,6 +3,7 @@
 // Float reduction adapted from NumPy 2.3.5 loops_utils.h.src, commit
 // c3d60fc8393f3ca3306b8ce8b6453d43737e3d90; NumPy Developers, all rights reserved.
 // Full upstream notice: Lowlight/ThirdParty/NumPy-Random-Notices.txt.
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "NumpyRandom.h"
 #include "RackFades.h"
@@ -10,35 +11,9 @@
 #include <cmath>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
 constexpr double pi = 3.14159265358979323846;
-// Preparation and replay must make identical rejection decisions regardless of
-// the caller's rounding mode. Preserve both controls and accrued exception flags.
-struct ReplayMode {
-#if defined(__aarch64__)
-    uint64_t control, status;
-    ReplayMode() {
-        asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
-        asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = (control | (uint64_t{1} << 24)) & ~(uint64_t{3} << 22);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~ReplayMode() {
-        asm volatile("msr fpcr, %0" : : "r"(control) : "memory");
-        asm volatile("msr fpsr, %0" : : "r"(status) : "memory");
-    }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    ReplayMode() { _mm_setcsr((previous | 0x8040u) & ~0x6000u); }
-    ~ReplayMode() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
 struct FilterState { double first = 0, second = 0; };
 struct Biquad {
@@ -130,7 +105,7 @@ struct LLAir {
 
 LLAir *ll_air_create(uint32_t takeSeed, uint32_t inputFrames, uint64_t frameOrigin,
                      double texture, const LLRackFades *fades) {
-    ReplayMode mode;
+    lowlight::FloatingPointMode mode;
     lowlight::RackFades fade;
     if (takeSeed >= (uint32_t{1} << 31) || !inputFrames || inputFrames > LL_AIR_MAX_FRAMES ||
         frameOrigin > lowlight::frameLimit - inputFrames ||
@@ -156,7 +131,7 @@ void ll_air_reset(LLAir *air) {
     if (air) air->stream = Stream(air->starts[0], air->starts[1]);
 }
 bool ll_air_add(LLAir *air, float *stereo, uint32_t frames) {
-    ReplayMode mode;
+    lowlight::FloatingPointMode mode;
     if (!air || frames > air->frames - air->stream.position || (frames && !stereo)) {
         clear(stereo, frames); return false;
     }

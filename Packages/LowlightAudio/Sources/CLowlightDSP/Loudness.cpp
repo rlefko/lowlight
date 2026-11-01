@@ -5,39 +5,16 @@
 // Pairwise reduction adapted from NumPy 2.3.5 loops_utils.h.src, commit
 // c3d60fc8393f3ca3306b8ce8b6453d43737e3d90; NumPy Developers, all rights reserved.
 // Full NumPy notice: Lowlight/ThirdParty/NumPy-Random-Notices.txt.
+#include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <new>
-#if defined(__SSE2__)
-#include <xmmintrin.h>
-#endif
 
 namespace {
 constexpr uint32_t window = 12800, hop = 3200, maximumBlocks = 1807;
-struct AnalysisMode {
-#if defined(__aarch64__)
-    uint64_t control, status;
-    AnalysisMode() {
-        asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
-        asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
-        const uint64_t next = (control | (uint64_t{1} << 24)) & ~(uint64_t{3} << 22);
-        asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
-    }
-    ~AnalysisMode() {
-        asm volatile("msr fpcr, %0" : : "r"(control) : "memory");
-        asm volatile("msr fpsr, %0" : : "r"(status) : "memory");
-    }
-#elif defined(__SSE2__)
-    unsigned previous = _mm_getcsr();
-    AnalysisMode() { _mm_setcsr((previous | 0x8040u) & ~0x6000u); }
-    ~AnalysisMode() { _mm_setcsr(previous); }
-#else
-#error Lowlight requires an ARM64 or SSE2 floating-point target
-#endif
-};
 struct Filter {
     double b0, b1, b2, a1, a2;
     float process(float sample, double (&state)[2]) const {
@@ -117,7 +94,7 @@ struct LLLoudness {
 };
 
 LLLoudness *ll_loudness_create(uint32_t bodyFrames) {
-    AnalysisMode mode;
+    lowlight::FloatingPointMode mode;
     if (bodyFrames < LL_LOUDNESS_MIN_FRAMES || bodyFrames > LL_LOUDNESS_MAX_FRAMES) return nullptr;
     auto *meter = new (std::nothrow) LLLoudness;
     if (!meter) return nullptr;
@@ -137,7 +114,7 @@ void ll_loudness_reset(LLLoudness *meter) {
     // Every subsequently read ring/bin value is overwritten before use.
 }
 bool ll_loudness_process(LLLoudness *meter, const float *stereo, uint32_t frames) {
-    AnalysisMode mode;
+    lowlight::FloatingPointMode mode;
     if (!meter || meter->finished || frames > meter->frames - meter->position || (frames && !stereo)) return false;
     for (uint64_t i = 0; i < uint64_t{frames} * 2; ++i)
         if (!std::isfinite(stereo[i]) || std::abs(stereo[i]) > LL_LOUDNESS_INPUT_LIMIT) return false;
@@ -157,7 +134,7 @@ bool ll_loudness_process(LLLoudness *meter, const float *stereo, uint32_t frames
     return true;
 }
 bool ll_loudness_finish(LLLoudness *meter, LLLoudnessResult *result) {
-    AnalysisMode mode;
+    lowlight::FloatingPointMode mode;
     if (result) std::memset(result, 0, sizeof(*result));
     if (!meter || !result || meter->position != meter->frames) return false;
     if (!meter->finished) {

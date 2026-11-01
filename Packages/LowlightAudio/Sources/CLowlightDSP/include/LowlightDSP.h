@@ -10,6 +10,12 @@
 extern "C" {
 #endif
 
+// Native floating-point setup, validation, rendering, and analysis use round-to-nearest
+// with subnormal flushing, then restore the caller's ARM64 FPCR/FPSR or SSE2 MXCSR.
+// Callers may vary rounding, flush mode, and sticky status; exceptions must be masked
+// and other FP controls must retain platform defaults. This contract starts with
+// supplied PCM/canonical frames and does not cover Swift sample preparation/planning.
+
 enum { LL_VOICE_LIMIT = 64, LL_SAMPLE_LIMIT = 64, LL_EVENT_LIMIT = 2048,
        LL_SAMPLE_BYTES = 32 * 1024 * 1024, LL_STEAL_FRAMES = 160 };
 typedef struct LLMixer LLMixer;

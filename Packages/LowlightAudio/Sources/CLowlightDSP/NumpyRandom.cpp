@@ -214,6 +214,7 @@ often the algorithm's designer. Component licenses are located with
 the component code.
 
 */
+#include "FloatingPointMode.h"
 #include "NumpyRandom.h"
 #include "NumpyZiggurat.h"
 #include <cmath>
