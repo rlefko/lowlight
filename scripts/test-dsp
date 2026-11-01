@@ -9,7 +9,7 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 mkdir -p .build/DSPTests
 flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
   -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
-for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness; do
+for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain; do
   sources=("Packages/LowlightAudio/Sources/CLowlightDSP/$suite.cpp" "tests/dsp/${suite}Tests.cpp")
   if [[ "$suite" == QuietAir || "$suite" == SongMix ]]; then
     sources+=(Packages/LowlightAudio/Sources/CLowlightDSP/NumpyRandom.cpp)
