@@ -599,6 +599,120 @@ static void rackHandoffAndTails() {
     CHECK(arriving[1699].drums[0] == 0 && arriving[1699].duck == .945f && arriving[1700].drums[0] != 0);
 }
 
+static void originTranslation() {
+    constexpr uint32_t count = 6000;
+    const LLRackFades localFades{.25, 1000.5, 900.25, 2400.75, 5.5, 2300.25};
+    std::vector<LLEvent> local{event(0, 0, 3000, 700)};
+    auto piano = event(0, 3, 2800, 500); piano.instrument = 1; piano.pan = .3f;
+    local.push_back(piano); local.push_back(bass(5, 2700, 500));
+    for (uint8_t kind = 3; kind < 7; ++kind) local.push_back(percussion(kind, 1, 2 * kind + 1));
+    local.push_back(percussion(3, 1, 2300));
+    auto silent = percussion(3, 1, 2401); silent.velocity = 0; local.push_back(silent);
+    auto setup = [&](Mixer &m, uint64_t origin) {
+        CHECK(m.sample(.1375f) == 0 && m.sample(.2f, 1) == 1);
+        CHECK(ll_mixer_configure_buses(m.value, .5));
+        auto fades = localFades;
+        fades.tonal_in_start_frame += origin; fades.tonal_in_end_frame += origin;
+        fades.tonal_out_start_frame += origin; fades.tonal_out_end_frame += origin;
+        fades.rhythm_in_frame += origin; fades.rhythm_out_frame += origin;
+        CHECK(ll_mixer_configure_fades(m.value, &fades));
+        auto score = local; for (auto &note : score) note.start_frame += origin;
+        m.load(score);
+    };
+    Mixer zero; setup(zero, 0); // Existing default, without calling the new API.
+    const auto dry = zero.render(count, {count}); zero.reset();
+    const auto buses = zero.buses(count, {count});
+    CHECK(buses[2301].drums[0] != 0 && buses[2401].duck == .945f);
+    for (const uint64_t origin : {uint64_t{37}, uint64_t{2764800123}, uint64_t{1} << 40}) {
+        Mixer shifted; CHECK(ll_mixer_configure_origin(shifted.value, origin));
+        CHECK(ll_mixer_position(shifted.value) == origin); setup(shifted, origin);
+        const auto actualDry = shifted.render(count, {1, 17, 255, 257, 1023});
+        CHECK(std::memcmp(dry.data(), actualDry.data(), dry.size() * sizeof(float)) == 0);
+        CHECK(ll_mixer_position(shifted.value) == origin + count);
+        shifted.reset(); const auto actualBuses = shifted.buses(count, {1, 17, 255, 257, 1023});
+        static_assert(sizeof(LLBusFrame) == 9 * sizeof(float), "Bus comparison has no padding");
+        CHECK(std::memcmp(buses.data(), actualBuses.data(), buses.size() * sizeof(LLBusFrame)) == 0);
+        shifted.reset(); shifted.render(1777);
+        CHECK(sameBuses(std::vector<LLBusFrame>(buses.begin() + 1777, buses.end()), shifted.buses(count - 1777)));
+        CHECK(ll_mixer_active_voices(shifted.value) == 0);
+        CHECK(ll_mixer_steals(shifted.value) == 0 && ll_mixer_dropped_events(shifted.value) == 0);
+    }
+}
+
+static void originSetupAndReload() {
+    constexpr uint64_t origin = uint64_t{1} << 40, limit = uint64_t{1} << 52;
+    Mixer mixer; CHECK(ll_mixer_position(mixer.value) == 0);
+    CHECK(!ll_mixer_configure_origin(nullptr, 0));
+    CHECK(ll_mixer_configure_origin(mixer.value, 17));
+    for (const uint64_t invalid : {limit + 1, UINT64_MAX}) {
+        CHECK(!ll_mixer_configure_origin(mixer.value, invalid));
+        CHECK(ll_mixer_position(mixer.value) == 17);
+    }
+    mixer.reset(); CHECK(ll_mixer_position(mixer.value) == 17);
+    CHECK(mixer.sample(.125f) == 0 && ll_mixer_configure_buses(mixer.value, .5));
+    auto early = event(0, 16); CHECK(!ll_mixer_load_events(mixer.value, &early, 1));
+    CHECK(ll_mixer_configure_origin(mixer.value, origin)); // Failed first load does not lock configuration.
+    std::vector<LLEvent> score(64, event(0, origin, 4000, 0));
+    auto incoming = event(0, origin + 100, 3000, 0); incoming.priority = 2;
+    score.insert(score.end(), 64, incoming);
+    incoming.start_frame = origin + 101; incoming.priority = 0; score.push_back(incoming);
+    auto kick = percussion(3, 0, origin + 110); kick.velocity = 0; score.push_back(kick);
+    mixer.load(score); const auto expected = mixer.buses(5000);
+    CHECK(ll_mixer_steals(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 1);
+    mixer.reset(); CHECK(ll_mixer_position(mixer.value) == origin);
+    CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
+    mixer.buses(150); // Pending replacements, live duck envelope, and active voices.
+    const auto voices = ll_mixer_active_voices(mixer.value);
+    for (const uint64_t late : {uint64_t{0}, origin, origin + 1, limit + 1})
+        CHECK(!ll_mixer_configure_origin(mixer.value, late));
+    early.start_frame = origin - 1;
+    CHECK(!ll_mixer_load_events(mixer.value, &early, 1)); // Sorted, otherwise valid, pre-origin event.
+    early.velocity = 0; CHECK(!ll_mixer_load_events(mixer.value, &early, 1)); // Silent notes are not exempt.
+    const LLEvent invalidLast[] = {event(0, origin), early};
+    CHECK(!ll_mixer_load_events(mixer.value, invalidLast, 2)); // Also unsorted; whole load must be atomic.
+    CHECK(ll_mixer_position(mixer.value) == origin + 150 && ll_mixer_active_voices(mixer.value) == voices);
+    CHECK(ll_mixer_steals(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 1);
+    CHECK(sameBuses(std::vector<LLBusFrame>(expected.begin() + 150, expected.end()), mixer.buses(4850)));
+    for (const bool reload : {false, true}) {
+        mixer.reset(); mixer.buses(150);
+        if (reload) mixer.load(score); else mixer.reset();
+        CHECK(ll_mixer_position(mixer.value) == origin && ll_mixer_active_voices(mixer.value) == 0);
+        CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
+        CHECK(sameBuses(expected, mixer.buses(5000, {1, 17, 257})));
+    }
+    mixer.load({}); CHECK(ll_mixer_position(mixer.value) == origin && ll_mixer_active_voices(mixer.value) == 0);
+    CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
+    LLBusFrame silence{}; silence.duck = 1;
+    for (const auto &frame : mixer.buses(3)) CHECK(sameFrame(frame, silence));
+    CHECK(!ll_mixer_configure_origin(mixer.value, 0));
+    mixer.reset(); CHECK(ll_mixer_position(mixer.value) == origin);
+}
+
+static void originTimelineLimit() {
+    constexpr uint64_t limit = uint64_t{1} << 52;
+    for (const uint64_t origin : {limit - 2, limit}) {
+        Mixer mixer; CHECK(ll_mixer_configure_origin(mixer.value, origin));
+        CHECK(ll_mixer_configure_buses(mixer.value, .5)); mixer.load({});
+        CHECK(ll_mixer_render(mixer.value, nullptr, 0) && ll_mixer_render_buses(mixer.value, nullptr, 0));
+        CHECK(!ll_mixer_configure_origin(mixer.value, 0)); // Even the first empty load locks setup.
+        float dry[] = {7, 7, 7, 7, 7, 7};
+        LLBusFrame buses[3]; for (auto &frame : buses) frame = {{7, 7}, {7, 7}, {7, 7}, {7, 7}, 7};
+        auditing = true;
+        const bool dryResult = ll_mixer_render(mixer.value, dry, 3);
+        const bool busResult = ll_mixer_render_buses(mixer.value, buses, 3);
+        auditing = false;
+        CHECK(!dryResult && !busResult && allocations == 0 && deallocations == 0);
+        CHECK(ll_mixer_position(mixer.value) == origin);
+        for (const float sample : dry) CHECK(sample == 0);
+        for (const auto &frame : buses) CHECK(sameFrame(frame, LLBusFrame{}));
+        if (origin < limit) { mixer.render(1); mixer.buses(1); }
+        CHECK(ll_mixer_position(mixer.value) == limit);
+        CHECK(ll_mixer_render(mixer.value, nullptr, 0) && ll_mixer_render_buses(mixer.value, nullptr, 0));
+        mixer.reset(); CHECK(ll_mixer_position(mixer.value) == origin);
+        mixer.load({}); CHECK(ll_mixer_position(mixer.value) == origin);
+    }
+}
+
 static void invalidInputsAndOwnership() {
     Mixer mixer; const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
     CHECK(ll_mixer_add_sample(mixer.value, nullptr, 1, 1) == -1);
@@ -646,5 +760,6 @@ int main() {
     percussionSoundAndBounds(); percussionStealingAndProtection(); busFiltersAndRouting(); busStateAndValidation();
     kickDuckingAndProtection(); rackFadeValidation(); rackFadeArithmeticAndViews(); rackHandoffAndTails();
     rackFadeFloatingBounds(); invalidInputsAndOwnership();
+    originTranslation(); originSetupAndReload(); originTimelineLimit();
     std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }

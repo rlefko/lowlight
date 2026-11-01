@@ -33,11 +33,16 @@ public final class TonalVoiceMixer {
             layer: instrument == .hat && event.velocity >= 0.72 ? 2 : 1)
     }
 
+    /// Starts with empty signal history at the absolute origin. Events and fades
+    /// use that same clock; earlier events are rejected before sample preparation.
+    /// This does not seek within a song or restore notes already in progress.
     public init(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
-        busEnergy: Double? = nil, rackFades: SongRackFades? = nil
+        busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0
     ) throws {
-        guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite else {
+        guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite,
+            frameOrigin <= UInt64(MusicalTime.maximumFrame)
+        else {
             throw VoiceMixerError.invalidScore
         }
         if let busEnergy, !busEnergy.isFinite || !(0...1).contains(busEnergy) {
@@ -47,7 +52,7 @@ public final class TonalVoiceMixer {
         var requiredFrames: [Key: Int] = [:]
         for event in events {
             try event.validate()
-            guard event.startFrame >= previous else {
+            guard event.startFrame >= Int64(frameOrigin), event.startFrame >= previous else {
                 throw VoiceMixerError.invalidScore
             }
             previous = event.startFrame
@@ -59,6 +64,9 @@ public final class TonalVoiceMixer {
         }
         guard let handle = ll_mixer_create() else { throw VoiceMixerError.capacityExceeded }
         do {
+            guard ll_mixer_configure_origin(handle, frameOrigin) else {
+                throw VoiceMixerError.invalidScore
+            }
             if let busEnergy, !ll_mixer_configure_buses(handle, busEnergy) {
                 throw VoiceMixerError.invalidScore
             }
@@ -151,10 +159,12 @@ public final class TonalVoiceMixer {
         return ll_mixer_render_buses(handle, buffer.baseAddress, UInt32(buffer.count))
     }
 
+    /// Restores the configured origin with empty voices, filters, ducking, and counters.
     public func reset() { ll_mixer_reset(handle) }
     public var activeVoices: Int { Int(ll_mixer_active_voices(handle)) }
     public var stolenVoices: Int { Int(ll_mixer_steals(handle)) }
     public var droppedEvents: Int { Int(ll_mixer_dropped_events(handle)) }
+    /// Absolute 32 kHz frame position, shared by dry and bus rendering.
     public var position: UInt64 { ll_mixer_position(handle) }
     public var preparedBytes: Int { Int(ll_mixer_sample_bytes(handle)) }
 }

@@ -20,6 +20,7 @@
 - [Body loudness meter validation](validation-loudness.md)
 - [Fixed song gain validation](validation-gain.md)
 - [Song body selection validation](validation-song-body.md)
+- [Mixer song origin validation](validation-origins.md)
 - [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)
