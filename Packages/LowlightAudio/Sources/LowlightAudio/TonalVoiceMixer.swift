@@ -18,6 +18,21 @@ public final class TonalVoiceMixer {
         let note, roundRobin, layer: Int
     }
 
+    private static func key(for event: NoteEvent) throws -> Key {
+        guard let instrument = TonalInstrument(rawValue: event.instrument.rawValue) else {
+            throw VoiceMixerError.invalidScore
+        }
+        let takes =
+            switch instrument {
+            case .guitar, .shaker: 4
+            case .piano: 1
+            default: 2
+            }
+        return Key(
+            instrument: instrument, note: event.note, roundRobin: event.roundRobin % takes,
+            layer: instrument == .hat && event.velocity >= 0.72 ? 2 : 1)
+    }
+
     public init(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
         busEnergy: Double? = nil, rackFades: SongRackFades? = nil
@@ -29,12 +44,18 @@ public final class TonalVoiceMixer {
             throw VoiceMixerError.invalidScore
         }
         var previous: Int64 = -1
+        var requiredFrames: [Key: Int] = [:]
         for event in events {
             try event.validate()
             guard event.startFrame >= previous else {
                 throw VoiceMixerError.invalidScore
             }
             previous = event.startFrame
+            if [.guitar, .piano, .bass].contains(event.instrument) {
+                let key = try Self.key(for: event)
+                requiredFrames[key] = max(
+                    requiredFrames[key] ?? 0, Int(event.releaseEndFrame - event.startFrame))
+            }
         }
         guard let handle = ll_mixer_create() else { throw VoiceMixerError.capacityExceeded }
         do {
@@ -50,19 +71,8 @@ public final class TonalVoiceMixer {
             var slots: [Key: UInt32] = [:]
             var score: [LLEvent] = []
             for event in events {
-                guard let instrument = TonalInstrument(rawValue: event.instrument.rawValue) else {
-                    throw VoiceMixerError.invalidScore
-                }
-                let takes =
-                    switch instrument {
-                    case .guitar, .shaker: 4
-                    case .piano: 1
-                    default: 2
-                    }
-                let key = Key(
-                    instrument: instrument, note: event.note,
-                    roundRobin: event.roundRobin % takes,
-                    layer: instrument == .hat && event.velocity >= 0.72 ? 2 : 1)
+                let key = try Self.key(for: event)
+                let instrument = key.instrument
                 if slots[key] == nil {
                     guard slots.count < Int(LL_SAMPLE_LIMIT) else {
                         throw VoiceMixerError.capacityExceeded
@@ -70,9 +80,19 @@ public final class TonalVoiceMixer {
                     let sample = try preparer.prepare(
                         instrument: instrument, note: key.note,
                         roundRobin: key.roundRobin, warmth: warmth, velocity: event.velocity)
+                    // Preserve the kernel's full-sample bounds, including discarded suffixes.
+                    guard (1...2).contains(sample.channels),
+                        sample.samples.count.isMultiple(of: sample.channels),
+                        (1...215_513).contains(sample.frames),
+                        sample.samples.allSatisfy({ $0.isFinite && abs($0) <= 8 })
+                    else { throw VoiceMixerError.capacityExceeded }
+                    // Prepare the whole body before trimming: filtering and normalization
+                    // need it. Tonal/bass readers cannot reach beyond any event's lifetime;
+                    // percussion still plays its complete shaped body regardless of gates.
+                    let frames = min(sample.frames, requiredFrames[key] ?? sample.frames)
                     let slot = sample.samples.withUnsafeBufferPointer {
                         ll_mixer_add_sample(
-                            handle, $0.baseAddress, UInt32(sample.frames), UInt32(sample.channels))
+                            handle, $0.baseAddress, UInt32(frames), UInt32(sample.channels))
                     }
                     guard slot >= 0 else { throw VoiceMixerError.capacityExceeded }
                     slots[key] = UInt32(slot)

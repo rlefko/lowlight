@@ -7,6 +7,7 @@
 - [Sound-bank provenance and checks](sound-bank.md)
 - [Native tonal preparation and evidence](validation-tonal.md)
 - [Bounded tonal voices and evidence](validation-voices.md)
+- [Prepared sample storage and evidence](validation-sample-storage.md)
 - [Native bass and evidence](validation-bass.md)
 - [Native percussion and evidence](validation-percussion.md)
 - [Rhythm bus and evidence](validation-rhythm.md)

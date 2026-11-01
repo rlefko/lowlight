@@ -4,7 +4,7 @@
 
 ## Ownership and limits
 
-Setup copies PCM into a 32 MiB arena with at most 64 sample descriptors, then validates and copies at most 2,048 sorted events. The Swift bridge prepares each distinct instrument/note/take once per score and releases temporary preparation buffers. The kernel retains no Swift objects or borrowed array storage. Capacity failures are explicit; there is no eviction or asynchronous refill in this PR.
+Setup copies PCM into a 32 MiB arena with at most 64 sample descriptors, then validates and copies at most 2,048 sorted events. The Swift bridge prepares each distinct instrument/note/take once per score and releases temporary preparation buffers. It now retains only [sample prefixes reachable by the score](validation-sample-storage.md). The kernel retains no Swift objects or borrowed array storage. Capacity failures are explicit; there is no eviction or asynchronous refill.
 
 The C API has one owner. Creation, sample registration, score loading, reset, and destruction require an idle renderer; concurrent calls are unsupported. Rendering writes every interleaved stereo frame at 32 kHz, in subblocks of at most 256 frames, with no allocation, freeing, locks, I/O, or logging. The allocation audit intercepts C++ `new`/`delete`; source review checks the remaining call path. Scoped ARM64/SSE2 floating-point controls flush denormals and restore the caller's exact control state. Future device callbacks must call the C kernel directly; the Swift convenience wrapper is not a general Swift real-time guarantee.
 
