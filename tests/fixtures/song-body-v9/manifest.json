@@ -1,0 +1,1666 @@
+{
+  "schema_version": 1,
+  "sample_rate": 32000,
+  "channels": 2,
+  "frame_tolerance": 0,
+  "maximum_lufs_error": 1e-05,
+  "maximum_input_frames": 5792000,
+  "source_sha256": {
+    "tools/reference/v9/session_render.py": "b2a3fdddd4abafa8cdb9bc0dde2686e6d7c4bb2cc7bb7ba3ed9627d91a415d6e",
+    "tools/reference/v9/session_planner.py": "42454d9630ee62445d4dd24e7e1d283db693c760633c85d329fccfa1d2913e50",
+    "tools/reference/v9/room_composer.py": "40859490f7109b9d6d7404a16190182f50e42582ee592994bda0e127a9a18837",
+    "tests/fixtures/planning-v1/events.json": "32e61b0f3b241121f000431899ff9bec9871ad37cd0c26779b2b9be6ac23f075",
+    "tests/fixtures/loudness-v9/manifest.json": "4edc358a5f88fe3a840e02a26787bf8aca4d0eaf368240ae1b0b1cf2c4be0326",
+    "tests/fixtures/loudness-v9/song-body.f32": "a2df2e4aa5ecfa5d0071f20e7056c6acef20778a9a20bb2377eaa5b5c73509f3"
+  },
+  "expressions": {
+    "n": "round((duration+5)*FS)",
+    "lo": "round(local_seconds(song,16)*FS)",
+    "hi": "round(out_start*FS)",
+    "out_start": "local_seconds(song,song['bars']*4-16)",
+    "origin": "round(song['start_seconds']*FS)",
+    "body_slice": "mix[lo:hi]"
+  },
+  "layouts": [
+    {
+      "id": "reference-00",
+      "kind": "reference",
+      "timing": {
+        "id": 0,
+        "bars": 36,
+        "tempo": 78.0,
+        "previous_tempo": 78.0,
+        "next_tempo": 75.18,
+        "start_seconds": 0.0,
+        "duration_seconds": 110.99722818189925
+      },
+      "expected": {
+        "origin_frame": 0,
+        "input_frames": 3711911,
+        "body_start_frame": 393846,
+        "body_end_frame": 3150769
+      }
+    },
+    {
+      "id": "reference-01",
+      "kind": "reference",
+      "timing": {
+        "id": 1,
+        "bars": 44,
+        "tempo": 75.18,
+        "previous_tempo": 78.0,
+        "next_tempo": 74.98,
+        "start_seconds": 98.46153846153847,
+        "duration_seconds": 140.24624045932552
+      },
+      "expected": {
+        "origin_frame": 3150769,
+        "input_frames": 4647880,
+        "body_start_frame": 401142,
+        "body_end_frame": 4078716
+      }
+    },
+    {
+      "id": "reference-02",
+      "kind": "reference",
+      "timing": {
+        "id": 2,
+        "bars": 28,
+        "tempo": 74.98,
+        "previous_tempo": 75.18,
+        "next_tempo": 75.23,
+        "start_seconds": 225.92141014518734,
+        "duration_seconds": 89.58555684982703
+      },
+      "expected": {
+        "origin_frame": 7229485,
+        "input_frames": 3026738,
+        "body_start_frame": 409164,
+        "body_end_frame": 2457710
+      }
+    },
+    {
+      "id": "reference-03",
+      "kind": "reference",
+      "timing": {
+        "id": 3,
+        "bars": 36,
+        "tempo": 75.23,
+        "previous_tempo": 74.98,
+        "next_tempo": 76.66,
+        "start_seconds": 302.72485013985573,
+        "duration_seconds": 114.74928392306546
+      },
+      "expected": {
+        "origin_frame": 9687195,
+        "input_frames": 3831977,
+        "body_start_frame": 409028,
+        "body_end_frame": 3267462
+      }
+    },
+    {
+      "id": "reference-04",
+      "kind": "reference",
+      "timing": {
+        "id": 4,
+        "bars": 36,
+        "tempo": 76.66,
+        "previous_tempo": 75.23,
+        "next_tempo": 76.61,
+        "start_seconds": 404.833033723713,
+        "duration_seconds": 112.82781057789796
+      },
+      "expected": {
+        "origin_frame": 12954657,
+        "input_frames": 3770490,
+        "body_start_frame": 404515,
+        "body_end_frame": 3209629
+      }
+    },
+    {
+      "id": "reference-05",
+      "kind": "reference",
+      "timing": {
+        "id": 5,
+        "bars": 36,
+        "tempo": 76.61,
+        "previous_tempo": 76.66,
+        "next_tempo": 76.81,
+        "start_seconds": 505.13393056696503,
+        "duration_seconds": 112.75859467104837
+      },
+      "expected": {
+        "origin_frame": 16164286,
+        "input_frames": 3768275,
+        "body_start_frame": 400861,
+        "body_end_frame": 3207806
+      }
+    },
+    {
+      "id": "reference-06",
+      "kind": "reference",
+      "timing": {
+        "id": 6,
+        "bars": 36,
+        "tempo": 76.81,
+        "previous_tempo": 76.61,
+        "next_tempo": 76.43,
+        "start_seconds": 605.3778525250805,
+        "duration_seconds": 112.53267235013469
+      },
+      "expected": {
+        "origin_frame": 19372091,
+        "input_frames": 3761046,
+        "body_start_frame": 400470,
+        "body_end_frame": 3200105
+      }
+    },
+    {
+      "id": "reference-07",
+      "kind": "reference",
+      "timing": {
+        "id": 7,
+        "bars": 36,
+        "tempo": 76.43,
+        "previous_tempo": 76.81,
+        "next_tempo": 76.05,
+        "start_seconds": 705.3811334921469,
+        "duration_seconds": 113.04482298452271
+      },
+      "expected": {
+        "origin_frame": 22572196,
+        "input_frames": 3777434,
+        "body_start_frame": 400941,
+        "body_end_frame": 3214495
+      }
+    },
+    {
+      "id": "reference-08",
+      "kind": "reference",
+      "timing": {
+        "id": 8,
+        "bars": 36,
+        "tempo": 76.05,
+        "previous_tempo": 76.43,
+        "next_tempo": 75.4,
+        "start_seconds": 805.8341150884821,
+        "duration_seconds": 113.63228966454628
+      },
+      "expected": {
+        "origin_frame": 25786692,
+        "input_frames": 3796233,
+        "body_start_frame": 402939,
+        "body_end_frame": 3230552
+      }
+    },
+    {
+      "id": "reference-09",
+      "kind": "reference",
+      "timing": {
+        "id": 9,
+        "bars": 44,
+        "tempo": 75.4,
+        "previous_tempo": 76.05,
+        "next_tempo": 75.4,
+        "start_seconds": 906.7888756088195,
+        "duration_seconds": 139.99848405137075
+      },
+      "expected": {
+        "origin_frame": 29017244,
+        "input_frames": 4639951,
+        "body_start_frame": 405681,
+        "body_end_frame": 4072524
+      }
+    },
+    {
+      "id": "reference-10",
+      "kind": "reference",
+      "timing": {
+        "id": 10,
+        "bars": 36,
+        "tempo": 75.4,
+        "previous_tempo": 75.4,
+        "next_tempo": 76.45,
+        "start_seconds": 1034.055264169474,
+        "duration_seconds": 114.50102208450514
+      },
+      "expected": {
+        "origin_frame": 33089768,
+        "input_frames": 3824033,
+        "body_start_frame": 407427,
+        "body_end_frame": 3259416
+      }
+    },
+    {
+      "id": "reference-11",
+      "kind": "reference",
+      "timing": {
+        "id": 11,
+        "bars": 28,
+        "tempo": 76.45,
+        "previous_tempo": 75.4,
+        "next_tempo": 74.98,
+        "start_seconds": 1135.9120280952034,
+        "duration_seconds": 88.10991684967831
+      },
+      "expected": {
+        "origin_frame": 36349185,
+        "input_frames": 2979517,
+        "body_start_frame": 404616,
+        "body_end_frame": 2413773
+      }
+    },
+    {
+      "id": "reference-12",
+      "kind": "reference",
+      "timing": {
+        "id": 12,
+        "bars": 44,
+        "tempo": 74.98,
+        "previous_tempo": 76.45,
+        "next_tempo": 75.51,
+        "start_seconds": 1211.3424209825598,
+        "duration_seconds": 140.66862771738525
+      },
+      "expected": {
+        "origin_frame": 38762957,
+        "input_frames": 4661396,
+        "body_start_frame": 405745,
+        "body_end_frame": 4093128
+      }
+    },
+    {
+      "id": "reference-13",
+      "kind": "reference",
+      "timing": {
+        "id": 13,
+        "bars": 28,
+        "tempo": 75.51,
+        "previous_tempo": 74.98,
+        "next_tempo": 75.45,
+        "start_seconds": 1339.2526731390667,
+        "duration_seconds": 89.04471655676747
+      },
+      "expected": {
+        "origin_frame": 42856086,
+        "input_frames": 3009431,
+        "body_start_frame": 408268,
+        "body_end_frame": 2442436
+      }
+    },
+    {
+      "id": "reference-14",
+      "kind": "reference",
+      "timing": {
+        "id": 14,
+        "bars": 44,
+        "tempo": 75.45,
+        "previous_tempo": 75.51,
+        "next_tempo": 76.78,
+        "start_seconds": 1415.5787880722137,
+        "duration_seconds": 139.84433926510152
+      },
+      "expected": {
+        "origin_frame": 45298521,
+        "input_frames": 4635019,
+        "body_start_frame": 406995,
+        "body_end_frame": 4071409
+      }
+    },
+    {
+      "id": "reference-15",
+      "kind": "reference",
+      "timing": {
+        "id": 15,
+        "bars": 44,
+        "tempo": 76.78,
+        "previous_tempo": 75.45,
+        "next_tempo": 76.38,
+        "start_seconds": 1542.810312161043,
+        "duration_seconds": 137.67805834332964
+      },
+      "expected": {
+        "origin_frame": 49369930,
+        "input_frames": 4565698,
+        "body_start_frame": 403610,
+        "body_end_frame": 4004548
+      }
+    },
+    {
+      "id": "reference-16",
+      "kind": "reference",
+      "timing": {
+        "id": 16,
+        "bars": 44,
+        "tempo": 76.38,
+        "previous_tempo": 76.78,
+        "next_tempo": 75.27,
+        "start_seconds": 1667.952431843697,
+        "duration_seconds": 138.31551415465375
+      },
+      "expected": {
+        "origin_frame": 53374478,
+        "input_frames": 4586096,
+        "body_start_frame": 401150,
+        "body_end_frame": 4020946
+      }
+    },
+    {
+      "id": "reference-17",
+      "kind": "reference",
+      "timing": {
+        "id": 17,
+        "bars": 44,
+        "tempo": 75.27,
+        "previous_tempo": 76.38,
+        "next_tempo": 75.5,
+        "start_seconds": 1793.6069879434929,
+        "duration_seconds": 140.18236447483122
+      },
+      "expected": {
+        "origin_frame": 57395424,
+        "input_frames": 4645836,
+        "body_start_frame": 405151,
+        "body_end_frame": 4078327
+      }
+    },
+    {
+      "id": "reference-18",
+      "kind": "reference",
+      "timing": {
+        "id": 18,
+        "bars": 36,
+        "tempo": 75.5,
+        "previous_tempo": 75.27,
+        "next_tempo": 75.07,
+        "start_seconds": 1921.0547136348594,
+        "duration_seconds": 114.49284009831236
+      },
+      "expected": {
+        "origin_frame": 61473751,
+        "input_frames": 3823771,
+        "body_start_frame": 407508,
+        "body_end_frame": 3255720
+      }
+    },
+    {
+      "id": "reference-19",
+      "kind": "reference",
+      "timing": {
+        "id": 19,
+        "bars": 28,
+        "tempo": 75.07,
+        "previous_tempo": 75.5,
+        "next_tempo": 75.04,
+        "start_seconds": 2022.7959749348804,
+        "duration_seconds": 89.48252154621973
+      },
+      "expected": {
+        "origin_frame": 64729471,
+        "input_frames": 3023441,
+        "body_start_frame": 408051,
+        "body_end_frame": 2454141
+      }
+    },
+    {
+      "id": "reference-20",
+      "kind": "reference",
+      "timing": {
+        "id": 20,
+        "bars": 28,
+        "tempo": 75.04,
+        "previous_tempo": 75.07,
+        "next_tempo": 76.08,
+        "start_seconds": 2099.4878760989636,
+        "duration_seconds": 89.46184081815807
+      },
+      "expected": {
+        "origin_frame": 67183612,
+        "input_frames": 3022779,
+        "body_start_frame": 409300,
+        "body_end_frame": 2456208
+      }
+    },
+    {
+      "id": "reference-21",
+      "kind": "reference",
+      "timing": {
+        "id": 21,
+        "bars": 44,
+        "tempo": 76.08,
+        "previous_tempo": 75.04,
+        "next_tempo": 74.86,
+        "start_seconds": 2176.244381342507,
+        "duration_seconds": 138.99056756598452
+      },
+      "expected": {
+        "origin_frame": 69639820,
+        "input_frames": 4607698,
+        "body_start_frame": 406571,
+        "body_end_frame": 4040640
+      }
+    },
+    {
+      "id": "reference-22",
+      "kind": "reference",
+      "timing": {
+        "id": 22,
+        "bars": 44,
+        "tempo": 74.86,
+        "previous_tempo": 76.08,
+        "next_tempo": 74.97,
+        "start_seconds": 2302.5143856868376,
+        "duration_seconds": 140.9505308088983
+      },
+      "expected": {
+        "origin_frame": 73680460,
+        "input_frames": 4670417,
+        "body_start_frame": 407058,
+        "body_end_frame": 4100352
+      }
+    },
+    {
+      "id": "reference-23",
+      "kind": "reference",
+      "timing": {
+        "id": 23,
+        "bars": 36,
+        "tempo": 74.97,
+        "previous_tempo": 74.86,
+        "next_tempo": 75.47,
+        "start_seconds": 2430.6503910671877,
+        "duration_seconds": 115.21298991135292
+      },
+      "expected": {
+        "origin_frame": 77780813,
+        "input_frames": 3846816,
+        "body_start_frame": 410065,
+        "body_end_frame": 3278412
+      }
+    },
+    {
+      "id": "reference-24",
+      "kind": "reference",
+      "timing": {
+        "id": 24,
+        "bars": 28,
+        "tempo": 75.47,
+        "previous_tempo": 74.97,
+        "next_tempo": 75.63,
+        "start_seconds": 2533.1007708374723,
+        "duration_seconds": 89.07086260023304
+      },
+      "expected": {
+        "origin_frame": 81059225,
+        "input_frames": 3010268,
+        "body_start_frame": 408404,
+        "body_end_frame": 2443649
+      }
+    },
+    {
+      "id": "reference-25",
+      "kind": "reference",
+      "timing": {
+        "id": 25,
+        "bars": 44,
+        "tempo": 75.63,
+        "previous_tempo": 75.47,
+        "next_tempo": 75.37,
+        "start_seconds": 2609.4648120107386,
+        "duration_seconds": 139.6624465823023
+      },
+      "expected": {
+        "origin_frame": 83502874,
+        "input_frames": 4629198,
+        "body_start_frame": 406618,
+        "body_end_frame": 4062310
+      }
+    },
+    {
+      "id": "reference-26",
+      "kind": "reference",
+      "timing": {
+        "id": 26,
+        "bars": 28,
+        "tempo": 75.37,
+        "previous_tempo": 75.63,
+        "next_tempo": 75.94,
+        "start_seconds": 2736.4120142389747,
+        "duration_seconds": 89.09030216803262
+      },
+      "expected": {
+        "origin_frame": 87565184,
+        "input_frames": 3010890,
+        "body_start_frame": 406888,
+        "body_end_frame": 2444834
+      }
+    },
+    {
+      "id": "reference-27",
+      "kind": "reference",
+      "timing": {
+        "id": 27,
+        "bars": 36,
+        "tempo": 75.94,
+        "previous_tempo": 75.37,
+        "next_tempo": 76.22,
+        "start_seconds": 2812.8130752309607,
+        "duration_seconds": 113.7984658281951
+      },
+      "expected": {
+        "origin_frame": 90010018,
+        "input_frames": 3801551,
+        "body_start_frame": 406056,
+        "body_end_frame": 3237765
+      }
+    },
+    {
+      "id": "reference-28",
+      "kind": "reference",
+      "timing": {
+        "id": 28,
+        "bars": 44,
+        "tempo": 76.22,
+        "previous_tempo": 75.94,
+        "next_tempo": 76.17,
+        "start_seconds": 2913.993230286386,
+        "duration_seconds": 138.57363766542701
+      },
+      "expected": {
+        "origin_frame": 93247783,
+        "input_frames": 4594356,
+        "body_start_frame": 403786,
+        "body_end_frame": 4031180
+      }
+    },
+    {
+      "id": "reference-29",
+      "kind": "reference",
+      "timing": {
+        "id": 29,
+        "bars": 44,
+        "tempo": 76.17,
+        "previous_tempo": 76.22,
+        "next_tempo": 74.97,
+        "start_seconds": 3039.967615580279,
+        "duration_seconds": 138.73345751000883
+      },
+      "expected": {
+        "origin_frame": 97278964,
+        "input_frames": 4599471,
+        "body_start_frame": 403176,
+        "body_end_frame": 4032952
+      }
+    },
+    {
+      "id": "reference-30",
+      "kind": "reference",
+      "timing": {
+        "id": 30,
+        "bars": 36,
+        "tempo": 74.97,
+        "previous_tempo": 76.17,
+        "next_tempo": 75.24,
+        "start_seconds": 3165.997352394507,
+        "duration_seconds": 115.12169385657153
+      },
+      "expected": {
+        "origin_frame": 101311915,
+        "input_frames": 3843894,
+        "body_start_frame": 406519,
+        "body_end_frame": 3274866
+      }
+    },
+    {
+      "id": "reference-31",
+      "kind": "reference",
+      "timing": {
+        "id": 31,
+        "bars": 36,
+        "tempo": 75.24,
+        "previous_tempo": 74.97,
+        "next_tempo": 76.48,
+        "start_seconds": 3268.3369274320244,
+        "duration_seconds": 114.75148576568353
+      },
+      "expected": {
+        "origin_frame": 104586782,
+        "input_frames": 3832048,
+        "body_start_frame": 409028,
+        "body_end_frame": 3267082
+      }
+    },
+    {
+      "id": "reference-32",
+      "kind": "reference",
+      "timing": {
+        "id": 32,
+        "bars": 36,
+        "tempo": 76.48,
+        "previous_tempo": 75.24,
+        "next_tempo": 75.79,
+        "start_seconds": 3370.433240828431,
+        "duration_seconds": 113.1305485217427
+      },
+      "expected": {
+        "origin_frame": 107853864,
+        "input_frames": 3780178,
+        "body_start_frame": 404966,
+        "body_end_frame": 3216681
+      }
+    },
+    {
+      "id": "reference-33",
+      "kind": "reference",
+      "timing": {
+        "id": 33,
+        "bars": 36,
+        "tempo": 75.79,
+        "previous_tempo": 76.48,
+        "next_tempo": 76.42,
+        "start_seconds": 3470.954521984319,
+        "duration_seconds": 113.88954183101454
+      },
+      "expected": {
+        "origin_frame": 111070545,
+        "input_frames": 3804465,
+        "body_start_frame": 403497,
+        "body_end_frame": 3240810
+      }
+    },
+    {
+      "id": "reference-34",
+      "kind": "reference",
+      "timing": {
+        "id": 34,
+        "bars": 28,
+        "tempo": 76.42,
+        "previous_tempo": 75.79,
+        "next_tempo": 75.31,
+        "start_seconds": 3572.2298402803754,
+        "duration_seconds": 88.07928834926652
+      },
+      "expected": {
+        "origin_frame": 114311355,
+        "input_frames": 2978537,
+        "body_start_frame": 403655,
+        "body_end_frame": 2413600
+      }
+    },
+    {
+      "id": "reference-35",
+      "kind": "reference",
+      "timing": {
+        "id": 35,
+        "bars": 36,
+        "tempo": 75.31,
+        "previous_tempo": 76.42,
+        "next_tempo": 75.01,
+        "start_seconds": 3647.6548463329987,
+        "duration_seconds": 114.65822851656554
+      },
+      "expected": {
+        "origin_frame": 116724955,
+        "input_frames": 3829063,
+        "body_start_frame": 404937,
+        "body_end_frame": 3260335
+      }
+    },
+    {
+      "id": "reference-36",
+      "kind": "reference",
+      "timing": {
+        "id": 36,
+        "bars": 36,
+        "tempo": 75.01,
+        "previous_tempo": 75.31,
+        "next_tempo": 77.01,
+        "start_seconds": 3749.540306428075,
+        "duration_seconds": 114.99146922091383
+      },
+      "expected": {
+        "origin_frame": 119985290,
+        "input_frames": 3839727,
+        "body_start_frame": 408729,
+        "body_end_frame": 3275546
+      }
+    },
+    {
+      "id": "reference-37",
+      "kind": "reference",
+      "timing": {
+        "id": 37,
+        "bars": 28,
+        "tempo": 77.01,
+        "previous_tempo": 75.01,
+        "next_tempo": 75.5,
+        "start_seconds": 3851.901129775574,
+        "duration_seconds": 87.5499632662332
+      },
+      "expected": {
+        "origin_frame": 123260836,
+        "input_frames": 2961599,
+        "body_start_frame": 404181,
+        "body_end_frame": 2398727
+      }
+    },
+    {
+      "id": "reference-38",
+      "kind": "reference",
+      "timing": {
+        "id": 38,
+        "bars": 44,
+        "tempo": 75.5,
+        "previous_tempo": 77.01,
+        "next_tempo": 74.8,
+        "start_seconds": 3926.8613432376137,
+        "duration_seconds": 139.80137935914547
+      },
+      "expected": {
+        "origin_frame": 125659563,
+        "input_frames": 4633644,
+        "body_start_frame": 402872,
+        "body_end_frame": 4064859
+      }
+    },
+    {
+      "id": "reference-39",
+      "kind": "reference",
+      "timing": {
+        "id": 39,
+        "bars": 28,
+        "tempo": 74.8,
+        "previous_tempo": 75.5,
+        "next_tempo": 76.49,
+        "start_seconds": 4053.8881791345225,
+        "duration_seconds": 89.63705297713115
+      },
+      "expected": {
+        "origin_frame": 129724422,
+        "input_frames": 3028386,
+        "body_start_frame": 408785,
+        "body_end_frame": 2462261
+      }
+    },
+    {
+      "id": "reference-40",
+      "kind": "reference",
+      "timing": {
+        "id": 40,
+        "bars": 36,
+        "tempo": 76.49,
+        "previous_tempo": 74.8,
+        "next_tempo": 76.57,
+        "start_seconds": 4130.833845591412,
+        "duration_seconds": 113.090109534484
+      },
+      "expected": {
+        "origin_frame": 132186683,
+        "input_frames": 3778884,
+        "body_start_frame": 406124,
+        "body_end_frame": 3217472
+      }
+    },
+    {
+      "id": "reference-41",
+      "kind": "reference",
+      "timing": {
+        "id": 41,
+        "bars": 28,
+        "tempo": 76.57,
+        "previous_tempo": 76.49,
+        "next_tempo": 75.91,
+        "start_seconds": 4231.379853630807,
+        "duration_seconds": 87.82373216492964
+      },
+      "expected": {
+        "origin_frame": 135404155,
+        "input_frames": 2970359,
+        "body_start_frame": 401411,
+        "body_end_frame": 2407419
+      }
+    },
+    {
+      "id": "reference-42",
+      "kind": "reference",
+      "timing": {
+        "id": 42,
+        "bars": 28,
+        "tempo": 75.91,
+        "previous_tempo": 76.57,
+        "next_tempo": 75.18,
+        "start_seconds": 4306.611691837402,
+        "duration_seconds": 88.53242618486573
+      },
+      "expected": {
+        "origin_frame": 137811574,
+        "input_frames": 2993038,
+        "body_start_frame": 402941,
+        "body_end_frame": 2426389
+      }
+    },
+    {
+      "id": "reference-43",
+      "kind": "reference",
+      "timing": {
+        "id": 43,
+        "bars": 36,
+        "tempo": 75.18,
+        "previous_tempo": 75.91,
+        "next_tempo": 75.45,
+        "start_seconds": 4382.4363614511185,
+        "duration_seconds": 114.83970993042144
+      },
+      "expected": {
+        "origin_frame": 140237964,
+        "input_frames": 3834871,
+        "body_start_frame": 406648,
+        "body_end_frame": 3266983
+      }
+    },
+    {
+      "id": "reference-44",
+      "kind": "reference",
+      "timing": {
+        "id": 44,
+        "bars": 36,
+        "tempo": 75.45,
+        "previous_tempo": 75.18,
+        "next_tempo": 75.51,
+        "start_seconds": 4484.5295928826035,
+        "duration_seconds": 114.53068648438641
+      },
+      "expected": {
+        "origin_frame": 143504947,
+        "input_frames": 3824982,
+        "body_start_frame": 407887,
+        "body_end_frame": 3257987
+      }
+    },
+    {
+      "id": "reference-45",
+      "kind": "reference",
+      "timing": {
+        "id": 45,
+        "bars": 44,
+        "tempo": 75.51,
+        "previous_tempo": 75.45,
+        "next_tempo": 75.16,
+        "start_seconds": 4586.3416777433695,
+        "duration_seconds": 139.88363632018073
+      },
+      "expected": {
+        "origin_frame": 146762934,
+        "input_frames": 4636276,
+        "body_start_frame": 406995,
+        "body_end_frame": 4068497
+      }
+    },
+    {
+      "id": "reference-46",
+      "kind": "reference",
+      "timing": {
+        "id": 46,
+        "bars": 36,
+        "tempo": 75.16,
+        "previous_tempo": 75.51,
+        "next_tempo": 75.71,
+        "start_seconds": 4713.482210237074,
+        "duration_seconds": 114.87860855701989
+      },
+      "expected": {
+        "origin_frame": 150831431,
+        "input_frames": 3836115,
+        "body_start_frame": 407779,
+        "body_end_frame": 3268876
+      }
+    },
+    {
+      "id": "reference-47",
+      "kind": "reference",
+      "timing": {
+        "id": 47,
+        "bars": 36,
+        "tempo": 75.71,
+        "previous_tempo": 75.16,
+        "next_tempo": 76.94,
+        "start_seconds": 4815.634574308361,
+        "duration_seconds": 114.06405015646807
+      },
+      "expected": {
+        "origin_frame": 154100306,
+        "input_frames": 3810050,
+        "body_start_frame": 407240,
+        "body_end_frame": 3247552
+      }
+    },
+    {
+      "id": "reference-48",
+      "kind": "reference",
+      "timing": {
+        "id": 48,
+        "bars": 28,
+        "tempo": 76.94,
+        "previous_tempo": 75.71,
+        "next_tempo": 75.91,
+        "start_seconds": 4917.120559911515,
+        "duration_seconds": 87.52586435305587
+      },
+      "expected": {
+        "origin_frame": 157347858,
+        "input_frames": 2960828,
+        "body_start_frame": 402498,
+        "body_end_frame": 2398859
+      }
+    },
+    {
+      "id": "reference-49",
+      "kind": "reference",
+      "timing": {
+        "id": 49,
+        "bars": 44,
+        "tempo": 75.91,
+        "previous_tempo": 76.94,
+        "next_tempo": 75.69,
+        "start_seconds": 4992.0848994843245,
+        "duration_seconds": 139.04543750219034
+      },
+      "expected": {
+        "origin_frame": 159746717,
+        "input_frames": 4609454,
+        "body_start_frame": 401969,
+        "body_end_frame": 4044177
+      }
+    },
+    {
+      "id": "reference-50",
+      "kind": "reference",
+      "timing": {
+        "id": 50,
+        "bars": 36,
+        "tempo": 75.69,
+        "previous_tempo": 75.91,
+        "next_tempo": 76.27,
+        "start_seconds": 5118.465420444257,
+        "duration_seconds": 114.0830764292088
+      },
+      "expected": {
+        "origin_frame": 163790893,
+        "input_frames": 3810658,
+        "body_start_frame": 405277,
+        "body_end_frame": 3246340
+      }
+    },
+    {
+      "id": "reference-51",
+      "kind": "reference",
+      "timing": {
+        "id": 51,
+        "bars": 36,
+        "tempo": 76.27,
+        "previous_tempo": 75.69,
+        "next_tempo": 75.94,
+        "start_seconds": 5219.913531596107,
+        "duration_seconds": 113.35717377892212
+      },
+      "expected": {
+        "origin_frame": 167037233,
+        "input_frames": 3787430,
+        "body_start_frame": 404319,
+        "body_end_frame": 3223776
+      }
+    },
+    {
+      "id": "reference-52",
+      "kind": "reference",
+      "timing": {
+        "id": 52,
+        "bars": 44,
+        "tempo": 75.94,
+        "previous_tempo": 76.27,
+        "next_tempo": 75.96,
+        "start_seconds": 5320.6565341096,
+        "duration_seconds": 139.02809813664308
+      },
+      "expected": {
+        "origin_frame": 170261009,
+        "input_frames": 4608899,
+        "body_start_frame": 403653,
+        "body_end_frame": 4044423
+      }
+    },
+    {
+      "id": "reference-53",
+      "kind": "reference",
+      "timing": {
+        "id": 53,
+        "bars": 44,
+        "tempo": 75.96,
+        "previous_tempo": 75.94,
+        "next_tempo": 76.9,
+        "start_seconds": 5447.044737505658,
+        "duration_seconds": 138.94464178785512
+      },
+      "expected": {
+        "origin_frame": 174305432,
+        "input_frames": 4606229,
+        "body_start_frame": 404477,
+        "body_end_frame": 4044287
+      }
+    },
+    {
+      "id": "reference-54",
+      "kind": "reference",
+      "timing": {
+        "id": 54,
+        "bars": 44,
+        "tempo": 76.9,
+        "previous_tempo": 75.96,
+        "next_tempo": 76.98,
+        "start_seconds": 5573.428708075628,
+        "duration_seconds": 137.39163345774057
+      },
+      "expected": {
+        "origin_frame": 178349719,
+        "input_frames": 4556532,
+        "body_start_frame": 401941,
+        "body_end_frame": 3997260
+      }
+    },
+    {
+      "id": "reference-55",
+      "kind": "reference",
+      "timing": {
+        "id": 55,
+        "bars": 28,
+        "tempo": 76.98,
+        "previous_tempo": 76.9,
+        "next_tempo": 76.76,
+        "start_seconds": 5698.343085405347,
+        "duration_seconds": 87.31973994325243
+      },
+      "expected": {
+        "origin_frame": 182346979,
+        "input_frames": 2954232,
+        "body_start_frame": 399272,
+        "body_end_frame": 2394596
+      }
+    },
+    {
+      "id": "reference-56",
+      "kind": "reference",
+      "timing": {
+        "id": 56,
+        "bars": 28,
+        "tempo": 76.76,
+        "previous_tempo": 76.98,
+        "next_tempo": 76.55,
+        "start_seconds": 5773.17419967834,
+        "duration_seconds": 87.54484745175176
+      },
+      "expected": {
+        "origin_frame": 184741574,
+        "input_frames": 2961435,
+        "body_start_frame": 399636,
+        "body_end_frame": 2400678
+      }
+    },
+    {
+      "id": "reference-57",
+      "kind": "reference",
+      "timing": {
+        "id": 57,
+        "bars": 36,
+        "tempo": 76.55,
+        "previous_tempo": 76.76,
+        "next_tempo": 76.26,
+        "start_seconds": 5848.1953943949775,
+        "duration_seconds": 112.87405149396662
+      },
+      "expected": {
+        "origin_frame": 187142253,
+        "input_frames": 3771970,
+        "body_start_frame": 400757,
+        "body_end_frame": 3209901
+      }
+    },
+    {
+      "id": "reference-58",
+      "kind": "reference",
+      "timing": {
+        "id": 58,
+        "bars": 28,
+        "tempo": 76.26,
+        "previous_tempo": 76.55,
+        "next_tempo": 76.7,
+        "start_seconds": 5948.504808070654,
+        "duration_seconds": 88.05953860517612
+      },
+      "expected": {
+        "origin_frame": 190352154,
+        "input_frames": 2977905,
+        "body_start_frame": 402068,
+        "body_end_frame": 2416230
+      }
+    },
+    {
+      "id": "reference-59",
+      "kind": "reference",
+      "timing": {
+        "id": 59,
+        "bars": 28,
+        "tempo": 76.7,
+        "previous_tempo": 76.26,
+        "next_tempo": 75.67,
+        "start_seconds": 6024.012010798464,
+        "duration_seconds": 87.73491981883987
+      },
+      "expected": {
+        "origin_frame": 192768384,
+        "input_frames": 2967517,
+        "body_start_frame": 401675,
+        "body_end_frame": 2404282
+      }
+    },
+    {
+      "id": "reference-60",
+      "kind": "reference",
+      "timing": {
+        "id": 60,
+        "bars": 36,
+        "tempo": 75.67,
+        "previous_tempo": 76.7,
+        "next_tempo": 76.1,
+        "start_seconds": 6099.14583298613,
+        "duration_seconds": 114.05851346736605
+      },
+      "expected": {
+        "origin_frame": 195172667,
+        "input_frames": 3809872,
+        "body_start_frame": 403235,
+        "body_end_frame": 3245048
+      }
+    },
+    {
+      "id": "reference-61",
+      "kind": "reference",
+      "timing": {
+        "id": 61,
+        "bars": 36,
+        "tempo": 76.1,
+        "previous_tempo": 75.67,
+        "next_tempo": 76.21,
+        "start_seconds": 6200.553591116841,
+        "duration_seconds": 113.56148916003964
+      },
+      "expected": {
+        "origin_frame": 198417715,
+        "input_frames": 3793968,
+        "body_start_frame": 404824,
+        "body_end_frame": 3230580
+      }
+    },
+    {
+      "id": "reference-62",
+      "kind": "reference",
+      "timing": {
+        "id": 62,
+        "bars": 36,
+        "tempo": 76.21,
+        "previous_tempo": 76.1,
+        "next_tempo": 75.82,
+        "start_seconds": 6301.509208477149,
+        "duration_seconds": 113.41239040711024
+      },
+      "expected": {
+        "origin_frame": 201648295,
+        "input_frames": 3789196,
+        "body_start_frame": 403388,
+        "body_end_frame": 3225065
+      }
+    },
+    {
+      "id": "reference-63",
+      "kind": "reference",
+      "timing": {
+        "id": 63,
+        "bars": 28,
+        "tempo": 75.82,
+        "previous_tempo": 76.21,
+        "next_tempo": 76.99,
+        "start_seconds": 6402.292484816967,
+        "duration_seconds": 88.50181667991046
+      },
+      "expected": {
+        "origin_frame": 204873360,
+        "input_frames": 2992058,
+        "body_start_frame": 404132,
+        "body_end_frame": 2429982
+      }
+    },
+    {
+      "id": "reference-64",
+      "kind": "reference",
+      "timing": {
+        "id": 64,
+        "bars": 28,
+        "tempo": 76.99,
+        "previous_tempo": 75.82,
+        "next_tempo": 76.59,
+        "start_seconds": 6478.229433228759,
+        "duration_seconds": 87.41228354191813
+      },
+      "expected": {
+        "origin_frame": 207303342,
+        "input_frames": 2957193,
+        "body_start_frame": 402076,
+        "body_end_frame": 2397140
+      }
+    },
+    {
+      "id": "reference-65",
+      "kind": "reference",
+      "timing": {
+        "id": 65,
+        "bars": 44,
+        "tempo": 76.59,
+        "previous_tempo": 76.99,
+        "next_tempo": 75.82,
+        "start_seconds": 6553.140060686383,
+        "duration_seconds": 137.90782248505096
+      },
+      "expected": {
+        "origin_frame": 209700482,
+        "input_frames": 4573050,
+        "body_start_frame": 400053,
+        "body_end_frame": 4009924
+      }
+    },
+    {
+      "id": "reference-66",
+      "kind": "reference",
+      "timing": {
+        "id": 66,
+        "bars": 36,
+        "tempo": 75.82,
+        "previous_tempo": 76.59,
+        "next_tempo": 75.24,
+        "start_seconds": 6678.450177405225,
+        "duration_seconds": 113.93891769186213
+      },
+      "expected": {
+        "origin_frame": 213710406,
+        "input_frames": 3806045,
+        "body_start_frame": 403127,
+        "body_end_frame": 3239318
+      }
+    },
+    {
+      "id": "reference-67",
+      "kind": "reference",
+      "timing": {
+        "id": 67,
+        "bars": 36,
+        "tempo": 75.24,
+        "previous_tempo": 75.82,
+        "next_tempo": 75.59,
+        "start_seconds": 6779.678851253734,
+        "duration_seconds": 114.7540243532926
+      },
+      "expected": {
+        "origin_frame": 216949723,
+        "input_frames": 3832129,
+        "body_start_frame": 406728,
+        "body_end_frame": 3264782
+      }
+    },
+    {
+      "id": "reference-68",
+      "kind": "reference",
+      "timing": {
+        "id": 68,
+        "bars": 44,
+        "tempo": 75.59,
+        "previous_tempo": 75.24,
+        "next_tempo": 76.86,
+        "start_seconds": 6881.7032896744395,
+        "duration_seconds": 139.62500394254852
+      },
+      "expected": {
+        "origin_frame": 220214505,
+        "input_frames": 4628000,
+        "body_start_frame": 407347,
+        "body_end_frame": 4064973
+      }
+    },
+    {
+      "id": "reference-69",
+      "kind": "reference",
+      "timing": {
+        "id": 69,
+        "bars": 36,
+        "tempo": 76.86,
+        "previous_tempo": 75.59,
+        "next_tempo": 75.59,
+        "start_seconds": 7008.7337090506035,
+        "duration_seconds": 112.6208631218396
+      },
+      "expected": {
+        "origin_frame": 224279479,
+        "input_frames": 3763868,
+        "body_start_frame": 403027,
+        "body_end_frame": 3200841
+      }
+    },
+    {
+      "id": "reference-70",
+      "kind": "reference",
+      "timing": {
+        "id": 70,
+        "bars": 28,
+        "tempo": 75.59,
+        "previous_tempo": 76.86,
+        "next_tempo": 76.34,
+        "start_seconds": 7108.7599876060585,
+        "duration_seconds": 88.73254904723171
+      },
+      "expected": {
+        "origin_frame": 227480320,
+        "input_frames": 2999442,
+        "body_start_frame": 403027,
+        "body_end_frame": 2435042
+      }
+    },
+    {
+      "id": "reference-71",
+      "kind": "reference",
+      "timing": {
+        "id": 71,
+        "bars": 44,
+        "tempo": 76.34,
+        "previous_tempo": 75.59,
+        "next_tempo": 75.65,
+        "start_seconds": 7184.855035196652,
+        "duration_seconds": 138.44788666140374
+      },
+      "expected": {
+        "origin_frame": 229915361,
+        "input_frames": 4590332,
+        "body_start_frame": 404400,
+        "body_end_frame": 4026092
+      }
+    },
+    {
+      "id": "reference-tail-half",
+      "kind": "reference-expression",
+      "timing": {
+        "id": 0,
+        "bars": 36,
+        "tempo": 78.0,
+        "previous_tempo": 78.0,
+        "next_tempo": 75.18,
+        "start_seconds": 0.0,
+        "duration_seconds": 123.000078125
+      },
+      "expected": {
+        "origin_frame": 0,
+        "input_frames": 4096003,
+        "body_start_frame": 393846,
+        "body_end_frame": 3150769
+      }
+    },
+    {
+      "id": "native-0",
+      "kind": "native",
+      "chain_index": 0,
+      "schedule_index": 0,
+      "expected": {
+        "origin_frame": 0,
+        "input_frames": 3769861,
+        "body_start_frame": 400678,
+        "body_end_frame": 3205426
+      }
+    },
+    {
+      "id": "native-1",
+      "kind": "native",
+      "chain_index": 1,
+      "schedule_index": 1,
+      "expected": {
+        "origin_frame": 3072000,
+        "input_frames": 3709428,
+        "body_start_frame": 392314,
+        "body_end_frame": 3157114
+      }
+    },
+    {
+      "id": "native-2",
+      "kind": "native",
+      "chain_index": 1,
+      "schedule_index": 2,
+      "expected": {
+        "origin_frame": 6229114,
+        "input_frames": 5672314,
+        "body_start_frame": 392314,
+        "body_end_frame": 5000314
+      }
+    },
+    {
+      "id": "native-3",
+      "kind": "native",
+      "chain_index": 1,
+      "schedule_index": 1,
+      "expected": {
+        "origin_frame": 3072000,
+        "input_frames": 3709428,
+        "body_start_frame": 392314,
+        "body_end_frame": 3157114
+      },
+      "incoming_origin_seconds": 96.0000078125
+    },
+    {
+      "id": "native-4",
+      "kind": "native",
+      "chain_index": 1,
+      "schedule_index": 1,
+      "expected": {
+        "origin_frame": 3072000,
+        "input_frames": 3709429,
+        "body_start_frame": 392315,
+        "body_end_frame": 3157115
+      },
+      "incoming_origin_seconds": 96.000015625
+    }
+  ],
+  "pyloudnorm_source_sha256": {
+    "meter.py": "97566b9bc402c43e1c5ce0ca788930c01d40326ed5dc48f0c6f79c489366d823",
+    "iirfilter.py": "4e20bb7c0a1b75eedee0dfefad1f5a238488551a82677fac6f7311d3ccdf56e3",
+    "util.py": "38554a8fda0ff773504735d6d5533378a0ab699bf6a7e4f748dd2e10cc32b947"
+  },
+  "cases": [
+    {
+      "id": "body-fresh-silence",
+      "file": "body-fresh-silence.json",
+      "layout": {
+        "origin_frame": 0,
+        "input_frames": 20001,
+        "body_start_frame": 4097,
+        "body_end_frame": 16897
+      },
+      "outside": [
+        3.5,
+        -2.75
+      ],
+      "recipe": {
+        "kind": "silence"
+      },
+      "expected": {
+        "input_frames": 12800,
+        "block_count": 1,
+        "absolute_gate_count": 0,
+        "relative_gate_count": 0,
+        "measurable": false,
+        "lufs": 0
+      },
+      "input_sha256": "d900ac499f43aff6f4663a2efb69aae7d0fba1bb18660f39618fdc26eea7a954",
+      "body_sha256": "f627ca4c2c322f15db26152df306bd4f983f0146409b81a4341b9b340c365a16",
+      "absolute_indices": [],
+      "relative_indices": []
+    },
+    {
+      "id": "body-half-tie",
+      "file": "body-half-tie.json",
+      "layout": {
+        "origin_frame": 0,
+        "input_frames": 24369,
+        "body_start_frame": 257,
+        "body_end_frame": 24257
+      },
+      "outside": [
+        -0.75,
+        0.625
+      ],
+      "recipe": {
+        "kind": "pattern"
+      },
+      "expected": {
+        "input_frames": 24000,
+        "block_count": 4,
+        "absolute_gate_count": 4,
+        "relative_gate_count": 4,
+        "measurable": true,
+        "lufs": -11.561536981067976
+      },
+      "input_sha256": "fcd3caf186bbb43883b5f40d7960079da3b3d90c86f1d44d6bad9a7927a7ddba",
+      "body_sha256": "ade0be901c030cd12fa3a12a2a80f6333c030733ec2e54b5bbbf6592af4ea875",
+      "absolute_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "relative_indices": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "body-levels",
+      "file": "body-levels.json",
+      "layout": {
+        "origin_frame": 0,
+        "input_frames": 64163,
+        "body_start_frame": 1,
+        "body_end_frame": 64001
+      },
+      "outside": [
+        1.5,
+        -1.25
+      ],
+      "recipe": {
+        "kind": "levels",
+        "levels": [
+          {
+            "start": 0,
+            "scale": 1
+          },
+          {
+            "start": 16000,
+            "scale": 0.001953125
+          },
+          {
+            "start": 32000,
+            "scale": 0.0625
+          },
+          {
+            "start": 48000,
+            "scale": 0
+          }
+        ]
+      },
+      "expected": {
+        "input_frames": 64000,
+        "block_count": 17,
+        "absolute_gate_count": 15,
+        "relative_gate_count": 5,
+        "measurable": true,
+        "lufs": -13.108444344543996
+      },
+      "input_sha256": "f075c983531102ef3d01941a4d1a2be43e739d056af89ec355367fa5e08fac5e",
+      "body_sha256": "b805067f08de52510ca4bf6276af55aa8f473b23e969456f5c5e4a218985adec",
+      "absolute_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "relative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "body-original-excerpt",
+      "file": "body-original-excerpt.json",
+      "layout": {
+        "origin_frame": 0,
+        "input_frames": 36610,
+        "body_start_frame": 4097,
+        "body_end_frame": 36097
+      },
+      "outside": [
+        0.875,
+        -0.5
+      ],
+      "recipe": {
+        "kind": "file",
+        "file": "tests/fixtures/loudness-v9/song-body.f32",
+        "sha256": "a2df2e4aa5ecfa5d0071f20e7056c6acef20778a9a20bb2377eaa5b5c73509f3"
+      },
+      "expected": {
+        "input_frames": 32000,
+        "block_count": 7,
+        "absolute_gate_count": 7,
+        "relative_gate_count": 7,
+        "measurable": true,
+        "lufs": -26.768247077485917
+      },
+      "input_sha256": "f31795f876c01afc151af3e690f458443986d9d4c1cbce473d3380801c2cc1e5",
+      "body_sha256": "a2df2e4aa5ecfa5d0071f20e7056c6acef20778a9a20bb2377eaa5b5c73509f3",
+      "absolute_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "relative_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    }
+  ]
+}

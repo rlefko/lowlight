@@ -109,6 +109,7 @@ jobs:
       - run: python tools/reference/verify-mix.py --integrity
       - run: python tools/reference/verify-loudness.py --integrity
       - run: python tools/reference/verify-gain.py --integrity
+      - run: python tools/reference/verify-song-body.py --integrity
       - run: python tools/reference/verify-grammar.py
       - run: python tools/reference/verify-events.py
       - run: python tools/reference/verify-reference-timing.py --integrity
@@ -133,6 +134,7 @@ jobs:
           python tools/reference/verify-mix.py --compare .build/tonal-native/mix --evidence .build/tonal-evidence/mix
           python tools/reference/verify-loudness.py --compare .build/tonal-native/loudness --evidence .build/tonal-evidence/loudness
           python tools/reference/verify-gain.py --compare .build/tonal-native/gain --evidence .build/tonal-evidence/gain
+          python tools/reference/verify-song-body.py --compare .build/tonal-native/song-body --evidence .build/tonal-evidence/song-body
           cp .build/tonal-native/profile.json .build/tonal-evidence/profile.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

@@ -26,4 +26,4 @@ A local four-second reference/native review excerpt spans source frames `[136383
 
 ## Scope
 
-This corrects reference envelope lengths. It does not change the native planner's version, clock, random draws, or serialized endpoint contract. Absolute onsets remain `round(time * 32000)`; independently mapping a reference song's nonzero origin to `round(local_time * 32000)` remains separate work. Complete-song evidence here concerns the accepted first song at origin zero. Body selection, production rack preparation/replay, transport, and playback remain later work.
+This corrects reference envelope lengths. It does not change the native planner's version, clock, random draws, or serialized endpoint contract. Absolute onsets remain `round(time * 32000)`; independently mapping a reference song's nonzero origin to `round(local_time * 32000)` remains separate work. Complete-song evidence here concerns the accepted first song at origin zero. [Body selection](validation-song-body.md) is now explicit; production rack preparation/replay, transport, and playback remain later work.
