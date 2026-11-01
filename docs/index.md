@@ -22,6 +22,7 @@
 - [Song body selection validation](validation-song-body.md)
 - [Mixer song origin validation](validation-origins.md)
 - [Native DSP numeric environment validation](validation-native-rounding.md)
+- [Voice preparation environment validation](validation-preparation-environment.md)
 - [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)

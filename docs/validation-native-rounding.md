@@ -8,6 +8,8 @@ The pinned Clang build enables `FENV_ACCESS` for native DSP arithmetic so the op
 
 ## Boundaries
 
+The scope below describes PR #25. [Voice preparation](validation-preparation-environment.md) subsequently adds the distinct gradual-underflow boundary for sample preparation and mixer construction.
+
 This contract starts with already-prepared PCM and canonical C event/control values. It does not make Swift sample preparation, Double-to-Float event conversion, or planner timing independent of the host environment. Existing bass preparation includes valid subnormal Float samples; a later Swift preparation policy must preserve gradual underflow before the existing native registration/render flush boundary. Applying the native policy around the entire Swift initializer would change those accepted prepared bytes.
 
 Nonzero negative subnormal values remain invalid for nonnegative control domains, even when flushing is enabled. Negative zero remains accepted. Validation uses raw IEEE representations where flushing could otherwise turn an invalid input into zero. The native API retains its existing ownership, input bounds, finite stream lengths, and per-call failure behavior.
