@@ -1,6 +1,6 @@
 # Fixed song gain validation
 
-`SongFixedGain` prepares one immutable gain from a measurable `SongLoudnessMeasurement`, targeting −20.5 LUFS. It applies that gain to every supplied stereo frame after HP32 and before the existing song peak protector, including the intro, outro, and tails. Body selection, full-rack preparation/replay, transport, and playback remain separate work. Gain is not recalculated per buffer or per bar.
+`SongFixedGain` prepares one immutable gain from a measurable `SongLoudnessMeasurement`, targeting −20.5 LUFS. It applies that gain to every supplied stereo frame after HP32 and before the existing song peak protector, including the intro, outro, and tails. [Body selection](validation-song-body.md) supplies that measurement; full-rack preparation/replay, transport, and playback remain separate work. Gain is not recalculated per buffer or per bar.
 
 ## Original arithmetic and bounds
 
