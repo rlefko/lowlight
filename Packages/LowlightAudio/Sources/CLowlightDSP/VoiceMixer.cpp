@@ -105,7 +105,7 @@ struct LLMixer {
     uint32_t samplesUsed = 0, floatsUsed = 0, eventCount = 0, next = 0;
     uint32_t steals = 0, dropped = 0;
     uint32_t sharedVoices = LL_VOICE_LIMIT;
-    uint64_t position = 0;
+    uint64_t origin = 0, position = 0;
     bool loaded = false;
 };
 
@@ -118,6 +118,11 @@ LLMixer *ll_mixer_create() {
 }
 void ll_mixer_destroy(LLMixer *mixer) {
     if (mixer) { delete[] mixer->pcm; delete mixer; }
+}
+bool ll_mixer_configure_origin(LLMixer *m, uint64_t frameOrigin) {
+    if (!m || m->loaded || frameOrigin > timelineLimit) return false;
+    m->origin = frameOrigin; m->position = frameOrigin;
+    return true;
 }
 bool ll_mixer_configure_buses(LLMixer *m, double energy) {
     if (!m || m->loaded || !std::isfinite(energy) || energy < 0 || energy > 1) return false;
@@ -153,14 +158,14 @@ void ll_mixer_reset(LLMixer *m) {
     if (!m) return;
     for (auto &voice : m->voices) voice = Voice{};
     m->buses.reset();
-    m->position = 0; m->next = 0; m->steals = 0; m->dropped = 0;
+    m->position = m->origin; m->next = 0; m->steals = 0; m->dropped = 0;
 }
 bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
     if (!m || count > LL_EVENT_LIMIT || (count && !events)) return false;
     bool hasBass = false;
     for (uint32_t i = 0; i < count; ++i) {
         const auto &e = events[i];
-        if (e.sample_index >= m->samplesUsed ||
+        if (e.start_frame < m->origin || e.sample_index >= m->samplesUsed ||
             (i && e.start_frame < events[i - 1].start_frame) || !e.hold_frames ||
             e.hold_frames > 16 * 32000 || e.release_frames > 5 * 32000 ||
             !std::isfinite(e.velocity) || e.velocity < 0 || e.velocity > 1 ||
