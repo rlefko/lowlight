@@ -30,10 +30,21 @@ struct SoundBankTests {
         let loudness = try #require(first.integratedLUFS)
         #expect(abs(loudness - (-16.317282706706095)) <= 1e-5)
         #expect(first.totalBlocks == 4 && first.absoluteBlocks == 4 && first.gatedBlocks == 4)
+        let gain = try SongFixedGain(measurement: first)
+        var normalized = [Float](repeating: .nan, count: input.count)
+        #expect(
+            normalized.withUnsafeMutableBufferPointer { destination in
+                input.withUnsafeBufferPointer { gain.process($0, into: destination) }
+            })
+        meter.reset()
+        #expect(normalized.withUnsafeBufferPointer { meter.process($0) })
+        #expect(abs(try #require(meter.finish().integratedLUFS) - SongFixedGain.targetLUFS) <= 1e-5)
         meter.reset()
         let silence = [Float](repeating: 0, count: input.count)
         #expect(silence.withUnsafeBufferPointer { meter.process($0) })
-        #expect(try meter.finish().integratedLUFS == nil)
+        let unmeasurable = try meter.finish()
+        #expect(unmeasurable.integratedLUFS == nil)
+        #expect(throws: SongFixedGainError.self) { try SongFixedGain(measurement: unmeasurable) }
     }
 
     @Test func preparedAirReplaysOnIOSWithLocalPhaseAndAbsoluteFades() throws {

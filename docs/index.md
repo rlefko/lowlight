@@ -18,6 +18,7 @@
 - [Quiet synthetic air and evidence](validation-air.md)
 - [Song mix assembly and evidence](validation-mix.md)
 - [Body loudness meter validation](validation-loudness.md)
+- [Fixed song gain validation](validation-gain.md)
 - [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)

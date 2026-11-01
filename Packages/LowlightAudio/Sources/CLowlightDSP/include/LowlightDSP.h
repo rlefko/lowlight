@@ -206,6 +206,28 @@ bool ll_loudness_process(LLLoudness *meter, const float *stereo, uint32_t frames
 // caller FP control/status. No drain, padding, or filter-tail frames are appended.
 bool ll_loudness_finish(LLLoudness *meter, LLLoudnessResult *result);
 
+#define LL_SONG_GAIN_INPUT_LIMIT 1e6f
+typedef struct LLSongGain LLSongGain;
+typedef struct { double gain_db, linear_multiplier; } LLSongGainValues;
+// One immutable gain targeting -20.5 LUFS from a measurable body. Setup and
+// destruction run off the callback. body_lufs must be finite and >=-70; a
+// nonfinite/nonpositive Double multiplier (including underflow to zero) fails.
+// No clamping, body selection, gain smoothing, or fallback for unmeasurable input.
+LLSongGain *ll_song_gain_create(double body_lufs);
+void ll_song_gain_destroy(LLSongGain *gain);
+// Copies prepared values; invalid handle/result clears supplied values and fails.
+// Result storage must be disjoint from the opaque allocation.
+bool ll_song_gain_get(const LLSongGain *gain, LLSongGainValues *values);
+// Disjoint caller-owned interleaved stereo buffers, finite |input|<=1e6.
+// Validates the complete call, then Double input*multiplier -> Float output.
+// Applies the same gain to every supplied frame, including intro/outro/tails;
+// no stream position, latency, drain, or reset. Allocation/free/lock/I/O-free.
+// Failure clears every supplied output frame; rejected overlap may clear input.
+// Count 0 permits null buffers for a valid handle. Storage must be fully sized
+// and disjoint from the opaque allocation; destroy only after reads complete.
+// Setup/process force RN+FTZ and restore full caller FP control/status.
+bool ll_song_gain_process(const LLSongGain *gain, const float *input, float *output, uint32_t frames);
+
 #ifdef __cplusplus
 }
 #endif
