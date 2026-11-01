@@ -111,12 +111,13 @@ private struct AboutView: View {
     }
 
     private var softwareNotices: String {
-        guard
-            let url = Bundle.main.url(
-                forResource: "NumPy-Random-Notices", withExtension: "txt",
-                subdirectory: "ThirdParty"),
-            let text = try? String(contentsOf: url, encoding: .utf8)
-        else { return "Software notices are unavailable. Please reinstall the app." }
-        return text
+        ["NumPy-Random-Notices", "Pyloudnorm-Notices"].map { name in
+            guard
+                let url = Bundle.main.url(
+                    forResource: name, withExtension: "txt", subdirectory: "ThirdParty"),
+                let text = try? String(contentsOf: url, encoding: .utf8)
+            else { return "Software notices are unavailable. Please reinstall the app." }
+            return text
+        }.joined(separator: "\n\n")
     }
 }
