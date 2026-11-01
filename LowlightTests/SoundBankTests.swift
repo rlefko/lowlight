@@ -19,6 +19,23 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
+    @Test func bodyLoudnessMeterFinishesAndResetsOnIOS() throws {
+        let meter = try SongLoudnessMeter(bodyFrames: 24_000)
+        // Frozen pyloudnorm case loudness-length-24000, including its four-block rounding.
+        let input: [Float] = (0..<24_000).flatMap { frame in
+            frame / 16 % 2 == 0 ? [0.125, -0.0625] : [-0.125, 0.0625]
+        }
+        #expect(input.withUnsafeBufferPointer { meter.process($0) })
+        let first = try meter.finish()
+        let loudness = try #require(first.integratedLUFS)
+        #expect(abs(loudness - (-16.317282706706095)) <= 1e-5)
+        #expect(first.totalBlocks == 4 && first.absoluteBlocks == 4 && first.gatedBlocks == 4)
+        meter.reset()
+        let silence = [Float](repeating: 0, count: input.count)
+        #expect(silence.withUnsafeBufferPointer { meter.process($0) })
+        #expect(try meter.finish().integratedLUFS == nil)
+    }
+
     @Test func preparedAirReplaysOnIOSWithLocalPhaseAndAbsoluteFades() throws {
         let origin: UInt64 = 3_200_017
         let fades = SongRackFades(

@@ -24,6 +24,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Software Notices"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("Melissa"))
         XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("NumPy Developers"))
+        XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("Christian Steinmetz"))
         app.navigationBars["Software Notices"].buttons["About Lowlight"].tap()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5))
         app.buttons["Done"].tap()

@@ -178,6 +178,34 @@ void ll_song_mix_reset(LLSongMix *mix); // Rewinds air and clears HP history wit
 // Setup/process enforce RN+FTZ and restore full caller FP state. No concurrent calls.
 bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output, uint32_t frames);
 
+enum { LL_LOUDNESS_MIN_FRAMES = 12800, LL_LOUDNESS_MAX_FRAMES = 5792000 };
+#define LL_LOUDNESS_INPUT_LIMIT 1e6f
+typedef struct LLLoudness LLLoudness;
+typedef struct {
+    double integrated_lufs; // Defined only when measurable; otherwise zero, never a suggested gain.
+    uint32_t total_blocks, absolute_blocks, gated_blocks;
+    bool measurable;
+} LLLoudnessResult;
+// Off-thread, single-owner analysis of one known-length 32 kHz stereo body slice.
+// K filters start at the supplied body's first frame, with no preceding song warmup.
+// Pinned pyloudnorm 0.1.1 staging/gates, including its rounded partial final block.
+// Fixed storage; never retains the complete body. No gain application or audio output.
+LLLoudness *ll_loudness_create(uint32_t body_frames);
+void ll_loudness_destroy(LLLoudness *meter);
+void ll_loudness_reset(LLLoudness *meter); // Retains N; clears filters, analysis, and finalization.
+// Reads 2*frames finite Floats with |input|<=LL_LOUDNESS_INPUT_LIMIT, up to remaining N.
+// Whole-call preflight preserves meter/input on failure. Count 0 accepts null input
+// before finalization, including at N. Every process call after finish fails until reset.
+// Input/result storage must be fully sized and disjoint from the opaque allocation.
+// Process/finish/reset allocate/free nothing. No concurrent operations are permitted.
+bool ll_loudness_process(LLLoudness *meter, const float *stereo, uint32_t frames);
+// Requires exactly N consumed frames and a result pointer. Success finalizes once;
+// repeated finish returns the same cached result. Silence/below-gate is successful
+// but not measurable, with LUFS zero and actual gate counts. Failure clears supplied
+// result and preserves the meter. Setup/process/finish force RN+FTZ and restore all
+// caller FP control/status. No drain, padding, or filter-tail frames are appended.
+bool ll_loudness_finish(LLLoudness *meter, LLLoudnessResult *result);
+
 #ifdef __cplusplus
 }
 #endif
