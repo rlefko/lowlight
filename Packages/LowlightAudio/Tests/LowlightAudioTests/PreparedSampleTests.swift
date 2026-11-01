@@ -70,7 +70,7 @@ struct PreparedSampleTests {
         #expect(events.count == 621 && LL_SAMPLE_LIMIT == 64 && LL_SAMPLE_BYTES == 33_554_432)
         let mixer = try TonalVoiceMixer(
             preparer: preparer(), events: events, warmth: 0.78, busEnergy: 0.3795510689640131)
-        #expect(mixer.preparedBytes == 23_363_108)
+        #expect(mixer.preparedBytes == 23_363_076)
         var output = [RhythmBusFrame](repeating: RhythmBusFrame(), count: 512)
         while mixer.position < 3_711_911 {
             let count = min(512, 3_711_911 - Int(mixer.position))

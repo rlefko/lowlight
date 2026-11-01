@@ -35,6 +35,10 @@ public struct NoteEvent: Codable, Equatable, Sendable {
     }
 
     init(_ event: EventDraft) throws {
+        try self.init(event, referenceDurations: false)
+    }
+
+    private init(_ event: EventDraft, referenceDurations: Bool) throws {
         try event.validate()
         instrument = event.instrument
         role = event.role
@@ -45,8 +49,16 @@ public struct NoteEvent: Codable, Equatable, Sendable {
         velocity = event.velocity
         pan = event.pan
         startFrame = try MusicalTime.frame(event.time)
-        gateEndFrame = try MusicalTime.frame(event.time + event.duration)
-        releaseEndFrame = try MusicalTime.frame(event.time + event.duration + event.release)
+        if referenceDurations && (instrument.harmonic || instrument == .bass) {
+            gateEndFrame = try startFrame + MusicalTime.frame(event.duration)
+            releaseEndFrame =
+                instrument == .bass
+                ? try startFrame + MusicalTime.frame(event.duration + event.release)
+                : try gateEndFrame + MusicalTime.frame(event.release)
+        } else {
+            gateEndFrame = try MusicalTime.frame(event.time + event.duration)
+            releaseEndFrame = try MusicalTime.frame(event.time + event.duration + event.release)
+        }
         try validate()
     }
 
@@ -105,7 +117,8 @@ public struct NoteEvent: Codable, Equatable, Sendable {
         else { throw EventError.invalidEvent }
     }
 
-    /// Imports the reviewed v9 score directly; no native plan or RNG is consulted.
+    /// Imports v9 voice durations with their original rounding, retaining absolute onsets.
+    /// No native plan or RNG is consulted; native planning still rounds absolute endpoints.
     public static func importReference(_ data: Data) throws -> [Self] {
         guard data.count <= 2_097_152 else { throw EventError.invalidReference }
         let decoder = JSONDecoder()
@@ -121,7 +134,7 @@ public struct NoteEvent: Codable, Equatable, Sendable {
             else { throw EventError.invalidReference }
             previous = event.time
         }
-        return try drafts.map(Self.init)
+        return try drafts.map { try Self($0, referenceDurations: true) }
     }
 }
 

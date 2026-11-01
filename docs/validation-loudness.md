@@ -24,7 +24,7 @@ The complete accepted 2,756,923-frame body was also measured without retaining i
 
 All 36 audio tests in 13 suites pass in Debug and Release. All 151 existing native PCM candidates remain byte-identical. The iOS 26.5 simulator passes seven integration tests and the UI smoke test, including both offline software notices. The unsigned Release device build, formatting/lint, repository/resource checks, and all 13 CodeQL coverage-guard tests pass. All seven native DSP suites pass optimized and under sanitizers. Repeat freezing reproduces the loudness fixtures exactly, and 26 negative controls reject corrupted results, inputs, recipes, and provenance.
 
-This standalone meter does not establish whole-song waveform conformance or device performance. The existing [full-song endpoint discrepancy](validation-sample-storage.md) remains a separate gate. Fixed gain application, rack preparation/replay, two-song transport, physical-device energy comparisons, and long playback soaks remain pending.
+This standalone meter does not establish whole-song waveform conformance or device performance. The subsequent [reference-duration correction](validation-reference-timing.md) passes the complete first-song waveform gate, and [fixed gain application](validation-gain.md) is implemented. Body selection, rack preparation/replay, two-song transport, physical-device energy comparisons, and long playback soaks remain pending.
 
 
 ## Preparation cost

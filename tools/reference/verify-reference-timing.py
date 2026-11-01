@@ -148,8 +148,10 @@ def load_manifest():
             raise ValueError("Changed original v9 source")
     if len(manifest.get("events", [])) != 621 or len(manifest.get("probes", [])) != 15:
         raise ValueError("Changed reference timing inventory")
+    if any(type(probe.get("rejected")) is not bool for probe in manifest["probes"]):
+        raise ValueError("Invalid reference timing rejection flag")
     for row in manifest["events"] + [probe["expected"] for probe in manifest["probes"] if not probe["rejected"]]:
-        if set(row) != {"start_frame", "gate_end_frame", "release_end_frame"} or any(type(value) is not int for value in row.values()):
+        if type(row) is not dict or set(row) != {"start_frame", "gate_end_frame", "release_end_frame"} or any(type(value) is not int for value in row.values()):
             raise ValueError("Incorrect reference endpoint schema")
         if not 0 <= row["start_frame"] < row["gate_end_frame"] <= row["release_end_frame"] <= 1 << 52:
             raise ValueError("Out-of-range reference endpoints")

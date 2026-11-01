@@ -42,6 +42,31 @@ struct EventOracle: Decodable {
 }
 
 struct EventTests {
+    private struct ReferenceTiming: Decodable {
+        struct Frames: Decodable {
+            let startFrame, gateEndFrame, releaseEndFrame: Int64
+            func matches(_ event: NoteEvent) -> Bool {
+                event.startFrame == startFrame && event.gateEndFrame == gateEndFrame
+                    && event.releaseEndFrame == releaseEndFrame
+            }
+        }
+        struct Probe: Decodable {
+            let id: String
+            let rejected: Bool
+            let expected: Frames?
+        }
+        let schemaVersion, sampleRate, frameTolerance: Int
+        let events: [Frames]
+        let probes: [Probe]
+
+        static func load() throws -> Self {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(
+                Self.self, from: EventOracle.data("reference-timing-v9/manifest.json"))
+        }
+    }
+
     @Test func nativeScoresMatchIndependentFrozenPythonEventsInOrder() throws {
         // These tolerances were fixed before implementation: one absolute frame,
         // 1e-12 for scalar metadata. Expected data is never generated from Swift.
@@ -72,9 +97,12 @@ struct EventTests {
                     let beat = Double(schedule.song.bars * 4 - 16) + Double(quarter) / 4
                     #expect(abs(try schedule.frame(at: beat) - frame) <= 1)
                 }
-                #expect(
-                    try JSONDecoder().decode([NoteEvent].self, from: JSONEncoder().encode(actual))
-                        == actual)
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.sortedKeys]
+                let encoded = try encoder.encode(actual)
+                let decoded = try JSONDecoder().decode([NoteEvent].self, from: encoded)
+                #expect(decoded == actual)
+                #expect(try encoder.encode(decoded) == encoded)
                 coverage += actual
             }
         }
@@ -90,18 +118,15 @@ struct EventTests {
         let data = try EventOracle.data("v9/events.json")
         let imported = try NoteEvent.importReference(data)
         let raw = try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
-        #expect(imported.count == 621 && raw.count == imported.count)
+        let timing = try ReferenceTiming.load()
+        #expect(
+            timing.schemaVersion == 1 && timing.sampleRate == 32_000 && timing.frameTolerance == 0)
+        try #require(imported.count == 621 && raw.count == imported.count)
+        try #require(timing.events.count == imported.count)
         #expect(imported == (try NoteEvent.importReference(data)))
-        for (event, source) in zip(imported, raw) {
-            let time = try #require(source["time"] as? Double)
-            let duration = try #require(source["duration"] as? Double)
-            let release = try #require(source["release"] as? Double)
-            #expect(event.startFrame == Int64((time * 32_000).rounded(.toNearestOrEven)))
-            #expect(
-                event.gateEndFrame == Int64(((time + duration) * 32_000).rounded(.toNearestOrEven)))
-            #expect(
-                event.releaseEndFrame
-                    == Int64(((time + duration + release) * 32_000).rounded(.toNearestOrEven)))
+        for (index, event) in imported.enumerated() {
+            let source = raw[index]
+            #expect(timing.events[index].matches(event))
             #expect(event.instrument.rawValue == source["instrument"] as? String)
             #expect(event.role.rawValue == source["role"] as? String)
             #expect(event.articulation.rawValue == source["articulation"] as? String)
@@ -115,6 +140,54 @@ struct EventTests {
         #expect(imported[0].startFrame == 0 && imported[1].startFrame == 0)
         #expect(imported[0].instrument == .kick && imported[1].instrument == .hat)
         #expect(imported[0].gateEndFrame == 9_846 && imported[0].releaseEndFrame == 17_846)
+    }
+
+    @Test func referenceVoiceTimingPreservesHalfFramesAndRejectsInvalidSpans() throws {
+        let timing = try ReferenceTiming.load()
+        let manifest = try #require(
+            JSONSerialization.jsonObject(
+                with: EventOracle.data("reference-timing-v9/manifest.json")) as? [String: Any])
+        let raw = try #require(manifest["probes"] as? [[String: Any]])
+        try #require(timing.probes.count == 15 && raw.count == timing.probes.count)
+        for (probe, source) in zip(timing.probes, raw) {
+            #expect(probe.id == source["id"] as? String)
+            let event = try #require(source["event"] as? [String: Any])
+            let data = try JSONSerialization.data(withJSONObject: [event])
+            if probe.rejected {
+                #expect(throws: EventError.invalidEvent) { try NoteEvent.importReference(data) }
+            } else {
+                let imported = try #require(NoteEvent.importReference(data).first)
+                #expect(try #require(probe.expected).matches(imported))
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.sortedKeys]
+                let encoded = try encoder.encode(imported)
+                let decoded = try JSONDecoder().decode(NoteEvent.self, from: encoded)
+                #expect(decoded == imported)
+                #expect(try encoder.encode(decoded) == encoded)
+            }
+        }
+        for instrument in ["guitar", "piano", "bass"] {
+            var event = try #require(
+                raw.compactMap { $0["event"] as? [String: Any] }
+                    .first { $0["instrument"] as? String == instrument })
+            event["time"] = 0
+            event["local_time"] = 0
+            event["duration"] = 16
+            event["release"] = 5
+            let maximum = try #require(
+                NoteEvent.importReference(JSONSerialization.data(withJSONObject: [event])).first)
+            #expect(maximum.gateEndFrame == 512_000 && maximum.releaseEndFrame == 672_000)
+            for (key, value) in [
+                ("duration", Double(16).nextUp), ("release", Double(5).nextUp),
+                ("time", Double(MusicalTime.maximumFrame) / MusicalTime.sampleRate),
+            ] {
+                var invalid = event
+                invalid[key] = value
+                #expect(throws: (any Error).self) {
+                    try NoteEvent.importReference(JSONSerialization.data(withJSONObject: [invalid]))
+                }
+            }
+        }
     }
 
     @Test func dampingBoundariesAndBoundedHarmonicIntervals() throws {
