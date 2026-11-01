@@ -1,0 +1,514 @@
+{
+  "schema_version": 1,
+  "sample_rate": 32000,
+  "channels": 2,
+  "target_lufs": -20.5,
+  "minimum_measured_lufs": -70,
+  "maximum_input_magnitude": 1000000.0,
+  "pcm_limits": {
+    "maximum_absolute_error": 6e-08,
+    "rms_error": 1e-08
+  },
+  "scalar_limits": {
+    "gain_db_absolute_error": 1e-12,
+    "linear_gain_relative_error": 2e-15
+  },
+  "cases": [
+    {
+      "id": "gain-floor",
+      "measured_lufs": -70,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-floor.f32",
+      "scalar_file": "gain-floor.json",
+      "expected_file": "gain-floor-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": -70.0,
+        "gain_db": 49.5,
+        "linear_gain": 298.538261891796
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "b59ae49d5f28b23b6390b16f77d4be025cb2844c8a95490f392fe199dedd8704"
+    },
+    {
+      "id": "gain-unity",
+      "measured_lufs": -20.5,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-unity.f32",
+      "scalar_file": "gain-unity.json",
+      "expected_file": "gain-unity-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": -20.5,
+        "gain_db": 0.0,
+        "linear_gain": 1.0
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62"
+    },
+    {
+      "id": "gain-zero-lufs",
+      "measured_lufs": 0,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-zero-lufs.f32",
+      "scalar_file": "gain-zero-lufs.json",
+      "expected_file": "gain-zero-lufs-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": 0.0,
+        "gain_db": -20.5,
+        "linear_gain": 0.09440608762859236
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "031df4b909ced7d680b4611faf66a761bea1d606c726c0d56390f34acbf8c981"
+    },
+    {
+      "id": "gain-high-level",
+      "measured_lufs": 120,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-high-level.f32",
+      "scalar_file": "gain-high-level.json",
+      "expected_file": "gain-high-level-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": 120.0,
+        "gain_db": -140.5,
+        "linear_gain": 9.440608762859226e-08
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "815489d1e1e7f28c1d82fedee2253ac0abf958573b135f62ec7bc919d364a67c"
+    },
+    {
+      "id": "gain-quiet-body",
+      "measured_lufs": -69.99899977478509,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-quiet-body.f32",
+      "scalar_file": "gain-quiet-body.json",
+      "expected_file": "gain-quiet-body-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": -69.99899977478509,
+        "gain_db": 49.49899977478509,
+        "linear_gain": 298.5038856428133
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "114dbe959253f4ac0f296de79177d20af2f0c1ceedc0fc1afba7c69082d89917"
+    },
+    {
+      "id": "gain-relative-body",
+      "measured_lufs": -4.981601063048786,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-relative-body.f32",
+      "scalar_file": "gain-relative-body.json",
+      "expected_file": "gain-relative-body-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": -4.981601063048786,
+        "gain_db": -15.518398936951215,
+        "linear_gain": 0.16752516453559332
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "063beac40f01da9c22e96df83e3cbc1041080b2ce01d1c4a6579166010b19283"
+    },
+    {
+      "id": "gain-low-body",
+      "measured_lufs": -24.133340241026364,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-low-body.f32",
+      "scalar_file": "gain-low-body.json",
+      "expected_file": "gain-low-body-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": -24.133340241026364,
+        "gain_db": 3.6333402410263638,
+        "linear_gain": 1.5193821224666744
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "aefab2707dc49f3aa32288d9e4694c89565693dac220e3b93875cced1ace2f8a"
+    },
+    {
+      "id": "gain-impulse-body",
+      "measured_lufs": -36.86212106673564,
+      "input_samples": [
+        [
+          0,
+          -0.0
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          0.1,
+          -0.1
+        ],
+        [
+          0.00021612727141473442,
+          -0.00021612727141473442
+        ],
+        [
+          2,
+          -2
+        ],
+        [
+          1e-12,
+          -1e-12
+        ],
+        [
+          0.14713357388973236,
+          -0.03125
+        ],
+        [
+          1.0000001192092896,
+          0.9999999403953552
+        ]
+      ],
+      "frames": 8,
+      "exact_pcm": true,
+      "file": "gain-impulse-body.f32",
+      "scalar_file": "gain-impulse-body.json",
+      "expected_file": "gain-impulse-body-expected.f32",
+      "channels": 2,
+      "bytes": 64,
+      "expected_scalars": {
+        "measured_lufs": -36.86212106673564,
+        "gain_db": 16.36212106673564,
+        "linear_gain": 6.578184549264168
+      },
+      "input_sha256": "5cbf08ae21f3382acf5ba7c79214fa1cbe3eb40753d9486faee684599500cc62",
+      "expected_sha256": "d1ecfb5805685165a0b7ee8cbe9347e33c98cb31c854230241f58d5397b700fc"
+    },
+    {
+      "id": "gain-original-body",
+      "measured_lufs": -30.318919941908316,
+      "frames": 32000,
+      "input_fixture": "loudness-v9/song-body.f32",
+      "exact_pcm": false,
+      "file": "gain-original-body.f32",
+      "scalar_file": "gain-original-body.json",
+      "expected_file": "gain-original-body-expected.f32",
+      "channels": 2,
+      "bytes": 256000,
+      "expected_scalars": {
+        "measured_lufs": -30.318919941908316,
+        "gain_db": 9.818919941908316,
+        "linear_gain": 3.0970341705847546
+      },
+      "input_sha256": "a2df2e4aa5ecfa5d0071f20e7056c6acef20778a9a20bb2377eaa5b5c73509f3",
+      "expected_sha256": "47b4cd9ed71675d8a45fbb8176f6a03d24130f69dd3d050e2b1681536100d196"
+    },
+    {
+      "id": "gain-original-boundaries",
+      "measured_lufs": -30.318919941908316,
+      "frames": 18,
+      "input_file": "original-boundaries.f32",
+      "source_frames": [
+        0,
+        1,
+        160,
+        12799,
+        12800,
+        393845,
+        393846,
+        393847,
+        425845,
+        3150768,
+        3150769,
+        3150770,
+        3349493,
+        3551910,
+        3551911,
+        3551912,
+        3711909,
+        3711910
+      ],
+      "exact_pcm": true,
+      "file": "gain-original-boundaries.f32",
+      "scalar_file": "gain-original-boundaries.json",
+      "expected_file": "gain-original-boundaries-expected.f32",
+      "channels": 2,
+      "bytes": 144,
+      "expected_scalars": {
+        "measured_lufs": -30.318919941908316,
+        "gain_db": 9.818919941908316,
+        "linear_gain": 3.0970341705847546
+      },
+      "input_sha256": "eaa441d805093f7b24b61b994197123db99f30d2e13fc61587a42212ae451dd7",
+      "expected_sha256": "6153af71c44665bb24e4be262070fddf8dec41083bbb9a07233b2f0e8948b288"
+    }
+  ],
+  "original_source": {
+    "frames": 3711911,
+    "events_count": 621,
+    "events_sha256": "be9c954e9c2d115314a83a0971accfc3972cd7bd3e86276e4776ae0d72aadf11",
+    "body_start_frame": 393846,
+    "body_end_frame": 3150769,
+    "scalars": {
+      "measured_lufs": -30.318919941908316,
+      "gain_db": 9.818919941908316,
+      "linear_gain": 3.0970341705847546
+    },
+    "normalized_body": {
+      "input_frames": 2756923,
+      "block_count": 859,
+      "absolute_gate_count": 859,
+      "relative_gate_count": 849,
+      "measurable": true,
+      "lufs": -20.50000000852147
+    },
+    "input_float32_sha256": "036f575acbee4dcda3ac46a221c204a1de45686aca176c663402ee1047debe54",
+    "output_float32_sha256": "217b264923862e2c777ff845969bcc859fbcdd70dce50188ef336f49f646680a"
+  }
+}
