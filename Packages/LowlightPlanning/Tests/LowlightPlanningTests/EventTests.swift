@@ -67,6 +67,25 @@ struct EventTests {
         }
     }
 
+    private struct ReferencePlacement: Decodable {
+        struct Case: Decodable {
+            let id, eventsFile: String
+            let frameOrigin: Int64
+            let expected: [ReferenceTiming.Frames]
+        }
+        struct Probe: Decodable {
+            let id: String
+            let frameOrigin: Int64
+            let rejected: Bool
+            let expected: [ReferenceTiming.Frames]?
+        }
+        let schemaVersion, sampleRate, frameTolerance: Int
+        let maximumFrame: Int64
+        let cases: [Case]
+        let probes: [Probe]
+        let absoluteOnsetDifferenceIndices: [Int]
+    }
+
     @Test func nativeScoresMatchIndependentFrozenPythonEventsInOrder() throws {
         // These tolerances were fixed before implementation: one absolute frame,
         // 1e-12 for scalar metadata. Expected data is never generated from Swift.
@@ -187,6 +206,116 @@ struct EventTests {
                     try NoteEvent.importReference(JSONSerialization.data(withJSONObject: [invalid]))
                 }
             }
+        }
+    }
+
+    @Test func referenceLocalPlacementMatchesFrozenOriginalAndPreservesEncoding() throws {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let oracle = try decoder.decode(
+            ReferencePlacement.self,
+            from: EventOracle.data("reference-placement-v9/manifest.json"))
+        #expect(oracle.schemaVersion == 1 && oracle.sampleRate == 32_000)
+        #expect(oracle.frameTolerance == 0 && oracle.maximumFrame == MusicalTime.maximumFrame)
+        try #require(oracle.cases.count == 1)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        for item in oracle.cases {
+            let data = try EventOracle.data("reference-placement-v9/" + item.eventsFile)
+            let placed = try NoteEvent.importReference(data, placingAt: item.frameOrigin)
+            let local = try NoteEvent.importReference(data, placingAt: 0)
+            let absolute = try NoteEvent.importReference(data)
+            try #require(placed.count == 738 && placed.count == item.expected.count)
+            #expect(placed == (try NoteEvent.importReference(data, placingAt: item.frameOrigin)))
+            for (index, event) in placed.enumerated() {
+                #expect(item.expected[index].matches(event))
+                #expect(event.startFrame == local[index].startFrame + item.frameOrigin)
+                #expect(event.gateEndFrame == local[index].gateEndFrame + item.frameOrigin)
+                #expect(event.releaseEndFrame == local[index].releaseEndFrame + item.frameOrigin)
+                #expect(
+                    event.instrument == absolute[index].instrument
+                        && event.role == absolute[index].role)
+                #expect(
+                    event.articulation == absolute[index].articulation
+                        && event.note == absolute[index].note)
+                #expect(
+                    event.roundRobin == absolute[index].roundRobin
+                        && event.beat == absolute[index].beat)
+                #expect(
+                    event.velocity == absolute[index].velocity && event.pan == absolute[index].pan)
+            }
+            let differences = placed.indices.filter {
+                placed[$0].startFrame != absolute[$0].startFrame
+            }
+            #expect(differences == oracle.absoluteOnsetDifferenceIndices && !differences.isEmpty)
+            let encoded = try encoder.encode(placed)
+            let decoded = try JSONDecoder().decode([NoteEvent].self, from: encoded)
+            let reencoded = try encoder.encode(decoded)
+            #expect(decoded == placed && reencoded == encoded)
+        }
+        let first = try EventOracle.data("v9/events.json")
+        #expect(
+            try NoteEvent.importReference(first, placingAt: 0) == NoteEvent.importReference(first))
+        #expect(NoteEvent.formatVersion == 1 && EventPlanner.algorithmVersion == 1)
+    }
+
+    @Test func referenceLocalPlacementValidatesBoundsOrderAndSourceClocks() throws {
+        let data = try EventOracle.data("reference-placement-v9/manifest.json")
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let oracle = try decoder.decode(ReferencePlacement.self, from: data)
+        let manifest = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let rawProbes = try #require(manifest["probes"] as? [[String: Any]])
+        try #require(rawProbes.count == 15 && oracle.probes.count == rawProbes.count)
+        for (probe, raw) in zip(oracle.probes, rawProbes) {
+            #expect(probe.id == raw["id"] as? String)
+            let events = try #require(raw["events"] as? [[String: Any]])
+            let data = try JSONSerialization.data(withJSONObject: events)
+            if probe.rejected {
+                #expect(throws: (any Error).self) {
+                    try NoteEvent.importReference(data, placingAt: probe.frameOrigin)
+                }
+            } else {
+                let placed = try NoteEvent.importReference(data, placingAt: probe.frameOrigin)
+                let expected = try #require(probe.expected)
+                try #require(placed.count == expected.count)
+                #expect(zip(expected, placed).allSatisfy { $0.matches($1) })
+            }
+        }
+        let raw = try #require(
+            JSONSerialization.jsonObject(with: EventOracle.data("v9/events.json"))
+                as? [[String: Any]])
+        let one = try JSONSerialization.data(withJSONObject: [raw[0]])
+        for origin in [
+            Int64.min, -1, MusicalTime.maximumFrame, MusicalTime.maximumFrame + 1, Int64.max,
+        ] {
+            #expect(throws: (any Error).self) {
+                try NoteEvent.importReference(one, placingAt: origin)
+            }
+        }
+        var shifted = raw[3]
+        shifted["time"] = 1.0
+        for events in [
+            [], [raw[3], raw[0]], [raw[0], shifted], Array(repeating: raw[0], count: 2049),
+        ] {
+            #expect(throws: (any Error).self) {
+                try NoteEvent.importReference(
+                    JSONSerialization.data(withJSONObject: events), placingAt: 37)
+            }
+        }
+        for (key, value) in [
+            ("time", -1.0), ("local_time", -1.0), ("duration", 0.0), ("release", 6.0),
+            ("velocity", 1.1),
+        ] {
+            var invalid = raw[0]
+            invalid[key] = value
+            #expect(throws: (any Error).self) {
+                try NoteEvent.importReference(
+                    JSONSerialization.data(withJSONObject: [invalid]), placingAt: 37)
+            }
+        }
+        #expect(throws: EventError.invalidReference) {
+            try NoteEvent.importReference(Data(repeating: 32, count: 2_097_153), placingAt: 37)
         }
     }
 

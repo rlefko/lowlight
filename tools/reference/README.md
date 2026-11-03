@@ -17,6 +17,8 @@ tools/reference/setup /path/to/python3.12
 
 CI can install the same environment with `python -m pip install --require-hashes -r tools/reference/requirements.lock`. After setup, rendering and comparison work offline. `--integrity` uses only the standard library. `--render` assembles an ignored temporary prototype tree, references the bundled bank, and preserves whole-song loudness analysis and the original signal path. It writes candidates and reports only beneath `.build/`; it never replaces reviewed fixtures.
 
+`python3 -B tools/reference/verify-reference-placement.py --integrity` checks the separately frozen [later-song placement fixture](../../tests/fixtures/reference-placement-v9/README.md). Run `.tools/reference/bin/python3 -B tools/reference/verify-reference-placement.py` to repeat seven original placement calls in the pinned environment. Its 738 exact endpoint records preserve the original local clock before adding an explicit integer song origin; this does not change the default reference importer or native-v1 clock.
+
 The separate [planning-v1 event oracle](../../tests/fixtures/planning-v1/events.json) covers 2,322 events across three native-generator scores, including both directions of a 60↔100 BPM transition. `verify-events.py` uses only the standard library to rederive these through the frozen event algorithm and independent RNG adapter. The [manifest](../../tests/fixtures/planning-v1/manifest.json) fixes provenance hashes and tolerances; initialization refuses to overwrite existing fixtures. These metadata tests complement the unchanged v9 audio oracle and do not establish native sound parity.
 
 ## Fixtures and tolerances

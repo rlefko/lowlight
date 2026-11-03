@@ -38,7 +38,9 @@ public struct NoteEvent: Codable, Equatable, Sendable {
         try self.init(event, referenceDurations: false)
     }
 
-    private init(_ event: EventDraft, referenceDurations: Bool) throws {
+    private init(
+        _ event: EventDraft, referenceDurations: Bool, referenceOrigin: Int64? = nil
+    ) throws {
         try event.validate()
         instrument = event.instrument
         role = event.role
@@ -48,7 +50,9 @@ public struct NoteEvent: Codable, Equatable, Sendable {
         beat = event.beat
         velocity = event.velocity
         pan = event.pan
-        startFrame = try MusicalTime.frame(event.time)
+        let time = referenceOrigin == nil ? event.time : event.localTime
+        let origin = referenceOrigin ?? 0
+        startFrame = try origin + MusicalTime.frame(time)
         if referenceDurations && (instrument.harmonic || instrument == .bass) {
             gateEndFrame = try startFrame + MusicalTime.frame(event.duration)
             releaseEndFrame =
@@ -56,8 +60,8 @@ public struct NoteEvent: Codable, Equatable, Sendable {
                 ? try startFrame + MusicalTime.frame(event.duration + event.release)
                 : try gateEndFrame + MusicalTime.frame(event.release)
         } else {
-            gateEndFrame = try MusicalTime.frame(event.time + event.duration)
-            releaseEndFrame = try MusicalTime.frame(event.time + event.duration + event.release)
+            gateEndFrame = try origin + MusicalTime.frame(time + event.duration)
+            releaseEndFrame = try origin + MusicalTime.frame(time + event.duration + event.release)
         }
         try validate()
     }
@@ -120,6 +124,24 @@ public struct NoteEvent: Codable, Equatable, Sendable {
     /// Imports v9 voice durations with their original rounding, retaining absolute onsets.
     /// No native plan or RNG is consulted; native planning still rounds absolute endpoints.
     public static func importReference(_ data: Data) throws -> [Self] {
+        try importReference(data, localFrameOrigin: nil)
+    }
+
+    /// Places a reference song by adding an integer origin after rounding local onsets.
+    /// Guitar/piano/bass retain original duration rounding; percussion's unused gate
+    /// endpoints round local times too. Source clocks remain validated, and the origin
+    /// need not match their offset. This does not reinterpret serialized native events.
+    public static func importReference(_ data: Data, placingAt frameOrigin: Int64) throws -> [Self]
+    {
+        try importReference(data, localFrameOrigin: frameOrigin)
+    }
+
+    private static func importReference(_ data: Data, localFrameOrigin: Int64?) throws -> [Self] {
+        if let localFrameOrigin {
+            guard (0...MusicalTime.maximumFrame).contains(localFrameOrigin) else {
+                throw EventError.invalidReference
+            }
+        }
         guard data.count <= 2_097_152 else { throw EventError.invalidReference }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -134,7 +156,17 @@ public struct NoteEvent: Codable, Equatable, Sendable {
             else { throw EventError.invalidReference }
             previous = event.time
         }
-        return try drafts.map { try Self($0, referenceDurations: true) }
+        // Origin and rounded local frames are each <=2^52, so Int64 additions cannot
+        // overflow. Each constructed event still validates its final endpoint domain.
+        let result = try drafts.map {
+            try Self($0, referenceDurations: true, referenceOrigin: localFrameOrigin)
+        }
+        if localFrameOrigin != nil,
+            !zip(result, result.dropFirst()).allSatisfy({ $0.startFrame <= $1.startFrame })
+        {
+            throw EventError.invalidReference
+        }
+        return result
     }
 }
 
