@@ -154,6 +154,32 @@ struct PreparationModeTests {
         }
     }
 
+    @Test func finiteSourceConstructionRestoresItsOuterPreparationScope() throws {
+        let preparer = try bank()
+        let events = try score()
+        let layout = try SongRenderLayout(frameOrigin: 0, inputFrames: 16384, bodyFrames: 0..<16384)
+        let fades = SongRackFades(
+            tonalOutStartFrame: 8192, tonalOutEndFrame: 12288, rhythmOutFrame: 10000)
+        func source(_ energy: Double) throws -> SongRenderSource {
+            try SongRenderSource(
+                layout: layout, preparer: preparer, events: events, takeSeed: 1,
+                focus: .guitar, warmth: 0.785, energy: energy, space: 0.44,
+                texture: 0.09, rackFades: fades)
+        }
+        let reference = try source(0.63)
+        let actual = try environment(2, ll_test_flush_modes() - 1, false) { try source(0.63) }
+        var expected = [Float](repeating: .nan, count: 512)
+        var output = expected
+        #expect(expected.withUnsafeMutableBufferPointer { reference.render(into: $0) } == 256)
+        #expect(output.withUnsafeMutableBufferPointer { actual.render(into: $0) } == 256)
+        #expect(expected.map(\.bitPattern) == output.map(\.bitPattern))
+        let negative = Double(bitPattern: 0x8000_0000_0000_0001)
+        do {
+            _ = try environment(1, ll_test_flush_modes() - 1, false) { try source(negative) }
+            Issue.record("Invalid source energy accepted")
+        } catch SongRenderSourceError.invalidConfiguration {}
+    }
+
     @inline(never)
     private func arithmetic(_ value: Double, _ small: Float) -> [UInt32] {
         [Float(value).bitPattern, (small * 0.5).bitPattern]

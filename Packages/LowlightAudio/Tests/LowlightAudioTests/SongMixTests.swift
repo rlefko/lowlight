@@ -61,15 +61,21 @@ struct SongMixTests {
         let preparer = try TonalSamplePreparer(
             bankURL: mixRoot.appendingPathComponent("Lowlight/SoundBank"))
         for item in manifest.cases {
-            let input = try inputs(item, preparer: preparer)
-            let mix = try SongMix(
-                takeSeed: item.seed, inputFrames: UInt32(item.inputFrames),
-                frameOrigin: item.frameOrigin, texture: item.texture,
-                rackFades: item.fades.descriptor)
-            let actual = try render(mix, input: input, partitions: [512])
-            mix.reset()
-            #expect(
-                actual == (try render(mix, input: input, partitions: [1, 17, 64, 127, 256, 1023])))
+            let actual: [Float]
+            if item.eventsFile != nil {
+                actual = try sourceOutput(item, preparer: preparer)
+            } else {
+                let input = try inputs(item)
+                let mix = try SongMix(
+                    takeSeed: item.seed, inputFrames: UInt32(item.inputFrames),
+                    frameOrigin: item.frameOrigin, texture: item.texture,
+                    rackFades: item.fades.descriptor)
+                actual = try render(mix, input: input, partitions: [512])
+                mix.reset()
+                #expect(
+                    actual
+                        == (try render(mix, input: input, partitions: [1, 17, 64, 127, 256, 1023])))
+            }
             try verify(actual, item: item)
             try export(actual, name: item.file)
         }
@@ -125,60 +131,72 @@ struct SongMixTests {
         #expect(first == (try render(mix, input: input, partitions: [17, 256])))
     }
 
-    private func inputs(_ item: Manifest.Case, preparer: TonalSamplePreparer) throws
-        -> [HarmonicGlueFrame]
-    {
-        if let segments = item.inputSegments {
-            var result = [HarmonicGlueFrame](
-                repeating: HarmonicGlueFrame(tonal: (0, 0), bass: (0, 0), drums: (0, 0), duck: 1),
-                count: item.frames)
-            for segment in segments {
-                try #require(
-                    segment.start >= 0 && segment.count > 0
-                        && segment.start + segment.count <= item.frames && segment.values.count == 7
-                )
-                let v = segment.values
-                let frame = HarmonicGlueFrame(
-                    tonal: (v[0], v[1]), bass: (v[2], v[3]), drums: (v[4], v[5]), duck: v[6])
-                for index in segment.start..<(segment.start + segment.count) {
-                    result[index] = frame
-                }
-            }
-            return result
+    private func inputs(_ item: Manifest.Case) throws -> [HarmonicGlueFrame] {
+        let segments = try #require(item.inputSegments)
+        var result = [HarmonicGlueFrame](
+            repeating: HarmonicGlueFrame(tonal: (0, 0), bass: (0, 0), drums: (0, 0), duck: 1),
+            count: item.frames)
+        for segment in segments {
+            try #require(
+                segment.start >= 0 && segment.count > 0
+                    && segment.start + segment.count <= item.frames && segment.values.count == 7)
+            let v = segment.values
+            let frame = HarmonicGlueFrame(
+                tonal: (v[0], v[1]), bass: (v[2], v[3]), drums: (v[4], v[5]), duck: v[6])
+            for index in segment.start..<(segment.start + segment.count) { result[index] = frame }
         }
+        return result
+    }
+
+    private func sourceOutput(_ item: Manifest.Case, preparer: TonalSamplePreparer) throws
+        -> [Float]
+    {
         let file = try #require(item.eventsFile)
         let warmth = try #require(item.warmth)
         let space = try #require(item.space)
         let energy = try #require(item.energy)
         try #require(item.focus == "guitar" || item.focus == "piano")
+        try #require(item.inputFrames == 3_711_911)
         let events = try NoteEvent.importReference(
             Data(contentsOf: fixtures.appendingPathComponent(file)))
-        let mixer = try TonalVoiceMixer(
-            preparer: preparer, events: events, warmth: warmth, busEnergy: energy,
-            rackFades: item.fades.descriptor)
+        let source = try SongRenderSource(
+            // Original full-song body; rendering remains before its analysis/gain.
+            layout: SongRenderLayout(
+                frameOrigin: item.frameOrigin, inputFrames: UInt32(item.inputFrames),
+                bodyFrames: 393846..<3_150_769),
+            preparer: preparer, events: events, takeSeed: item.seed,
+            focus: item.focus == "guitar" ? .guitar : .piano, warmth: warmth,
+            energy: energy, space: space, texture: item.texture, rackFades: item.fades.descriptor)
         let originalBytes = try #require(item.preparedBytes)
-        #expect(mixer.preparedBytes <= originalBytes)
-        let count = item.frames + HarmonicGlue.latencyFrames
-        try #require(count < item.inputFrames)
-        var buses = [RhythmBusFrame](repeating: RhythmBusFrame(), count: count)
-        #expect(buses.withUnsafeMutableBufferPointer { mixer.renderBuses(into: $0) })
-        #expect(mixer.stolenVoices == 0 && mixer.droppedEvents == 0)
-        let glue = try HarmonicGlue(
-            inputFrames: UInt64(item.inputFrames), focus: item.focus == "guitar" ? .guitar : .piano)
-        var delayed = [HarmonicGlueFrame](repeating: HarmonicGlueFrame(), count: count)
+        #expect(source.preparedBytes <= originalBytes)
+        let actual = try render(source, frames: item.frames, partitions: [512])
+        source.reset()
         #expect(
-            delayed.withUnsafeMutableBufferPointer { destination in
-                buses.withUnsafeBufferPointer { glue.process($0, into: destination) }
-            })
-        // Match logical original frames; startup delay must never advance air or HP32.
-        let logical = Array(delayed.dropFirst(HarmonicGlue.latencyFrames))
-        let room = try StereoRoom(space: space, warmth: warmth)
-        var result = [HarmonicGlueFrame](repeating: HarmonicGlueFrame(), count: item.frames)
-        #expect(
-            result.withUnsafeMutableBufferPointer { destination in
-                logical.withUnsafeBufferPointer { room.process($0, into: destination) }
-            })
-        return result
+            actual == (try render(source, frames: item.frames, partitions: [1, 17, 127, 1023])))
+        #expect(source.position == UInt32(item.frames) && !source.isFaulted)
+        #expect(source.stolenVoices == 0 && source.droppedEvents == 0)
+        return actual
+    }
+
+    private func render(_ source: SongRenderSource, frames: Int, partitions: [Int]) throws
+        -> [Float]
+    {
+        var output = [Float](repeating: .nan, count: frames * 2)
+        try output.withUnsafeMutableBufferPointer { destination in
+            var position = 0
+            var block = 0
+            while position < frames {
+                let count = min(partitions[block % partitions.count], frames - position)
+                try #require(
+                    source.render(
+                        into: UnsafeMutableBufferPointer(
+                            rebasing: destination[(position * 2)..<((position + count) * 2)]))
+                        == count)
+                position += count
+                block += 1
+            }
+        }
+        return output
     }
 
     private func render(_ mix: SongMix, input: [HarmonicGlueFrame], partitions: [Int]) throws
