@@ -13,6 +13,9 @@ public typealias RhythmBusFrame = LLBusFrame
 /// The C kernel owns immutable PCM and score copies; no borrowed Swift array survives setup.
 public final class TonalVoiceMixer {
     private let handle: OpaquePointer
+    // Module-owned composition may borrow this handle while retaining the mixer.
+    // The borrower must serialize all calls and must never destroy the mixer handle.
+    var borrowedHandle: OpaquePointer { handle }
     private struct Key: Hashable {
         let instrument: TonalInstrument
         let note, roundRobin, layer: Int

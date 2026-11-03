@@ -9,7 +9,7 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 mkdir -p .build/DSPTests
 flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
   -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
-for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain FloatingPoint; do
+for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain SongSource FloatingPoint; do
   sources=("Packages/LowlightAudio/Sources/CLowlightDSP/$suite.cpp" "tests/dsp/${suite}Tests.cpp")
   if [[ "$suite" == FloatingPoint ]]; then
     sources=(Packages/LowlightAudio/Sources/CLowlightDSP/*.cpp tests/dsp/FloatingPointTests.cpp)
@@ -20,9 +20,24 @@ for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix L
   if [[ "$suite" == SongMix ]]; then
     sources+=(Packages/LowlightAudio/Sources/CLowlightDSP/{QuietAir,HarmonicGlue,StereoRoom}.cpp)
   fi
-  xcrun clang++ "${flags[@]}" -O2 "${sources[@]}" -o ".build/DSPTests/$suite-optimized"
-  ".build/DSPTests/$suite-optimized"
-  xcrun clang++ "${flags[@]}" -O1 -g -fno-omit-frame-pointer \
-    -fsanitize=address,undefined -fno-sanitize-recover=all "${sources[@]}" -o ".build/DSPTests/$suite-sanitized"
-  ".build/DSPTests/$suite-sanitized"
+  if [[ "$suite" == SongSource ]]; then
+    sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{VoiceMixer,HarmonicGlue,StereoRoom,SongMix,QuietAir,NumpyRandom}.cpp
+      tests/dsp/SongSourceTests.cpp)
+  fi
+  for mode in optimized sanitized; do
+    build_flags=(-O2)
+    if [[ "$mode" == sanitized ]]; then
+      build_flags=(-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all)
+    fi
+    inputs=("${sources[@]}")
+    if [[ "$suite" == SongSource ]]; then
+      # Only this test object redirects room calls for deterministic partial-call faults.
+      object=".build/DSPTests/SongSource-$mode.o"
+      xcrun clang++ "${flags[@]}" "${build_flags[@]}" -Dll_room_process=ll_test_room_process \
+        -c Packages/LowlightAudio/Sources/CLowlightDSP/SongSource.cpp -o "$object"
+      inputs+=("$object")
+    fi
+    xcrun clang++ "${flags[@]}" "${build_flags[@]}" "${inputs[@]}" -o ".build/DSPTests/$suite-$mode"
+    ".build/DSPTests/$suite-$mode"
+  done
 done

@@ -94,6 +94,7 @@ uint32_t ll_mixer_active_voices(const LLMixer *mixer);
 uint32_t ll_mixer_steals(const LLMixer *mixer);
 uint32_t ll_mixer_dropped_events(const LLMixer *mixer);
 uint64_t ll_mixer_position(const LLMixer *mixer); // Absolute clock shared by both render views.
+uint64_t ll_mixer_origin(const LLMixer *mixer); // Configured reset origin; zero for null.
 uint32_t ll_mixer_sample_bytes(const LLMixer *mixer);
 
 enum { LL_GLUE_LATENCY = 399 };
@@ -201,6 +202,36 @@ void ll_song_mix_reset(LLSongMix *mix); // Rewinds air and clears HP history wit
 // count storage. Count 0 permits null buffers for a valid mix, including at EOF.
 // Setup/process enforce RN+FTZ and restore full caller FP state. No concurrent calls.
 bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output, uint32_t frames);
+
+typedef struct LLSongSource LLSongSource;
+typedef struct {
+    uint64_t frame_origin;
+    uint32_t input_frames, take_seed;
+    uint8_t focus;
+    double space, warmth, texture;
+    LLRackFades rack_fades;
+} LLSongSourceConfig;
+// Off-thread finite pre-gain source: mixer buses -> aligned glue -> room -> song mix.
+// Borrows an exclusively owned, loaded bus mixer at its configured origin. The
+// mixer must outlive the source and must not be used independently until destruction.
+// Its events/fades use the config's absolute clock; supply the same rack fades here.
+// N/seed/origin/texture/fades follow ll_air_create; focus/space/warmth follow glue/room.
+// Invalid creation leaves the mixer untouched. Owns fixed scratch/downstream state;
+// no whole-song PCM, body analysis, fixed gain, peak protection, or extra tail.
+LLSongSource *ll_song_source_create(LLMixer *mixer, const LLSongSourceConfig *config);
+void ll_song_source_destroy(LLSongSource *source); // Does not destroy the borrowed mixer.
+void ll_song_source_reset(LLSongSource *source); // Resets every stage and clears a terminal fault.
+// Allocation/free/lock/I/O-free. Emits min(capacity, N-position) logical stereo
+// frames, hiding glue's startup/drain; room/air see exactly N aligned song frames.
+// Clears unused capacity. written is required and cannot overlap output; buffers
+// must be fully sized and disjoint from both opaque allocations. Capacity 0 permits
+// null output and succeeds at EOF. Invalid arguments clear output/written without
+// advancing. An internal stage failure clears the whole call and latches a fault
+// until reset: position stays at the last successful call, but internal stages may
+// have advanced. No whole-chain rollback is claimed. No concurrent operations.
+bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacity, uint32_t *written);
+uint32_t ll_song_source_position(const LLSongSource *source); // Logical clock; zero for null.
+bool ll_song_source_faulted(const LLSongSource *source); // True for null.
 
 enum { LL_LOUDNESS_MIN_FRAMES = 12800, LL_LOUDNESS_MAX_FRAMES = 5792000 };
 #define LL_LOUDNESS_INPUT_LIMIT 1e6f

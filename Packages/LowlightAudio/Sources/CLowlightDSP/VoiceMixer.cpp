@@ -349,4 +349,5 @@ uint32_t ll_mixer_active_voices(const LLMixer *m) {
 uint32_t ll_mixer_steals(const LLMixer *m) { return m ? m->steals : 0; }
 uint32_t ll_mixer_dropped_events(const LLMixer *m) { return m ? m->dropped : 0; }
 uint64_t ll_mixer_position(const LLMixer *m) { return m ? m->position : 0; }
+uint64_t ll_mixer_origin(const LLMixer *m) { return m ? m->origin : 0; }
 uint32_t ll_mixer_sample_bytes(const LLMixer *m) { return m ? m->floatsUsed * sizeof(float) : 0; }
