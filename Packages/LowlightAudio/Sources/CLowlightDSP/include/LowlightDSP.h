@@ -231,6 +231,7 @@ void ll_song_source_reset(LLSongSource *source); // Resets every stage and clear
 // have advanced. No whole-chain rollback is claimed. No concurrent operations.
 bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacity, uint32_t *written);
 uint32_t ll_song_source_position(const LLSongSource *source); // Logical clock; zero for null.
+uint32_t ll_song_source_frames(const LLSongSource *source); // Declared logical length; zero for null.
 bool ll_song_source_faulted(const LLSongSource *source); // True for null.
 
 enum { LL_LOUDNESS_MIN_FRAMES = 12800, LL_LOUDNESS_MAX_FRAMES = 5792000 };
@@ -282,6 +283,29 @@ bool ll_song_gain_get(const LLSongGain *gain, LLSongGainValues *values);
 // and disjoint from the opaque allocation; destroy only after reads complete.
 // Setup/process force RN+FTZ and restore full caller FP control/status.
 bool ll_song_gain_process(const LLSongGain *gain, const float *input, float *output, uint32_t frames);
+
+typedef struct LLSongReplay LLSongReplay;
+// Off-thread fixed-gain/song-peak composition. Borrows an exclusive finite source
+// at logical position zero, not faulted; the source must outlive replay and cannot
+// be used independently while borrowed. Owns immutable gain, peak state, and fixed
+// scratch. body_lufs follows ll_song_gain_create; caller measures the selected
+// post-HP32 body first and validates ALL source frames against the gain input bound.
+// Creation never advances/resets the source, including on failure. No complete song PCM is retained.
+LLSongReplay *ll_song_replay_create(LLSongSource *source, double body_lufs);
+void ll_song_replay_destroy(LLSongReplay *replay); // Does not destroy the borrowed source.
+void ll_song_replay_reset(LLSongReplay *replay); // Rewinds source/peak without reanalysis or gain changes.
+bool ll_song_replay_gain(const LLSongReplay *replay, LLSongGainValues *values); // Same rules as gain_get.
+// Allocation/free/lock/I/O-free. Emits min(capacity, N-position) logical stereo
+// frames, hiding peak's 160 startup/drain frames. The source advances exactly N.
+// Unused output is zero. Capacity 0 permits null output, including at EOF; written
+// is required and cannot overlap output. Caller storage is fully sized and disjoint
+// from opaque allocations. Invalid arguments clear output/written without advancing.
+// Unexpected stage failure clears the whole call and faults until reset; position
+// stays at the last successful call, but internal state may have advanced. No
+// whole-chain rollback or hard/true-peak ceiling is claimed. No concurrent calls.
+bool ll_song_replay_render(LLSongReplay *replay, float *output, uint32_t capacity, uint32_t *written);
+uint32_t ll_song_replay_position(const LLSongReplay *replay); // Logical clock; zero for null.
+bool ll_song_replay_faulted(const LLSongReplay *replay); // True for null.
 
 #ifdef __cplusplus
 }
