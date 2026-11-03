@@ -26,6 +26,7 @@
 - [Finite song source](validation-song-source.md)
 - [Complete song preparation](validation-prepared-song.md)
 - [Native schedule preparation](validation-native-preparation.md)
+- [Native sample registry capacity](validation-sample-capacity.md)
 - [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
 - [Testing and contributing](contributing.md)

@@ -99,7 +99,7 @@ struct ScheduledSongTests {
         } catch SongRenderLayoutError.invalidLayout {}
     }
 
-    @Test func nativeSchedulePreservesSampleCapacityFailure() throws {
+    @Test func nativeScheduleAdmissionPreservesPCMCapacity() throws {
         struct Oracle: Decodable {
             struct Chain: Decodable { let plans: [SongPlan] }
             let chains: [Chain]
@@ -114,9 +114,45 @@ struct ScheduledSongTests {
         let schedule = try SongSchedule(
             song: plans[1], successor: plans[2], incoming: first.outgoing)
         #expect(try EventPlanner.events(for: schedule).count == 856)
+        let preparer = try bank()
+        let song = try PreparedSong(schedule: schedule, preparer: preparer)
+        #expect(song.preparedBytes == 24_689_592 && song.position == 0)
+        #expect(song.layout == (try SongRenderLayout(schedule: schedule)))
+        #expect(song.measurement.integratedLUFS != nil && song.measurement.gatedBlocks > 0)
+        var buffer = [Float](repeating: .nan, count: 2048)
+        var prefix: [UInt32] = []
+        var total = 0
+        var finite = true
+        while true {
+            let count = try #require(
+                buffer.withUnsafeMutableBufferPointer { song.render(into: $0) })
+            if total == 0 { prefix = Array(buffer.prefix(1024)).map(\.bitPattern) }
+            finite = finite && buffer.allSatisfy(\.isFinite)
+            total += count
+            if count == 0 { break }
+        }
+        #expect(total == Int(song.layout.inputFrames) && finite && !song.isFaulted)
+        #expect(song.stolenVoices == 0 && song.droppedEvents == 0)
+        #expect(buffer.allSatisfy { $0 == 0 } && prefix.contains { $0 & 0x7fff_ffff != 0 })
+        song.reset()
+        var replay: [UInt32] = []
+        for count in [1, 159, 160, 192] {
+            #expect(
+                buffer.withUnsafeMutableBufferPointer {
+                    song.render(into: UnsafeMutableBufferPointer(rebasing: $0[..<(count * 2)]))
+                } == count)
+            replay += buffer.prefix(count * 2).map(\.bitPattern)
+        }
+        #expect(replay == prefix && song.position == 512)
+
+        var dense = try SessionTimeline(controls: Controls(energy: 1, variation: 1, tempo: 60))
+        for _ in 0..<4 { _ = try dense.next() }
+        let tooLarge = try dense.next()
+        #expect(try EventPlanner.events(for: tooLarge).count == 700)
+        // 77 normalized keys fit the registry, but their 33,970,508 PCM bytes exceed 32 MiB.
         do {
-            _ = try PreparedSong(schedule: schedule, preparer: bank())
-            Issue.record("A 73-key native score bypassed the unchanged 64-sample limit")
+            _ = try PreparedSong(schedule: tooLarge, preparer: preparer)
+            Issue.record("A native score bypassed the unchanged 32 MiB PCM limit")
         } catch VoiceMixerError.capacityExceeded {}
     }
 

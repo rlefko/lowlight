@@ -63,11 +63,11 @@ struct PreparedSampleTests {
         #expect(overloaded.stolenVoices == 64 && overloaded.droppedEvents == 1)
     }
 
-    @Test func completeAcceptedScoreFitsWithoutChangingCapacityLimits() throws {
+    @Test func completeAcceptedScoreKeepsItsPCMAndVoiceLimits() throws {
         let data = try Data(
             contentsOf: preparedRoot.appendingPathComponent("tests/fixtures/v9/events.json"))
         let events = try NoteEvent.importReference(data)
-        #expect(events.count == 621 && LL_SAMPLE_LIMIT == 64 && LL_SAMPLE_BYTES == 33_554_432)
+        #expect(events.count == 621 && LL_VOICE_LIMIT == 64 && LL_SAMPLE_BYTES == 33_554_432)
         let mixer = try TonalVoiceMixer(
             preparer: preparer(), events: events, warmth: 0.78, busEnergy: 0.3795510689640131)
         #expect(mixer.preparedBytes == 23_363_076)
@@ -102,18 +102,45 @@ struct PreparedSampleTests {
         } catch VoiceMixerError.capacityExceeded {}
     }
 
-    @Test func sampleSlotLimitStillRejectsTinySixtyFifthKey() throws {
-        let events = try (0..<65).map {
-            try event(.guitar, note: 50 + $0 / 4, rr: $0 % 4, start: $0 * 2, hold: 1)
+    @Test func completeNormalizedSampleDomainAndAliasesFitTheRegistry() throws {
+        let domain: [(NoteEvent.Instrument, ClosedRange<Int>, Int, Int)] = [
+            (.guitar, 50...69, 4, 1), (.piano, 50...69, 1, 1), (.bass, 31...57, 2, 1),
+            (.kick, 0...0, 2, 1), (.snare, 1...1, 2, 1), (.hat, 0...0, 2, 2),
+            (.shaker, 0...0, 4, 1),
+        ]
+        var events: [NoteEvent] = []
+        for (instrument, notes, takes, layers) in domain {
+            for note in notes {
+                for take in 0..<takes {
+                    for layer in 1...layers {
+                        let velocity = instrument == .hat ? (layer == 1 ? 0.719999999 : 0.72) : 0.5
+                        for alias in [take, take + takes] {
+                            events.append(
+                                try event(
+                                    instrument, note: note, rr: alias, start: events.count * 2,
+                                    hold: 1, velocity: velocity))
+                        }
+                    }
+                }
+            }
         }
-        let source = try preparer()
-        let mixer = try TonalVoiceMixer(
-            preparer: source, events: Array(events.prefix(64)), warmth: 0.78)
-        #expect(mixer.preparedBytes == 64 * 4)
-        do {
-            _ = try TonalVoiceMixer(preparer: source, events: events, warmth: 0.78)
-            Issue.record("Expected the unchanged 64-slot limit to reject the sixty-fifth key")
-        } catch VoiceMixerError.capacityExceeded {}
+        #expect(events.count == 332 && LL_SAMPLE_LIMIT == 166 && LL_EVENT_LIMIT == 2048)
+        #expect(LL_VOICE_LIMIT == 64 && LL_SAMPLE_BYTES == 33_554_432)
+        let mixer = try TonalVoiceMixer(preparer: preparer(), events: events, warmth: 0.78)
+        // 80 mono guitar + 20 stereo piano + 54 mono bass one-frame prefixes (696 B),
+        // plus all 12 complete percussion bodies (441,152 B). Aliases allocate no extra PCM.
+        #expect(mixer.preparedBytes == 441_848)
+        var output = [Float](repeating: .nan, count: 512)
+        while mixer.position < 24_000 {
+            let count = min(256, 24_000 - Int(mixer.position))
+            try #require(
+                output.withUnsafeMutableBufferPointer {
+                    mixer.render(into: UnsafeMutableBufferPointer(rebasing: $0[..<(count * 2)]))
+                })
+            let finite = output.prefix(count * 2).allSatisfy(\.isFinite)
+            #expect(finite)
+        }
+        #expect(mixer.activeVoices == 0 && mixer.stolenVoices == 0 && mixer.droppedEvents == 0)
     }
 
     private func event(

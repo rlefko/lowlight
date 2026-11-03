@@ -27,7 +27,9 @@ typedef void (*LLPreparationCallback)(void *context);
 // The masked-exception/default-other-controls preconditions above also apply here.
 bool ll_with_preparation_mode(LLPreparationCallback callback, void *context);
 
-enum { LL_VOICE_LIMIT = 64, LL_SAMPLE_LIMIT = 64, LL_EVENT_LIMIT = 2048,
+// Registered PCM keys are separate from active voices: 80 guitar + 20 piano +
+// 54 bass + 2 kick + 2 side-stick + 4 hat + 4 shaker cover the validated key domain.
+enum { LL_VOICE_LIMIT = 64, LL_SAMPLE_LIMIT = 166, LL_EVENT_LIMIT = 2048,
        LL_SAMPLE_BYTES = 32 * 1024 * 1024, LL_STEAL_FRAMES = 160 };
 typedef struct LLMixer LLMixer;
 typedef struct {
