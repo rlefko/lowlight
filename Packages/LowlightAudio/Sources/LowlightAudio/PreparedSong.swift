@@ -15,8 +15,12 @@ public final class PreparedSong {
     public let gainDecibels, linearMultiplier: Double
     private let source: SongRenderSource
     private let handle: OpaquePointer
+    private typealias Prepared = (
+        source: SongRenderSource, handle: OpaquePointer,
+        measurement: SongLoudnessMeasurement, gain: LLSongGainValues
+    )
 
-    public init(
+    public convenience init(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
         space: Double, texture: Double, rackFades: SongRackFades
@@ -27,7 +31,21 @@ public final class PreparedSong {
                 focus: focus, warmth: warmth, energy: energy, space: space,
                 texture: texture, rackFades: rackFades)
         }
-        self.layout = layout
+        self.init(prepared: prepared)
+    }
+
+    /// Prepares an already formed native schedule on its shared absolute frame clock.
+    /// Schedule validation and render-input derivation use the preparation numeric scope;
+    /// earlier planning remains a separate contract. Existing score/storage limits apply.
+    public convenience init(schedule: SongSchedule, preparer: TonalSamplePreparer) throws {
+        let prepared = try PreparationMode.perform {
+            try Self.makeScheduledSong(schedule: schedule, preparer: preparer)
+        }
+        self.init(prepared: prepared)
+    }
+
+    private init(prepared: Prepared) {
+        layout = prepared.source.layout
         source = prepared.source
         handle = prepared.handle
         measurement = prepared.measurement
@@ -36,14 +54,27 @@ public final class PreparedSong {
     }
 
     @inline(never)
+    private static func makeScheduledSong(
+        schedule: SongSchedule, preparer: TonalSamplePreparer
+    ) throws -> Prepared {
+        try schedule.validate()
+        let song = schedule.song
+        let layout = try SongRenderLayout(schedule: schedule)
+        let fades = try SongRackFades(schedule: schedule)
+        let events = try EventPlanner.events(for: schedule)
+        return try makeSong(
+            layout: layout, preparer: preparer, events: events,
+            takeSeed: UInt32(song.takeSeed), focus: song.focus == "guitar" ? .guitar : .piano,
+            warmth: song.controls.warmth, energy: song.energy,
+            space: song.controls.space, texture: song.controls.texture, rackFades: fades)
+    }
+
+    @inline(never)
     private static func makeSong(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
         space: Double, texture: Double, rackFades: SongRackFades
-    ) throws -> (
-        source: SongRenderSource, handle: OpaquePointer,
-        measurement: SongLoudnessMeasurement, gain: LLSongGainValues
-    ) {
+    ) throws -> Prepared {
         let source = try SongRenderSource(
             layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
             focus: focus, warmth: warmth, energy: energy, space: space,

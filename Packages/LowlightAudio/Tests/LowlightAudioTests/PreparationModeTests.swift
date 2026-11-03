@@ -214,7 +214,7 @@ struct PreparationModeTests {
         [Float(value).bitPattern, (small * 0.5).bitPattern]
     }
 
-    private func environment<Value>(
+    func environment<Value>(
         _ rounding: UInt32, _ flush: UInt32, _ flags: Bool,
         _ body: () throws -> Value
     ) throws -> Value {
