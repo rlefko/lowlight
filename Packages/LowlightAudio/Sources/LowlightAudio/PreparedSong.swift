@@ -15,6 +15,7 @@ public final class PreparedSong {
     public let gainDecibels, linearMultiplier: Double
     private let source: SongRenderSource
     private let handle: OpaquePointer
+    private let reservation: SongPreparationPool.Reservation?
     private typealias Prepared = (
         source: SongRenderSource, handle: OpaquePointer,
         measurement: SongLoudnessMeasurement, gain: LLSongGainValues
@@ -25,29 +26,50 @@ public final class PreparedSong {
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
         space: Double, texture: Double, rackFades: SongRackFades
     ) throws {
+        try self.init(
+            layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
+            focus: focus, warmth: warmth, energy: energy, space: space, texture: texture,
+            rackFades: rackFades, reservation: nil)
+    }
+
+    convenience init(
+        layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
+        takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
+        space: Double, texture: Double, rackFades: SongRackFades,
+        reservation: SongPreparationPool.Reservation?
+    ) throws {
         let prepared = try PreparationMode.perform {
             try Self.makeSong(
                 layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
                 focus: focus, warmth: warmth, energy: energy, space: space,
-                texture: texture, rackFades: rackFades)
+                texture: texture, rackFades: rackFades, reservation: reservation)
         }
-        self.init(prepared: prepared)
+        self.init(prepared: prepared, reservation: reservation)
     }
 
     /// Prepares an already formed native schedule on its shared absolute frame clock.
     /// Schedule validation and render-input derivation use the preparation numeric scope;
     /// earlier planning remains a separate contract. Existing score/storage limits apply.
     public convenience init(schedule: SongSchedule, preparer: TonalSamplePreparer) throws {
-        let prepared = try PreparationMode.perform {
-            try Self.makeScheduledSong(schedule: schedule, preparer: preparer)
-        }
-        self.init(prepared: prepared)
+        try self.init(schedule: schedule, preparer: preparer, reservation: nil)
     }
 
-    private init(prepared: Prepared) {
+    convenience init(
+        schedule: SongSchedule, preparer: TonalSamplePreparer,
+        reservation: SongPreparationPool.Reservation?
+    ) throws {
+        let prepared = try PreparationMode.perform {
+            try Self.makeScheduledSong(
+                schedule: schedule, preparer: preparer, reservation: reservation)
+        }
+        self.init(prepared: prepared, reservation: reservation)
+    }
+
+    private init(prepared: Prepared, reservation: SongPreparationPool.Reservation?) {
         layout = prepared.source.layout
         source = prepared.source
         handle = prepared.handle
+        self.reservation = reservation
         measurement = prepared.measurement
         gainDecibels = prepared.gain.gain_db
         linearMultiplier = prepared.gain.linear_multiplier
@@ -55,7 +77,8 @@ public final class PreparedSong {
 
     @inline(never)
     private static func makeScheduledSong(
-        schedule: SongSchedule, preparer: TonalSamplePreparer
+        schedule: SongSchedule, preparer: TonalSamplePreparer,
+        reservation: SongPreparationPool.Reservation?
     ) throws -> Prepared {
         try schedule.validate()
         let song = schedule.song
@@ -66,19 +89,24 @@ public final class PreparedSong {
             layout: layout, preparer: preparer, events: events,
             takeSeed: UInt32(song.takeSeed), focus: song.focus == "guitar" ? .guitar : .piano,
             warmth: song.controls.warmth, energy: song.energy,
-            space: song.controls.space, texture: song.controls.texture, rackFades: fades)
+            space: song.controls.space, texture: song.controls.texture, rackFades: fades,
+            reservation: reservation)
     }
 
     @inline(never)
     private static func makeSong(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
-        space: Double, texture: Double, rackFades: SongRackFades
+        space: Double, texture: Double, rackFades: SongRackFades,
+        reservation: SongPreparationPool.Reservation?
     ) throws -> Prepared {
         let source = try SongRenderSource(
             layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
             focus: focus, warmth: warmth, energy: energy, space: space,
             texture: texture, rackFades: rackFades)
+        // Admission precedes the analysis render; failed construction releases the lease.
+        try reservation?.claim(
+            voiceSlots: source.requiredVoiceSlots, pcmBytes: source.preparedBytes)
         let body = try SongBodyLoudness(layout: layout)
         var scratch = [Float](repeating: 0, count: 256 * 2)
         try scratch.withUnsafeMutableBufferPointer { buffer in
@@ -105,7 +133,7 @@ public final class PreparedSong {
     }
 
     // Destroy the native borrower before releasing its privately retained source.
-    deinit { ll_song_replay_destroy(handle) }
+    deinit { withExtendedLifetime(reservation) { ll_song_replay_destroy(handle) } }
 
     /// Returns logical frames written, zero at EOF/empty capacity, or nil on failure.
     /// Both processor delays are removed; unused capacity is zeroed. Invalid
@@ -126,6 +154,7 @@ public final class PreparedSong {
     public var position: UInt32 { ll_song_replay_position(handle) }
     public var isFaulted: Bool { ll_song_replay_faulted(handle) }
     public var preparedBytes: Int { source.preparedBytes }
+    public var requiredVoiceSlots: Int { source.requiredVoiceSlots }
     public var stolenVoices: Int { source.stolenVoices }
     public var droppedEvents: Int { source.droppedEvents }
 }
