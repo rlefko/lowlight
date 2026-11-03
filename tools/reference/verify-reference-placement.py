@@ -17,6 +17,7 @@ BODY = runpy.run_path(str(HERE / "verify-song-body.py"))
 FIXTURES = ROOT / "tests/fixtures/reference-placement-v9"
 MAXIMUM = 1 << 52
 MANIFEST_SHA256 = "d179e22ea4ec21d1706582a100448217bdd407c8463f9a02d8d89c218c2588c7"
+DURATION_REGENERATION_SECONDS = 2e-15
 
 
 def source_song():
@@ -105,11 +106,30 @@ def original_observations(renderer):
     return observations
 
 
+def validate_regenerated_events(events, regenerated, origin):
+    if len(events) != len(regenerated):
+        raise ValueError("Changed original later-song event count")
+    for frozen, actual in zip(events, regenerated):
+        # Subtracting nearby log1p ramp times differs by 1.78e-15 seconds
+        # between the frozen macOS and Linux libm. No other field may drift.
+        if (type(frozen["duration"]) is not float or type(actual["duration"]) is not float
+                or not abs(frozen["duration"] - actual["duration"]) <= DURATION_REGENERATION_SECONDS
+                or not BODY["same"](frozen, dict(actual, duration=frozen["duration"]))):
+            raise ValueError("Changed original later-song events")
+    expected = [endpoints(event, origin) for event in events]
+    if expected != [endpoints(event, origin) for event in regenerated]:
+        raise ValueError("Changed regenerated exact placement endpoints")
+    def disagreements(rows):
+        return [index for index, event in enumerate(rows)
+                if round(event["time"] * 32000) != expected[index]["start_frame"]]
+    if disagreements(events) != disagreements(regenerated):
+        raise ValueError("Changed regenerated absolute/local disagreements")
+
+
 def derive(events):
     song = source_song()
-    if events != PLANNER.make_events(song):
-        raise ValueError("Changed original later-song events")
     origin = BODY["original_layout"](song)["origin_frame"]
+    validate_regenerated_events(events, PLANNER.make_events(song), origin)
     cases = [dict(id="original-song-1", events_file="events.json", frame_origin=origin,
                   expected=[endpoints(event, origin) for event in events])]
     probes = [dict(row, expected=None if row["rejected"] else [endpoints(event, row["frame_origin"]) for event in row["events"]])
