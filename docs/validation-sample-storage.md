@@ -1,6 +1,6 @@
 # Prepared sample storage
 
-The complete accepted 621-event score previously needed 39,363,152 bytes of prepared PCM and failed the 32 MiB mixer limit. Preparation now retains only the guitar, piano, and bass sample frames that some event using that sample can reach. The same score now retains 23,363,076 bytes across 63 sample keys after the [reference-duration correction](validation-reference-timing.md); the original storage validation below used 23,363,108 bytes. The 32 MiB arena, 64 sample descriptors, 2,048 events, and voice limits remain unchanged. This makes that score preparable; it does not establish that every future score will fit.
+The complete accepted 621-event score previously needed 39,363,152 bytes of prepared PCM and failed the 32 MiB mixer limit. Preparation now retains only the guitar, piano, and bass sample frames that some event using that sample can reach. The same score now retains 23,363,076 bytes across 63 sample keys after the [reference-duration correction](validation-reference-timing.md); the original storage validation below used 23,363,108 bytes. That storage change preserved the limits in use at the time: a 32 MiB arena, 64 sample descriptors, 2,048 events, and 64 voices. The subsequent [registry expansion](validation-sample-capacity.md) raises only the descriptor count to 166. This makes that score preparable; it does not establish that every future score will fit.
 
 ## Preparation and sound preservation
 

@@ -746,20 +746,77 @@ static void invalidInputsAndOwnership() {
     CHECK(!ll_mixer_load_events(mixer.value, unsorted, 2));
     CHECK(ll_mixer_position(mixer.value) == 123);
     CHECK(std::vector<float>(expected.begin() + 246, expected.end()) == mixer.render(1677));
-    Mixer capacity;
-    for (int index = 0; index < 64; ++index) CHECK(capacity.sample(0.1f, 1) == index);
-    CHECK(capacity.sample(0.1f, 1) == -1);
     Mixer bytes; std::vector<float> large(215513 * 2, 0.1f); uint32_t accepted = 0;
     while (ll_mixer_add_sample(bytes.value, large.data(), 215513, 2) >= 0) ++accepted;
-    CHECK(accepted > 0 && accepted < 64 && ll_mixer_sample_bytes(bytes.value) == accepted * large.size() * sizeof(float));
-    CHECK(ll_mixer_sample_bytes(bytes.value) <= LL_SAMPLE_BYTES);
+    CHECK(accepted == 19 && ll_mixer_sample_bytes(bytes.value) == accepted * large.size() * sizeof(float));
+    const uint32_t remaining = (LL_SAMPLE_BYTES - ll_mixer_sample_bytes(bytes.value)) / sizeof(float);
+    CHECK(bytes.sample(.25f, remaining) == 19 && ll_mixer_sample_bytes(bytes.value) == 32 * 1024 * 1024);
+    CHECK(bytes.sample(.1f, 1) == -1 && ll_mixer_sample_bytes(bytes.value) == LL_SAMPLE_BYTES);
+    bytes.load({percussion(3, 19)});
+    CHECK(bytes.render(1)[0] == (.25f * panFactor(0)) * .31f);
+}
+
+static void sampleRegistryPlaybackAndEventLimit() {
+    CHECK(LL_SAMPLE_LIMIT == 166 && LL_VOICE_LIMIT == 64 && LL_EVENT_LIMIT == 2048);
+    Mixer mixer;
+    for (int index = 0; index < 166; ++index) CHECK(mixer.sample((index + 1) / 256.f, 3) == index);
+    const uint32_t bytes = 166 * 3 * sizeof(float);
+    CHECK(ll_mixer_sample_bytes(mixer.value) == bytes);
+    CHECK(mixer.sample(.5f, 1) == -1 && ll_mixer_sample_bytes(mixer.value) == bytes);
+    std::vector<LLEvent> score;
+    for (uint32_t index = 0; index < 2048; ++index) score.push_back(percussion(3, index % 166, 5 * index));
+    mixer.load(score);
+    const auto whole = mixer.render(10240, {10240});
+    for (uint32_t index = 0; index < 2048; ++index) {
+        const float expected = (((index % 166 + 1) / 256.f) * panFactor(0)) * .31f;
+        for (uint32_t offset = 0; offset < 5; ++offset) {
+            const uint32_t frame = 5 * index + offset;
+            CHECK(whole[2 * frame] == (offset < 3 ? expected : 0));
+            CHECK(whole[2 * frame + 1] == whole[2 * frame]);
+        }
+    }
+    CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_steals(mixer.value) == 0);
+    mixer.reset(); CHECK(whole == mixer.render(10240, {1, 17, 255, 257, 503}));
+    mixer.reset(); const auto prefix = mixer.render(137);
+    CHECK(std::equal(prefix.begin(), prefix.end(), whole.begin()));
+    auto invalid = percussion(3, 166);
+    CHECK(!ll_mixer_load_events(mixer.value, &invalid, 1));
+    score.push_back(percussion(3, 165, 10240));
+    CHECK(!ll_mixer_load_events(mixer.value, score.data(), static_cast<uint32_t>(score.size())));
+    CHECK(ll_mixer_position(mixer.value) == 137);
+    CHECK(std::vector<float>(whole.begin() + 274, whole.end()) == mixer.render(10103));
+}
+
+static void highSampleVoiceLimits() {
+    Mixer mixer;
+    for (int index = 0; index < 164; ++index) CHECK(mixer.sample(.1f, 1) == index);
+    CHECK(mixer.sample(.125f, 8) == 164 && mixer.sample(0, 4096) == 165);
+    for (const bool withBass : {false, true}) {
+        const uint32_t tonalVoices = withBass ? 63 : 64;
+        auto tone = event(165, 0, 3000, 0);
+        std::vector<LLEvent> score(tonalVoices, tone);
+        auto low = bass(0, 3000, 0); low.sample_index = 164;
+        if (withBass) score.push_back(low);
+        tone.start_frame = 100; tone.priority = 2;
+        score.insert(score.end(), tonalVoices, tone);
+        tone.start_frame = 101; score.push_back(tone); // Pending replacements cannot be overwritten.
+        mixer.load(score); const auto whole = mixer.render(700, {1});
+        CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == tonalVoices);
+        CHECK(ll_mixer_dropped_events(mixer.value) == 1);
+        for (uint32_t frame = 0; frame < 700; ++frame) {
+            const float expected = withBass ? bassReference(frame, low, frame < 8 ? .125f : 0) : 0;
+            CHECK(near(whole[2 * frame], expected) && whole[2 * frame + 1] == whole[2 * frame]);
+        }
+        mixer.reset(); CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_steals(mixer.value) == 0);
+        CHECK(whole == mixer.render(700, {257, 1, 19}));
+    }
 }
 
 int main() {
     timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
     percussionSoundAndBounds(); percussionStealingAndProtection(); busFiltersAndRouting(); busStateAndValidation();
     kickDuckingAndProtection(); rackFadeValidation(); rackFadeArithmeticAndViews(); rackHandoffAndTails();
-    rackFadeFloatingBounds(); invalidInputsAndOwnership();
+    rackFadeFloatingBounds(); invalidInputsAndOwnership(); sampleRegistryPlaybackAndEventLimit(); highSampleVoiceLimits();
     originTranslation(); originSetupAndReload(); originTimelineLimit();
     std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }
