@@ -68,6 +68,9 @@ public final class SongRenderSource {
     // Destroy the borrower before Swift releases its privately retained mixer.
     deinit { ll_song_source_destroy(handle) }
 
+    // Internal borrowers must retain this source, serialize access, and never destroy its handle.
+    var borrowedHandle: OpaquePointer { handle }
+
     /// Writes logical stereo frames, removing glue startup and recovering its drain.
     /// Returns frames written, zero at EOF or for empty capacity, or nil on failure.
     /// Unused capacity is zeroed. Invalid dimensions leave progress unchanged;

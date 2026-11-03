@@ -99,4 +99,5 @@ bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacit
     return true;
 }
 uint32_t ll_song_source_position(const LLSongSource *source) { return source ? source->position : 0; }
+uint32_t ll_song_source_frames(const LLSongSource *source) { return source ? source->frames : 0; }
 bool ll_song_source_faulted(const LLSongSource *source) { return !source || source->faulted; }

@@ -180,6 +180,35 @@ struct PreparationModeTests {
         } catch SongRenderSourceError.invalidConfiguration {}
     }
 
+    @Test func preparedAnalysisAndReplayRestoreTheCallerOnSuccessAndFailure() throws {
+        let preparer = try bank()
+        let events = try score()
+        let layout = try SongRenderLayout(frameOrigin: 0, inputFrames: 16384, bodyFrames: 0..<16384)
+        let fades = SongRackFades(
+            tonalOutStartFrame: 20000, tonalOutEndFrame: 22000, rhythmOutFrame: 21000)
+        func prepare(_ score: [NoteEvent]) throws -> PreparedSong {
+            try PreparedSong(
+                layout: layout, preparer: preparer, events: score, takeSeed: 1,
+                focus: .guitar, warmth: 0.785, energy: 0.63, space: 0.44,
+                texture: 0, rackFades: fades)
+        }
+        let reference = try prepare(events)
+        let actual = try environment(3, ll_test_flush_modes() - 1, true) { try prepare(events) }
+        #expect(actual.measurement == reference.measurement)
+        #expect(actual.linearMultiplier.bitPattern == reference.linearMultiplier.bitPattern)
+        var expected = [Float](repeating: .nan, count: 512)
+        var output = expected
+        #expect(expected.withUnsafeMutableBufferPointer { reference.render(into: $0) } == 256)
+        let count = try environment(2, ll_test_flush_modes() - 1, false) {
+            output.withUnsafeMutableBufferPointer { actual.render(into: $0) }
+        }
+        #expect(count == 256 && expected.map(\.bitPattern) == output.map(\.bitPattern))
+        do {
+            _ = try environment(1, ll_test_flush_modes() - 1, true) { try prepare([]) }
+            Issue.record("An unmeasurable body prepared a song")
+        } catch PreparedSongError.unmeasurableBody {}
+    }
+
     @inline(never)
     private func arithmetic(_ value: Double, _ small: Float) -> [UInt32] {
         [Float(value).bitPattern, (small * 0.5).bitPattern]
