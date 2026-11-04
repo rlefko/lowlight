@@ -4,9 +4,10 @@
 import AVFAudio
 import CryptoKit
 import Foundation
-import LowlightAudio
 import LowlightPlanning
 import Testing
+
+@testable import LowlightAudio
 
 private struct Inventory: Decodable {
     let schemaVersion, assetCount, compressedBytes: Int
@@ -19,6 +20,72 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
+    @Test func sessionSourceRendersOfflineThroughTheIOSAudioEngine() async throws {
+        let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
+        let preparer = try TonalSamplePreparer(bankURL: bank)
+        let record = Data(
+            """
+            [{"instrument":"guitar","note":60,"beat":0,"time":0,"local_time":0,
+              "duration":0.4,"velocity":0.5,"role":"chord","pan":-0.25,
+              "round_robin":0,"release":0.1,"articulation":"normal"}]
+            """.utf8)
+        let worker: SessionPreparationWorker = try await withCheckedThrowingContinuation {
+            continuation in
+            DispatchQueue.global(qos: .default).async(qos: .default, flags: .enforceQoS) {
+                continuation.resume(
+                    with: Result {
+                        try SessionPreparationWorker { token in
+                            var index = 0
+                            return try PreparedSession(
+                                frameCount: 20_000, preparation: .concurrent, cancellation: token,
+                                accepted: { index += 1 },
+                                prepare: { pool, cancellation in
+                                    let origin: UInt64 = index == 0 ? 0 : 6400
+                                    let song = try pool.prepare(
+                                        layout: SongRenderLayout(
+                                            frameOrigin: origin, inputFrames: 16_000,
+                                            bodyFrames: 0..<12_800),
+                                        preparer: preparer,
+                                        events: NoteEvent.importReference(
+                                            record, placingAt: Int64(origin)),
+                                        takeSeed: 1, focus: .guitar, warmth: 0.78, energy: 0.35,
+                                        space: 0.44, texture: 0,
+                                        rackFades: SongRackFades(
+                                            tonalOutStartFrame: Double(origin + 12_800),
+                                            tonalOutEndFrame: Double(origin + 16_000),
+                                            rhythmOutFrame: Double(origin + 12_800)),
+                                        cancellation: cancellation)
+                                    return (song, index == 0 ? 6400 : 20_000)
+                                })
+                        }
+                    })
+            }
+        }
+        defer {
+            worker.requestStop()
+            worker.join()
+        }
+        let source = try SessionAudioSource(worker: worker)
+        let engine = AVAudioEngine()
+        let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 32_000, channels: 2))
+        try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 2048)
+        engine.attach(source.node)
+        defer {
+            engine.stop()
+            engine.disconnectNodeOutput(source.node)
+            engine.detach(source.node)
+        }
+        engine.connect(source.node, to: engine.mainMixerNode, format: format)
+        try engine.start()
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 2048))
+        let status = try engine.renderOffline(2048, to: buffer)
+        #expect(status == .success && buffer.frameLength == 2048)
+        let channels = try #require(buffer.floatChannelData)
+        let samples = (0..<2048).flatMap { [channels[0][$0], channels[1][$0]] }
+        #expect(samples.allSatisfy(\.isFinite) && samples.contains { $0 != 0 })
+        #expect(source.position == 2048 && source.status == .rendering && !source.isFaulted)
+    }
+
     @Test func bodyLoudnessMeterFinishesAndResetsOnIOS() throws {
         let meter = try SongLoudnessMeter(bodyFrames: 24_000)
         // Frozen pyloudnorm case loudness-length-24000, including its four-block rounding.
