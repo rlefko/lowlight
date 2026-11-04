@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import copy
 from pathlib import Path
+import re
 import runpy
 import subprocess
 import tempfile
@@ -31,13 +32,13 @@ class CoverageTests(unittest.TestCase):
             with self.subTest(missing=missing):
                 payload = copy.deepcopy(self.payload)
                 payload["#select"]["tuples"] = [r for r in payload["#select"]["tuples"] if r[0]["label"] != str(missing)]
-                with self.assertRaisesRegex(ValueError, missing.name):
+                with self.assertRaisesRegex(ValueError, re.escape(missing.name)):
                     VERIFY(payload, ROOT)
 
     def test_outside_same_basename_does_not_supply_coverage(self):
         row = next(row for row in self.payload["#select"]["tuples"] if row[0]["label"] == str(APP))
         row[0]["label"] = str(ROOT.parent / APP.name)
-        with self.assertRaisesRegex(ValueError, APP.name):
+        with self.assertRaisesRegex(ValueError, re.escape(APP.name)):
             VERIFY(self.payload, ROOT)
 
     def test_absolute_file_urls_are_normalized(self):
@@ -96,12 +97,12 @@ class CppCoverageTests(unittest.TestCase):
         for missing in (self.source, self.header):
             payload = copy.deepcopy(self.payload)
             payload["#select"]["tuples"] = [r for r in payload["#select"]["tuples"] if r[0]["label"] != str(missing)]
-            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, missing.name):
+            with self.subTest(missing=missing), self.assertRaisesRegex(ValueError, re.escape(missing.name)):
                 VERIFY(payload, self.root, "cpp")
 
     def test_other_checkout_cannot_supply_kernel_coverage(self):
         self.payload["#select"]["tuples"][0][0]["label"] = str(self.root.parent / self.source.name)
-        with self.assertRaisesRegex(ValueError, "VoiceMixer.cpp"):
+        with self.assertRaisesRegex(ValueError, re.escape(self.source.name)):
             VERIFY(self.payload, self.root, "cpp")
 
     def test_requires_both_tracked_implementation_and_header(self):
@@ -116,7 +117,7 @@ class CppCoverageTests(unittest.TestCase):
 
     def test_deleted_tracked_source_fails_even_with_extraction_row(self):
         self.source.unlink()
-        with self.assertRaisesRegex(ValueError, "Missing tracked source: .*VoiceMixer.cpp"):
+        with self.assertRaisesRegex(ValueError, "Missing tracked source: .*" + re.escape(self.source.name)):
             VERIFY(self.payload, self.root, "cpp")
 
     def test_unsupported_language_cannot_disable_inventory(self):
