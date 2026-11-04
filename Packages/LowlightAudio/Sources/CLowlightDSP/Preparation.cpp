@@ -4,7 +4,8 @@
 #include "LowlightDSP.h"
 
 bool ll_with_preparation_mode(LLPreparationCallback callback, void *context) {
-    if (!callback) return false;
+    if (!callback)
+        return false;
     lowlight::FloatingPointMode mode(lowlight::UnderflowMode::gradual);
     callback(context);
     return true;

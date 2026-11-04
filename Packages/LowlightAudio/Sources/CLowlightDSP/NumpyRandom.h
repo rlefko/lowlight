@@ -12,6 +12,7 @@ struct NumpyRandom {
     uint64_t nextRaw();
     bool nextDoubleNormal(double &output);
     bool nextFloat(float &output);
+
 private:
     __uint128_t state = 0, increment = 0;
 };

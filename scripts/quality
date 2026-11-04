@@ -10,6 +10,7 @@ lint="$root/.tools/swiftlint-$SWIFTLINT_VERSION/swiftlint"
 [[ -x "$lint" ]] || { echo 'Run scripts/setup first.' >&2; exit 1; }
 mode="${1:-check}"
 files=()
+native=()
 case "$mode" in
   staged)
     git diff --cached --check
@@ -17,12 +18,19 @@ case "$mode" in
     trap 'rm -rf "$snapshot"' EXIT
     git checkout-index --all --prefix="$snapshot/"
     while IFS= read -r -d '' file; do files+=("$snapshot/$file"); done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.swift')
+    if git diff --cached --quiet -- ':(glob)**/.clang-format' ':(glob)**/.clang-format-ignore'; then
+      while IFS= read -r -d '' file; do native+=("$snapshot/$file"); done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.m' '*.mm')
+    else
+      # A changed native style affects unchanged files too. Check the complete index.
+      while IFS= read -r -d '' file; do native+=("$snapshot/$file"); done < <(git ls-files -z -- '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.m' '*.mm')
+    fi
     cd "$snapshot"
     ;;
   check|fix)
     git diff --check
     git diff --cached --check
     while IFS= read -r -d '' file; do [[ ! -f "$file" ]] || files+=("$file"); done < <(git ls-files -z -- '*.swift')
+    while IFS= read -r -d '' file; do [[ ! -f "$file" ]] || native+=("$file"); done < <(git ls-files -z -- '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.m' '*.mm')
     ;;
   *) echo 'Usage: scripts/quality [check|staged|fix]' >&2; exit 1 ;;
 esac
@@ -33,4 +41,14 @@ if [[ ${#files[@]} -gt 0 ]]; then
     xcrun swift format lint --strict --configuration .swift-format "${files[@]}"
   fi
   "$lint" lint --strict --quiet --no-cache --config .swiftlint.yml "${files[@]}"
+fi
+if [[ ${#native[@]} -gt 0 ]]; then
+  [[ -f .clang-format && -f .clang-format-ignore ]] || {
+    echo 'Native formatting requires .clang-format and .clang-format-ignore.' >&2; exit 1;
+  }
+  if [[ "$mode" == fix ]]; then
+    xcrun clang-format --style=file --fail-on-incomplete-format -i -- "${native[@]}"
+  else
+    xcrun clang-format --style=file --fail-on-incomplete-format --dry-run --Werror -- "${native[@]}"
+  fi
 fi

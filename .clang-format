@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-3.0-only
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 100
+AccessModifierOffset: -4
+NamespaceIndentation: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+BreakStringLiterals: false
+FixNamespaceComments: false
+ReflowComments: Never
+# FloatingPointMode.h must remain first in DSP translation units.
+SortIncludes: Never
+SortUsingDeclarations: Never

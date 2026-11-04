@@ -1,0 +1,4 @@
+# Preserve adapted upstream implementation, tables, and embedded notices exactly.
+# Project-owned NumpyRandom.h and the remaining C/C++ sources are formatted.
+Packages/LowlightAudio/Sources/CLowlightDSP/NumpyRandom.cpp
+Packages/LowlightAudio/Sources/CLowlightDSP/NumpyZiggurat.h
