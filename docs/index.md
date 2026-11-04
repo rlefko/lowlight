@@ -35,6 +35,7 @@
 - [Native planning decision](adrs/002-native-planning.md)
 - [Native planning validation](validation-planning.md)
 - [Planning checkpoint persistence](validation-checkpoint-persistence.md)
+- [Reversible preparation suspension](validation-preparation-suspension.md)
 - [Session audio source](validation-audio-source.md)
 - [Note events and shared time decision](adrs/003-events-and-shared-time.md)
 - [Event and transition validation](validation-events.md)

@@ -20,7 +20,7 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
-    @Test func sessionSourceRendersOfflineThroughTheIOSAudioEngine() async throws {
+    @Test func sessionSourceResumesOfflineThroughTheIOSAudioEngine() async throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
         let preparer = try TonalSamplePreparer(bankURL: bank)
         let record = Data(
@@ -84,6 +84,18 @@ struct SoundBankTests {
         let samples = (0..<2048).flatMap { [channels[0][$0], channels[1][$0]] }
         #expect(samples.allSatisfy(\.isFinite) && samples.contains { $0 != 0 })
         #expect(source.position == 2048 && source.status == .rendering && !source.isFaulted)
+        engine.pause()
+        #expect(worker.suspend() && !worker.suspend())
+        let deadline = Date().addingTimeInterval(30)
+        while worker.status != .suspended {
+            try #require(Date() < deadline)
+            try await Task.sleep(for: .milliseconds(1))
+        }
+        #expect(source.position == 2048 && !engine.isRunning)
+        #expect(worker.resume() && !worker.resume())
+        try engine.start()
+        #expect(try engine.renderOffline(2048, to: buffer) == .success)
+        #expect(source.position == 4096 && !source.isFaulted && worker.lastError == nil)
     }
 
     @Test func bodyLoudnessMeterFinishesAndResetsOnIOS() throws {

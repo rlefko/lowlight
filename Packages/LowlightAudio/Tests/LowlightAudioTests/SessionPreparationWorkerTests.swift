@@ -6,7 +6,7 @@ import Testing
 
 @testable import LowlightAudio
 
-private final class WorkerAnalysisGate: @unchecked Sendable {
+final class WorkerAnalysisGate: @unchecked Sendable {
     let reached = DispatchSemaphore(value: 0)
     let resume = DispatchSemaphore(value: 0)
     // Only the preparation worker accesses these fields, read after it has joined.
@@ -22,7 +22,7 @@ private final class WorkerAnalysisGate: @unchecked Sendable {
     }
 }
 
-private final class WorkerScore: @unchecked Sendable {
+final class WorkerScore: @unchecked Sendable {
     enum Injected: Error { case successor }
     let preparer: TonalSamplePreparer
     let origins: [UInt64] = [0, 16_017, 50_001, 60_018]
