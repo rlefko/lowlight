@@ -121,7 +121,7 @@ struct PreparedSongPairTests {
 
     func make(
         _ pool: SongPreparationPool, _ preparer: TonalSamplePreparer,
-        origin: UInt64, silent: Bool = false
+        origin: UInt64, silent: Bool = false, cancellation: PreparationCancellation? = nil
     ) throws -> PreparedSong {
         let record: [String: Any] = [
             "formatVersion": 1, "instrument": "guitar", "role": "chord", "articulation": "normal",
@@ -139,7 +139,8 @@ struct PreparedSongPairTests {
             rackFades: SongRackFades(
                 tonalOutStartFrame: Double(origin + 24_000),
                 tonalOutEndFrame: Double(origin + 32_000),
-                rhythmInFrame: Double(origin), rhythmOutFrame: Double(origin + 28_000)))
+                rhythmInFrame: Double(origin), rhythmOutFrame: Double(origin + 28_000)),
+            cancellation: cancellation)
     }
 
     private func render(_ pair: PreparedSongPair, sizes: [Int]) throws -> [Float] {
