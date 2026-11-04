@@ -23,7 +23,7 @@ private final class SessionBarrier: @unchecked Sendable {
     }
 }
 
-private final class SessionConsumer: @unchecked Sendable {
+final class SessionConsumer: @unchecked Sendable {
     private let body: @Sendable () throws -> [Float]
     private var thread: pthread_t?
     private var result: Result<[Float], any Error>?

@@ -11,15 +11,16 @@ private let cancellationRoot = URL(fileURLWithPath: #filePath).deletingLastPathC
     .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     .deletingLastPathComponent()
 
-/// Only the preparing test thread accesses frames; the controller uses the two semaphores.
+/// Only the preparing test thread accesses frames; semaphores synchronize the controller.
 private final class AnalysisCancellationGate: @unchecked Sendable {
+    let controllerReady = DispatchSemaphore(value: 0)
     let reached = DispatchSemaphore(value: 0)
     let resume = DispatchSemaphore(value: 0)
     var frames: [UInt32] = []
 
     func observe(_ frame: UInt32) {
         frames.append(frame)
-        if frame >= 256 {
+        if frame == 256 {
             reached.signal()
             #expect(resume.wait(timeout: .now() + 30) == .success)
         }
@@ -71,28 +72,30 @@ struct PreparationCancellationTests {
             bankURL: cancellationRoot.appendingPathComponent("Lowlight/SoundBank"))
         let pool = SongPreparationPool()
         let gate = AnalysisCancellationGate()
-        let token = PreparationCancellation(analysisCheckpoint: gate.observe)
+        let token = PreparationCancellation(analysisCheckpoint: { @Sendable frame in
+            gate.observe(frame)
+        })
         let worker = pthread_mach_thread_np(pthread_self())
-        let controller = DispatchGroup()
-        controller.enter()
-        DispatchQueue.global().async {
-            defer { controller.leave() }
-            #expect(gate.reached.wait(timeout: .now() + 30) == .success)
+        let controller = try SessionConsumer {
+            gate.controllerReady.signal()
+            try #require(gate.reached.wait(timeout: .now() + 30) == .success)
             #expect(pthread_mach_thread_np(pthread_self()) != worker)
             token.cancel()
             gate.resume.signal()
+            return []
         }
         defer {
             gate.reached.signal()
             gate.resume.signal()
-            _ = controller.wait(timeout: .now() + 30)
+            _ = try? controller.join()
         }
+        try #require(gate.controllerReady.wait(timeout: .now() + 30) == .success)
         #expect(throws: CancellationError.self) {
             try PreparationModeTests().environment(2, ll_test_flush_modes() - 1, true) {
                 try PreparedSongPairTests().make(pool, preparer, origin: 0, cancellation: token)
             }
         }
-        #expect(controller.wait(timeout: .now() + 30) == .success)
+        _ = try controller.join()
         #expect(gate.frames == [0, 256] && token.isCancelled)
         #expect(
             pool.reservedRacks == 0 && pool.reservedVoiceSlots == 0 && pool.preparedPCMBytes == 0)
