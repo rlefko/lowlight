@@ -337,10 +337,30 @@ LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint3
 // that EOF and at/after oldest full EOF, preventing three simultaneous racks.
 LLSongPair *ll_song_pair_create_rolling(LLSongReplay *first, LLSongReplay *second,
                                       uint32_t frame_count, uint32_t next_origin);
+// Opt-in streaming variant with the same bounds and single render consumer.
+// At oldest full EOF, render detaches that raw borrower and requests preparation,
+// then continues the survivor up to next_origin. If no replacement is ready there,
+// it returns short/0 without advancing the musical clock or draining the peak.
+// One serialized worker may claim/publish concurrently with render and the atomic
+// position/fault/needs_preparation getters. All other operations require quiescence.
+LLSongPair *ll_song_pair_create_streaming(LLSongReplay *first, LLSongReplay *second,
+                                        uint32_t frame_count, uint32_t next_origin);
+// Claims a detached pointer exactly once; caller may then destroy its owner on the
+// worker. Failure clears supplied output. Output storage is disjoint from pair.
+// Preparation failure leaves this request pending; retry without claiming again.
+bool ll_song_pair_claim_retired(LLSongPair *pair, LLSongReplay **retired);
+// Worker retains a distinct fresh candidate BEFORE publishing. Success transfers
+// exclusive DSP access to render; keep its owner until a later retirement claim
+// or quiescent destruction. Validates immutable request bounds, not live survivor
+// state. Failure preserves the request and leaves candidate ownership unchanged.
+// A publication racing a render fault may succeed but remain unconsumed: retain
+// that candidate too. Stop both roles and wait for in-flight calls before destroying
+// pair/owners. No concurrent cancellation, callback deletion, waiting, or spinning.
+bool ll_song_pair_publish(LLSongPair *pair, LLSongReplay *next, uint32_t next_origin);
 // Rolling render pauses eagerly at oldest full EOF, returning a successful short/0
 // count and zeroing unused output. No silence is consumed or peak drained/reset.
 // Audible position can be 160 frames behind the retirement input clock.
-bool ll_song_pair_needs_preparation(const LLSongPair *pair); // False for null/faulted.
+bool ll_song_pair_needs_preparation(const LLSongPair *pair); // Streaming: requested/preparing; false after publish/null/fault.
 // Serialized off-callback service only. Detach before releasing the old owner;
 // neither function deletes songs. Failed calls preserve state. Waiting persists
 // after retirement until a distinct fresh child is appended at the exact expected
@@ -355,7 +375,8 @@ void ll_song_pair_reset(LLSongPair *pair); // Fixed pair rewind; rolling mode is
 // No intermediate PCM quantization. Borrowed songs may end or be truncated at EOF;
 // complete song preparation/normalization still uses each declared full length.
 // Same buffer, no-allocation/free, invalid-call and terminal-fault rules as replay.
-// Render/reset never retire songs, release reservations, or transfer ownership.
+// Render/reset never destroy songs or release reservations. Streaming render only
+// detaches/adopts raw borrowers through its fixed single-entry handoff.
 bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uint32_t *written);
 uint32_t ll_song_pair_position(const LLSongPair *pair); // Zero for null.
 uint32_t ll_song_pair_frames(const LLSongPair *pair); // Zero for null.
