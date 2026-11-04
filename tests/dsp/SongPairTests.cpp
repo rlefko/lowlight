@@ -79,7 +79,10 @@ extern "C" bool ll_test_replay_render(LLSongReplay *song, float *output, uint32_
     ++songCalls; const auto start = ll_song_replay_position(song);
     if (!ll_song_replay_render(song, output, capacity, written)) return false;
     if (synthetic) for (uint32_t i = 0; i < *written; ++i) for (uint32_t ch = 0; ch < 2; ++ch)
-        output[2 * i + ch] = control(start + i, ch, ll_song_replay_origin(song) != 0);
+        output[2 * i + ch] = ll_song_replay_origin(song) == 80001
+            ? (start + i == 0 ? (ch ? -2.f : 4.f) : start + i == 160 ? (ch ? 1.f : -2.f)
+                : start + i == 19998 ? (ch ? -.0625f : .125f) : (ch ? .75f : -.25f))
+            : control(start + i, ch, ll_song_replay_origin(song) != 0);
     if (fault == 1 && songCalls == 2) return false;
     if (fault == 2 && songCalls == 2) ++*written;
     if (fault == 6 && songCalls == 2 && *written) output[2 * *written - 1] = std::numeric_limits<float>::quiet_NaN();
@@ -131,9 +134,10 @@ static bool same(const std::vector<float> &a, const std::vector<float> &b) {
     return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * sizeof(float)) == 0;
 }
 // Whole-song arrays exist only in this independent old-primitive test assembly.
-static std::vector<float> reference(Song &first, Song &second, uint32_t frames) {
+static std::vector<float> reference(std::initializer_list<Song *> songs, uint32_t frames) {
     std::vector<float> sum(2 * frames, 0), physical(2 * (frames + LL_PEAK_LATENCY)); uint32_t written = 0;
-    for (auto *song : {first.value, second.value}) {
+    for (auto *owner : songs) {
+        auto *song = owner->value;
         const uint32_t n = ll_song_replay_frames(song); const uint64_t origin = ll_song_replay_origin(song);
         std::vector<float> pcm(2 * n);
         CHECK(ll_test_replay_render(song, pcm.data(), n, &written) && written == n);
@@ -170,7 +174,7 @@ static void lifecycle() {
     for (uint32_t origin : {1u, 159u, 160u, 161u, 255u, 256u, 257u}) {
         Song first(origin + 171, 0), second(513, origin);
         for (uint32_t frames : {origin + 1, origin + 513}) {
-            const auto expected = reference(first, second, frames); Pair pair(first, second, frames);
+            const auto expected = reference({&first, &second}, frames); Pair pair(first, second, frames);
             CHECK(same(expected, render(pair, {frames + 3})));
             CHECK(ll_song_replay_position(first.value) == std::min(frames, origin + 171));
             CHECK(ll_song_replay_position(second.value) == frames - origin);
@@ -181,7 +185,7 @@ static void lifecycle() {
     }
 }
 static void failures() {
-    Song first(513, 0), second(1025, 17); const auto expected = reference(first, second, 1042);
+    Song first(513, 0), second(1025, 17); const auto expected = reference({&first, &second}, 1042);
     Pair pair(first, second, 1042); std::vector<float> out(2 * 1100 + 1, 7); uint32_t written = 99;
     for (uint32_t fail = 1; fail <= 7; ++fail) {
         CHECK(pull(pair.value, out.data(), 17, &written)); const auto before = ll_song_replay_position(first.value);
@@ -203,7 +207,7 @@ static void activeControl() {
     // Frozen from original session AST sum/fades + unchanged master protector,
     // before native comparison; inputs/outputs are FLOAT, before PCM24 storage.
     synthetic = true; Song first(80001, 0), second(70000, 32017);
-    const auto expected = reference(first, second, 100000); Pair pair(first, second, 100000);
+    const auto expected = reference({&first, &second}, 100000); Pair pair(first, second, 100000);
     const auto actual = render(pair, {1, 159, 160, 161, 257}); CHECK(same(actual, expected));
     struct Probe { uint32_t frame; float left, right; };
     const Probe probes[] = {{0, 0, 0}, {1, .00009765625145519152f, -.000039062499126885086f},
@@ -251,7 +255,7 @@ static void setup() {
     ll_song_pair_destroy(nullptr); ll_song_pair_reset(nullptr);
 }
 static void floatingModes() {
-    const auto original = state(); Song first(513, 0), second(513, 17); const auto expected = reference(first, second, 530);
+    const auto original = state(); Song first(513, 0), second(513, 17); const auto expected = reference({&first, &second}, 530);
 #if defined(__aarch64__)
     constexpr uint64_t flushCount = 2;
 #else
@@ -272,7 +276,153 @@ static void floatingModes() {
     }
     install(original);
 }
+static std::vector<float> rollingRender(LLSongPair *pair, const std::vector<Song *> &songs,
+                                        const std::vector<uint32_t> &blocks) {
+    const auto n = ll_song_pair_frames(pair); std::vector<float> result; result.reserve(2 * n);
+    std::vector<float> output(2 * *std::max_element(blocks.begin(), blocks.end()) + 1, 7);
+    uint32_t index = 0, next = 2;
+    while (ll_song_pair_position(pair) < n) {
+        const auto capacity = blocks[index++ % blocks.size()]; uint32_t written = 99;
+        std::fill(output.begin(), output.end(), 7);
+        CHECK(pull(pair, output.data(), capacity, &written));
+        CHECK(std::all_of(output.begin() + 2 * written, output.begin() + 2 * capacity, zero) && output[2 * capacity] == 7);
+        result.insert(result.end(), output.begin(), output.begin() + 2 * written);
+        CHECK(ll_song_pair_position(pair) == result.size() / 2);
+        if (!ll_song_pair_needs_preparation(pair)) { CHECK(written); continue; }
+        CHECK(next < songs.size());
+        const auto position = ll_song_pair_position(pair);
+        auto *old = songs[next - 2]->value;
+        CHECK(ll_song_replay_position(old) == ll_song_replay_frames(old));
+        CHECK(position == uint32_t(std::max<int64_t>(0, int64_t(ll_song_replay_origin(old) + ll_song_replay_frames(old)) - LL_PEAK_LATENCY)));
+        CHECK(pull(pair, output.data(), capacity, &written) && !written);
+        CHECK(std::all_of(output.begin(), output.begin() + 2 * capacity, zero));
+        checked([&] { ll_song_pair_reset(pair); return true; }); // Single-pass: no rewind.
+        CHECK(ll_song_pair_position(pair) == position && ll_song_pair_needs_preparation(pair));
+        CHECK(!checked([&] { return ll_song_pair_append(pair, songs[next]->value, n); }));
+        CHECK(checked([&] { return ll_song_pair_retire_first(pair); }));
+        CHECK(!checked([&] { return ll_song_pair_retire_first(pair); }));
+        CHECK(pull(pair, output.data(), capacity, &written) && !written);
+        CHECK(ll_song_pair_position(pair) == position && ll_song_pair_needs_preparation(pair));
+        const auto following = next + 1 < songs.size() ? uint32_t(ll_song_replay_origin(songs[next + 1]->value)) : n;
+        CHECK(checked([&] { return ll_song_pair_append(pair, songs[next++]->value, following); }));
+    }
+    CHECK(!ll_song_pair_needs_preparation(pair) && !ll_song_pair_faulted(pair));
+    uint32_t written = 99; CHECK(pull(pair, output.data(), 1, &written) && !written && output[0] == 0);
+    return result;
+}
+static void rollingBoundaries() {
+    for (uint32_t end : {2u, 159u, 160u, 161u, 255u, 256u, 257u, 513u}) {
+        Song first(end, 0), second(end + 37, 1), third(513, end), fourth(513, end + 38);
+        const uint32_t n = end + 551;
+        const auto expected = reference({&first, &second, &third, &fourth}, n);
+        for (const auto &blocks : {std::vector<uint32_t>{n + 3}, {1, 17, 159, 160, 161, 257}}) {
+            auto *pair = checked([&] { return ll_song_pair_create_rolling(first.value, second.value, n, end); }, false);
+            CHECK(pair && same(expected, rollingRender(pair, {&first, &second, &third, &fourth}, blocks)));
+            ll_song_pair_destroy(pair);
+            for (auto *song : {&first, &second, &third, &fourth}) ll_song_replay_reset(song->value);
+        }
+    }
+}
+static void rollingFailures() {
+    Song first(513, 0, 32), second(513, 17, 32), third(513, 513, 32), excess(513, 513, 33);
+    for (uint32_t following : {0u, 17u, 512u, 530u, 531u, UINT32_MAX})
+        CHECK(!checked([&] { return ll_song_pair_create_rolling(first.value, second.value, 1026, following); }, false));
+    auto *pair = ll_song_pair_create_rolling(first.value, second.value, 1026, 513); CHECK(pair);
+    CHECK(!ll_song_pair_retire_first(pair) && !ll_song_pair_append(pair, third.value, 1026));
+    std::array<float, 2200> output{}; uint32_t written = 0;
+    CHECK(pull(pair, output.data(), 1100, &written) && written == 353 && ll_song_pair_needs_preparation(pair));
+    CHECK(ll_song_pair_retire_first(pair));
+    const auto survivor = ll_song_replay_position(second.value);
+    for (auto *bad : {static_cast<LLSongReplay *>(nullptr), second.value, first.value, excess.value})
+        CHECK(!checked([&] { return ll_song_pair_append(pair, bad, 1026); }));
+    for (uint32_t following : {513u, 529u, 1027u, UINT32_MAX})
+        CHECK(!checked([&] { return ll_song_pair_append(pair, third.value, following); }));
+    CHECK(ll_song_replay_render(third.value, output.data(), 1, &written) && written == 1);
+    CHECK(!checked([&] { return ll_song_pair_append(pair, third.value, 1026); }));
+    ll_song_replay_reset(third.value);
+    CHECK(ll_song_replay_position(second.value) == survivor && !ll_song_replay_position(third.value));
+    CHECK(ll_song_pair_needs_preparation(pair) && ll_song_pair_position(pair) == 353);
+    CHECK(ll_song_pair_append(pair, third.value, 1026)); // Inclusive 64 slots, finite end at EOF.
+    CHECK(pull(pair, output.data(), 1100, &written) && written == 673);
+    ll_song_pair_destroy(pair);
+    for (auto *song : {&first, &second, &third}) ll_song_replay_reset(song->value);
+    // A future onset at the newest EOF would be impossible to append with overlap.
+    pair = ll_song_pair_create_rolling(first.value, second.value, 1300, 513); CHECK(pair);
+    CHECK(pull(pair, output.data(), 1100, &written) && ll_song_pair_retire_first(pair));
+    CHECK(!ll_song_pair_append(pair, third.value, 1026));
+    CHECK(ll_song_pair_append(pair, third.value, 1025)); ll_song_pair_destroy(pair);
+    for (auto *song : {&first, &second, &third}) ll_song_replay_reset(song->value);
+    pair = ll_song_pair_create_rolling(first.value, second.value, 1026, 513); CHECK(pair);
+    fault = 1; songCalls = 0; CHECK(!pull(pair, output.data(), 1100, &written) && !written); fault = 0;
+    CHECK(ll_song_pair_faulted(pair) && !ll_song_pair_needs_preparation(pair));
+    ll_song_pair_reset(pair); CHECK(ll_song_pair_faulted(pair));
+    CHECK(!ll_song_pair_retire_first(pair) && !ll_song_pair_append(pair, third.value, 1026)); ll_song_pair_destroy(pair);
+    CHECK(!ll_song_pair_needs_preparation(nullptr) && !ll_song_pair_retire_first(nullptr));
+    CHECK(!ll_song_pair_append(nullptr, third.value, 1026));
+}
+static void rollingActiveControl() {
+    // Frozen original AST/master FLOAT probes: manifest SHA256 9cb57467...664907.
+    synthetic = true; Song first(80001, 0), second(70000, 32017), third(19999, 80001);
+    const auto expected = reference({&first, &second, &third}, 100000);
+    auto *pair = ll_song_pair_create_rolling(first.value, second.value, 100000, 80001); CHECK(pair);
+    const auto actual = rollingRender(pair, {&first, &second, &third}, {1, 159, 160, 161, 257});
+    CHECK(same(actual, expected));
+    const uint32_t probes[][3] = {{0, 0u, 2147483648u},
+        {1, 952945869u, 3089356554u},
+        {12799, 3209091552u, 1048875328u},
+        {12800, 1051051005u, 3187973323u},
+        {32016, 1056472127u, 3192310220u},
+        {32017, 1061603407u, 3183921231u},
+        {63839, 1049188055u, 1057576663u},
+        {63999, 1050117052u, 3172434876u},
+        {64000, 1061607922u, 3200082394u},
+        {79839, 1054982133u, 3177299957u},
+        {79840, 1054794359u, 3177112183u},
+        {79841, 1054616982u, 3176934806u},
+        {79999, 1061602265u, 3197269341u},
+        {80000, 1041396551u, 1023086275u},
+        {80001, 1061600819u, 3197268275u},
+        {80002, 1034378964u, 1042767572u},
+        {80160, 1034456860u, 1042845468u},
+        {80161, 3193091370u, 1045607722u},
+        {80162, 1034457794u, 1042846402u},
+        {99839, 980115194u, 988503802u},
+        {99998, 926622220u, 935010828u},
+        {99999, 921299602u, 3060394642u}};
+    for (const auto &probe : probes) for (uint32_t channel = 0; channel < 2; ++channel) {
+        float wanted; std::memcpy(&wanted, &probe[channel + 1], sizeof(wanted));
+        CHECK(std::abs(actual[2 * probe[0] + channel] - wanted) <= 2e-6f);
+    }
+    CHECK(actual[2 * 80001] < 1); // Hot third onset retains the already active global envelope.
+    ll_song_pair_destroy(pair); synthetic = false;
+}
+static void rollingModes() {
+    const auto original = state(); Song first(513, 0), second(513, 17), third(513, 513);
+    const auto expected = reference({&first, &second, &third}, 1026);
+#if defined(__aarch64__)
+    constexpr uint64_t flushCount = 2;
+#else
+    constexpr uint64_t flushCount = 4;
+#endif
+    for (uint64_t rounding = 0; rounding < 4; ++rounding)
+        for (uint64_t flush = 0; flush < flushCount; ++flush) for (bool flags : {false, true}) {
+#if defined(__aarch64__)
+        install({(original.control & ~((uint64_t{3} << 22) | (uint64_t{1} << 24))) |
+                 (rounding << 22) | (flush << 24), flags ? 0x11u : 0u});
+#else
+        install({(original.control & ~uint64_t{0xe07f}) | (rounding << 13) |
+                 ((flush & 1) ? 0x40u : 0u) | ((flush & 2) ? 0x8000u : 0u) | (flags ? 0x21u : 0u), 0});
+#endif
+        auto *pair = checked([&] { return ll_song_pair_create_rolling(first.value, second.value, 1026, 513); }, false);
+        CHECK(pair && same(expected, rollingRender(pair, {&first, &second, &third}, {1, 257})));
+        ll_song_pair_destroy(pair);
+        for (auto *song : {&first, &second, &third}) checked([&] { ll_song_replay_reset(song->value); return true; });
+    }
+    install(original);
+}
 int main() {
     lifecycle(); activeControl(); failures(); setup(); floatingModes();
+    rollingBoundaries(); rollingFailures(); rollingActiveControl(); rollingModes();
     std::puts("Song pair placement/fades/session-peak alignment, reset/faults, FP and allocation audits passed");
+    std::puts("Rolling song pause/retire/append, global peak continuity and bounded-service audits passed");
 }
