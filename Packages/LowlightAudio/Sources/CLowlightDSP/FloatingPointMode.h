@@ -21,12 +21,13 @@ enum class UnderflowMode { flush, gradual };
 class FloatingPointMode {
 #if defined(__aarch64__)
     uint64_t control, status;
+
 public:
     explicit FloatingPointMode(UnderflowMode underflow = UnderflowMode::flush) noexcept {
         asm volatile("mrs %0, fpcr" : "=r"(control) : : "memory");
         asm volatile("mrs %0, fpsr" : "=r"(status) : : "memory");
         const uint64_t next = (control & ~((uint64_t{3} << 22) | (uint64_t{1} << 24))) |
-            (underflow == UnderflowMode::flush ? (uint64_t{1} << 24) : 0);
+                              (underflow == UnderflowMode::flush ? (uint64_t{1} << 24) : 0);
         asm volatile("msr fpcr, %0" : : "r"(next) : "memory");
     }
     ~FloatingPointMode() {
@@ -35,11 +36,15 @@ public:
     }
 #elif defined(__SSE2__)
     unsigned previous;
+
 public:
-    explicit FloatingPointMode(UnderflowMode underflow = UnderflowMode::flush) noexcept : previous(_mm_getcsr()) {
+    explicit FloatingPointMode(UnderflowMode underflow = UnderflowMode::flush) noexcept
+        : previous(_mm_getcsr()) {
         _mm_setcsr((previous & ~0xe040u) | (underflow == UnderflowMode::flush ? 0x8040u : 0));
     }
-    ~FloatingPointMode() { _mm_setcsr(previous); }
+    ~FloatingPointMode() {
+        _mm_setcsr(previous);
+    }
 #else
 #error Lowlight requires an ARM64 or SSE2 floating-point target
 #endif
@@ -48,11 +53,13 @@ public:
 };
 // Raw-bit range checks keep negative subnormals invalid under FTZ/DAZ. Permit -0.
 inline bool unitInterval(float value) {
-    uint32_t bits; std::memcpy(&bits, &value, sizeof(bits));
+    uint32_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
     return bits <= UINT32_C(0x3f800000) || bits == UINT32_C(0x80000000);
 }
 inline bool unitInterval(double value) {
-    uint64_t bits; std::memcpy(&bits, &value, sizeof(bits));
+    uint64_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
     return bits <= UINT64_C(0x3ff0000000000000) || bits == UINT64_C(0x8000000000000000);
 }
 }

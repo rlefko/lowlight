@@ -29,8 +29,13 @@ bool ll_with_preparation_mode(LLPreparationCallback callback, void *context);
 
 // Registered PCM keys are separate from active voices: 80 guitar + 20 piano +
 // 54 bass + 2 kick + 2 side-stick + 4 hat + 4 shaker cover the validated key domain.
-enum { LL_VOICE_LIMIT = 64, LL_SAMPLE_LIMIT = 166, LL_EVENT_LIMIT = 2048,
-       LL_SAMPLE_BYTES = 32 * 1024 * 1024, LL_STEAL_FRAMES = 160 };
+enum {
+    LL_VOICE_LIMIT = 64,
+    LL_SAMPLE_LIMIT = 166,
+    LL_EVENT_LIMIT = 2048,
+    LL_SAMPLE_BYTES = 32 * 1024 * 1024,
+    LL_STEAL_FRAMES = 160
+};
 typedef struct LLMixer LLMixer;
 typedef struct {
     uint64_t start_frame;
@@ -39,7 +44,8 @@ typedef struct {
     uint8_t instrument; // 0 guitar, 1 piano, 2 bass, 3 kick, 4 side-stick, 5 closed hat, 6 shaker
     uint8_t connected;
     uint8_t priority; // 0 bed/support/percussion, 1 answer, 2 protected melody
-    uint8_t midi; // Bass 31...57; percussion 1 for side-stick, otherwise 0; ignored for guitar/piano.
+    uint8_t
+        midi; // Bass 31...57; percussion 1 for side-stick, otherwise 0; ignored for guitar/piano.
 } LLEvent;
 // Separate rack inputs/outputs preserve the future (processed tonal + bass)*duck + drums order.
 // Guitar/piano remain uncompressed; bass has energy gain but is not ducked. No mastering.
@@ -96,7 +102,7 @@ uint32_t ll_mixer_active_voices(const LLMixer *mixer);
 uint32_t ll_mixer_steals(const LLMixer *mixer);
 uint32_t ll_mixer_dropped_events(const LLMixer *mixer);
 uint64_t ll_mixer_position(const LLMixer *mixer); // Absolute clock shared by both render views.
-uint64_t ll_mixer_origin(const LLMixer *mixer); // Configured reset origin; zero for null.
+uint64_t ll_mixer_origin(const LLMixer *mixer);   // Configured reset origin; zero for null.
 uint32_t ll_mixer_sample_bytes(const LLMixer *mixer);
 // Setup-derived raw peak of non-bass [start, start + lifetime) intervals with
 // nonzero prepared gain, plus one reserved slot if any bass event exists, even silent.
@@ -164,7 +170,8 @@ void ll_peak_reset(LLPeakProtector *protector); // Preserves mode; reopens and c
 // Validates the whole call before advancing; overlap (including in-place) is
 // rejected. Failure clears provided output and preserves state. Count 0 permits
 // null buffers for an open valid processor. Calls after drain fail until reset.
-bool ll_peak_process(LLPeakProtector *protector, const float *input, float *output, uint32_t frames);
+bool ll_peak_process(LLPeakProtector *protector, const float *input, float *output,
+                     uint32_t frames);
 // First valid call (even capacity 0) closes input. Emits exactly 160 more physical
 // frames for nonempty streams, none for empty; extends the last detector peak.
 // Repeated calls after exhaustion succeed with written=0. Clears unused capacity.
@@ -199,7 +206,7 @@ typedef struct LLSongMix LLSongMix;
 // Owns prepared air and HP32 state. Creation uses the same seed/N/origin/texture/
 // fades rules as ll_air_create; setup/destruction belong off the audio callback.
 LLSongMix *ll_song_mix_create(uint32_t take_seed, uint32_t input_frames, uint64_t frame_origin,
-                            double texture, const LLRackFades *fades);
+                              double texture, const LLRackFades *fades);
 void ll_song_mix_destroy(LLSongMix *mix);
 void ll_song_mix_reset(LLSongMix *mix); // Rewinds air and clears HP history without another scan.
 // Allocation/free/lock/I/O-free: Float (tonal+bass)*duck+drums, accepted air, then
@@ -239,11 +246,15 @@ void ll_song_source_reset(LLSongSource *source); // Resets every stage and clear
 // advancing. An internal stage failure clears the whole call and latches a fault
 // until reset: position stays at the last successful call, but internal stages may
 // have advanced. No whole-chain rollback is claimed. No concurrent operations.
-bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacity, uint32_t *written);
+bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacity,
+                           uint32_t *written);
 uint32_t ll_song_source_position(const LLSongSource *source); // Logical clock; zero for null.
-uint32_t ll_song_source_frames(const LLSongSource *source); // Declared logical length; zero for null.
-uint64_t ll_song_source_origin(const LLSongSource *source); // Absolute layout origin; zero for null.
-uint32_t ll_song_source_required_voice_slots(const LLSongSource *source); // Immutable raw demand; zero for null.
+uint32_t
+ll_song_source_frames(const LLSongSource *source); // Declared logical length; zero for null.
+uint64_t
+ll_song_source_origin(const LLSongSource *source); // Absolute layout origin; zero for null.
+uint32_t ll_song_source_required_voice_slots(
+    const LLSongSource *source);                         // Immutable raw demand; zero for null.
 bool ll_song_source_faulted(const LLSongSource *source); // True for null.
 
 enum { LL_LOUDNESS_MIN_FRAMES = 12800, LL_LOUDNESS_MAX_FRAMES = 5792000 };
@@ -276,7 +287,9 @@ bool ll_loudness_finish(LLLoudness *meter, LLLoudnessResult *result);
 
 #define LL_SONG_GAIN_INPUT_LIMIT 1e6f
 typedef struct LLSongGain LLSongGain;
-typedef struct { double gain_db, linear_multiplier; } LLSongGainValues;
+typedef struct {
+    double gain_db, linear_multiplier;
+} LLSongGainValues;
 // One immutable gain targeting -20.5 LUFS from a measurable body. Setup and
 // destruction run off the callback. body_lufs must be finite and >=-70; a
 // nonfinite/nonpositive Double multiplier (including underflow to zero) fails.
@@ -294,7 +307,8 @@ bool ll_song_gain_get(const LLSongGain *gain, LLSongGainValues *values);
 // Count 0 permits null buffers for a valid handle. Storage must be fully sized
 // and disjoint from the opaque allocation; destroy only after reads complete.
 // Setup/process force RN+FTZ and restore full caller FP control/status.
-bool ll_song_gain_process(const LLSongGain *gain, const float *input, float *output, uint32_t frames);
+bool ll_song_gain_process(const LLSongGain *gain, const float *input, float *output,
+                          uint32_t frames);
 
 typedef struct LLSongReplay LLSongReplay;
 // Off-thread fixed-gain/song-peak composition. Borrows an exclusive finite source
@@ -305,8 +319,10 @@ typedef struct LLSongReplay LLSongReplay;
 // Creation never advances/resets the source, including on failure. No complete song PCM is retained.
 LLSongReplay *ll_song_replay_create(LLSongSource *source, double body_lufs);
 void ll_song_replay_destroy(LLSongReplay *replay); // Does not destroy the borrowed source.
-void ll_song_replay_reset(LLSongReplay *replay); // Rewinds source/peak without reanalysis or gain changes.
-bool ll_song_replay_gain(const LLSongReplay *replay, LLSongGainValues *values); // Same rules as gain_get.
+void ll_song_replay_reset(
+    LLSongReplay *replay); // Rewinds source/peak without reanalysis or gain changes.
+bool ll_song_replay_gain(const LLSongReplay *replay,
+                         LLSongGainValues *values); // Same rules as gain_get.
 // Allocation/free/lock/I/O-free. Emits min(capacity, N-position) logical stereo
 // frames, hiding peak's 160 startup/drain frames. The source advances exactly N.
 // Unused output is zero. Capacity 0 permits null output, including at EOF; written
@@ -315,11 +331,15 @@ bool ll_song_replay_gain(const LLSongReplay *replay, LLSongGainValues *values); 
 // Unexpected stage failure clears the whole call and faults until reset; position
 // stays at the last successful call, but internal state may have advanced. No
 // whole-chain rollback or hard/true-peak ceiling is claimed. No concurrent calls.
-bool ll_song_replay_render(LLSongReplay *replay, float *output, uint32_t capacity, uint32_t *written);
+bool ll_song_replay_render(LLSongReplay *replay, float *output, uint32_t capacity,
+                           uint32_t *written);
 uint32_t ll_song_replay_position(const LLSongReplay *replay); // Logical clock; zero for null.
-uint32_t ll_song_replay_frames(const LLSongReplay *replay); // Declared logical length; zero for null.
-uint64_t ll_song_replay_origin(const LLSongReplay *replay); // Absolute layout origin; zero for null.
-uint32_t ll_song_replay_required_voice_slots(const LLSongReplay *replay); // Immutable raw demand; zero for null.
+uint32_t
+ll_song_replay_frames(const LLSongReplay *replay); // Declared logical length; zero for null.
+uint64_t
+ll_song_replay_origin(const LLSongReplay *replay); // Absolute layout origin; zero for null.
+uint32_t ll_song_replay_required_voice_slots(
+    const LLSongReplay *replay);                         // Immutable raw demand; zero for null.
 bool ll_song_replay_faulted(const LLSongReplay *replay); // True for null.
 
 typedef struct LLSongPair LLSongPair;
@@ -336,7 +356,7 @@ LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint3
 // origin and not exceed that child's EOF. A required successor must start before
 // that EOF and at/after oldest full EOF, preventing three simultaneous racks.
 LLSongPair *ll_song_pair_create_rolling(LLSongReplay *first, LLSongReplay *second,
-                                      uint32_t frame_count, uint32_t next_origin);
+                                        uint32_t frame_count, uint32_t next_origin);
 // Opt-in streaming variant with the same bounds and single render consumer.
 // At oldest full EOF, render detaches that raw borrower and requests preparation,
 // then continues the survivor up to next_origin. If no replacement is ready there,
@@ -344,7 +364,7 @@ LLSongPair *ll_song_pair_create_rolling(LLSongReplay *first, LLSongReplay *secon
 // One serialized worker may claim/publish concurrently with render and the atomic
 // position/fault/needs_preparation getters. All other operations require quiescence.
 LLSongPair *ll_song_pair_create_streaming(LLSongReplay *first, LLSongReplay *second,
-                                        uint32_t frame_count, uint32_t next_origin);
+                                          uint32_t frame_count, uint32_t next_origin);
 // Claims a detached pointer exactly once; caller may then destroy its owner on the
 // worker. Failure clears supplied output. Output storage is disjoint from pair.
 // Preparation failure leaves this request pending; retry without claiming again.
@@ -360,7 +380,8 @@ bool ll_song_pair_publish(LLSongPair *pair, LLSongReplay *next, uint32_t next_or
 // Rolling render pauses eagerly at oldest full EOF, returning a successful short/0
 // count and zeroing unused output. No silence is consumed or peak drained/reset.
 // Audible position can be 160 frames behind the retirement input clock.
-bool ll_song_pair_needs_preparation(const LLSongPair *pair); // Streaming: requested/preparing; false after publish/null/fault.
+bool ll_song_pair_needs_preparation(
+    const LLSongPair *pair); // Streaming: requested/preparing; false after publish/null/fault.
 // Serialized off-callback service only. Detach before releasing the old owner;
 // neither function deletes songs. Failed calls preserve state. Waiting persists
 // after retirement until a distinct fresh child is appended at the exact expected
@@ -379,8 +400,8 @@ void ll_song_pair_reset(LLSongPair *pair); // Fixed pair rewind; rolling mode is
 // detaches/adopts raw borrowers through its fixed single-entry handoff.
 bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uint32_t *written);
 uint32_t ll_song_pair_position(const LLSongPair *pair); // Zero for null.
-uint32_t ll_song_pair_frames(const LLSongPair *pair); // Zero for null.
-bool ll_song_pair_faulted(const LLSongPair *pair); // True for null.
+uint32_t ll_song_pair_frames(const LLSongPair *pair);   // Zero for null.
+bool ll_song_pair_faulted(const LLSongPair *pair);      // True for null.
 
 #ifdef __cplusplus
 }

@@ -42,16 +42,18 @@ void ll_test_raise_flags(void) {
     (void)result;
 }
 LLTestFPAudit ll_test_environment(uint32_t rounding, uint32_t flush, bool flags,
-                                void (*callback)(void *), void *context) {
+                                  void (*callback)(void *), void *context) {
     const LLTestFPState original = ll_test_fp_state();
 #if defined(__aarch64__)
     const LLTestFPState expected = {
         (original.control & ~((UINT64_C(3) << 22) | (UINT64_C(1) << 24))) |
-        ((uint64_t)rounding << 22) | ((uint64_t)flush << 24), flags ? 0x11u : 0};
+            ((uint64_t)rounding << 22) | ((uint64_t)flush << 24),
+        flags ? 0x11u : 0};
 #else
-    const LLTestFPState expected = {
-        (original.control & ~UINT64_C(0xe07f)) | ((uint64_t)rounding << 13) |
-        ((flush & 1) ? 0x40u : 0u) | ((flush & 2) ? 0x8000u : 0u) | (flags ? 0x21u : 0), 0};
+    const LLTestFPState expected = {(original.control & ~UINT64_C(0xe07f)) |
+                                        ((uint64_t)rounding << 13) | ((flush & 1) ? 0x40u : 0u) |
+                                        ((flush & 2) ? 0x8000u : 0u) | (flags ? 0x21u : 0),
+                                    0};
 #endif
     install(expected);
     callback(context);
