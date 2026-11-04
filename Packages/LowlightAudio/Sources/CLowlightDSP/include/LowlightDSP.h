@@ -98,6 +98,14 @@ uint32_t ll_mixer_dropped_events(const LLMixer *mixer);
 uint64_t ll_mixer_position(const LLMixer *mixer); // Absolute clock shared by both render views.
 uint64_t ll_mixer_origin(const LLMixer *mixer); // Configured reset origin; zero for null.
 uint32_t ll_mixer_sample_bytes(const LLMixer *mixer);
+// Setup-derived raw peak of non-bass [start, start + lifetime) intervals with
+// nonzero prepared gain, plus one reserved slot if any bass event exists, even silent.
+// Uses actual sample/gate lifetimes; neither rack fades nor silent PCM reduce it.
+// Not clamped to 64: a value <=64 proves no generic stealing is needed; bass
+// replacements stay within the reserved slot. Summed per-rack values <=64 bound
+// simultaneous readers regardless of relative lookahead. Standalone overload
+// behavior is unchanged. Reset/invalid reload preserve it; null/unloaded returns zero.
+uint32_t ll_mixer_required_voice_slots(const LLMixer *mixer);
 
 enum { LL_GLUE_LATENCY = 399 };
 typedef struct LLGlue LLGlue;

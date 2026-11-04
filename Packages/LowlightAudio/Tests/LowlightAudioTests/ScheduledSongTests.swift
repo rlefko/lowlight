@@ -22,7 +22,10 @@ struct ScheduledSongTests {
         #expect(schedule.song.focus == "piano")
         #expect(try EventPlanner.events(for: schedule).count == 603)
         let expected = try explicit(schedule, preparer)
-        let actual = try PreparedSong(schedule: schedule, preparer: preparer)
+        let pool = SongPreparationPool()
+        let actual = try pool.prepare(schedule: schedule, preparer: preparer)
+        #expect(pool.reservedRacks == 1 && pool.reservedVoiceSlots == actual.requiredVoiceSlots)
+        #expect(pool.preparedPCMBytes == actual.preparedBytes)
         #expect(actual.layout.frameOrigin == 0 && actual.preparedBytes == 25_485_636)
         try compare(actual, expected)
     }

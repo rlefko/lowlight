@@ -84,7 +84,7 @@ struct LLMixer {
     Buses buses{};
     uint32_t samplesUsed = 0, floatsUsed = 0, eventCount = 0, next = 0;
     uint32_t steals = 0, dropped = 0;
-    uint32_t sharedVoices = LL_VOICE_LIMIT;
+    uint32_t sharedVoices = LL_VOICE_LIMIT, requiredVoiceSlots = 0;
     uint64_t origin = 0, position = 0;
     bool loaded = false;
 };
@@ -187,6 +187,21 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
         out.left = static_cast<float>(std::cos((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
         out.right = static_cast<float>(std::sin((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
     }
+    // Setup-only half-open lifetime sweep. The fixed event cap bounds this O(E^2)
+    // scan without scratch allocation; fades and silent PCM do not retire readers.
+    uint32_t peak = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        const auto &current = m->events[i];
+        if (current.note.instrument == 2 || current.gain == 0) continue;
+        uint32_t active = 1;
+        for (uint32_t j = 0; j < i; ++j) {
+            const auto &prior = m->events[j];
+            if (prior.note.instrument != 2 && prior.gain != 0 &&
+                prior.note.start_frame + prior.frames > current.note.start_frame) ++active;
+        }
+        peak = std::max(peak, active);
+    }
+    m->requiredVoiceSlots = peak + (hasBass ? 1u : 0u);
     m->sharedVoices = hasBass ? LL_VOICE_LIMIT - 1 : LL_VOICE_LIMIT;
     m->eventCount = count; m->loaded = true;
     ll_mixer_reset(m);
@@ -351,3 +366,4 @@ uint32_t ll_mixer_dropped_events(const LLMixer *m) { return m ? m->dropped : 0; 
 uint64_t ll_mixer_position(const LLMixer *m) { return m ? m->position : 0; }
 uint64_t ll_mixer_origin(const LLMixer *m) { return m ? m->origin : 0; }
 uint32_t ll_mixer_sample_bytes(const LLMixer *m) { return m ? m->floatsUsed * sizeof(float) : 0; }
+uint32_t ll_mixer_required_voice_slots(const LLMixer *m) { return m ? m->requiredVoiceSlots : 0; }

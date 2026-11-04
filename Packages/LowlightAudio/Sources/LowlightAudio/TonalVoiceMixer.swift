@@ -184,4 +184,7 @@ public final class TonalVoiceMixer {
     /// Absolute 32 kHz frame position, shared by dry and bus rendering.
     public var position: UInt64 { ll_mixer_position(handle) }
     public var preparedBytes: Int { Int(ll_mixer_sample_bytes(handle)) }
+    /// Conservative loaded-score demand before voice stealing; may exceed 64.
+    /// Includes the reserved bass slot and ignores neither silent PCM nor rack fades.
+    public var requiredVoiceSlots: Int { Int(ll_mixer_required_voice_slots(handle)) }
 }
