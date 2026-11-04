@@ -34,6 +34,7 @@
 - [Toolchain decision](adrs/001-foundation.md)
 - [Native planning decision](adrs/002-native-planning.md)
 - [Native planning validation](validation-planning.md)
+- [Planning checkpoint persistence](validation-checkpoint-persistence.md)
 - [Note events and shared time decision](adrs/003-events-and-shared-time.md)
 - [Event and transition validation](validation-events.md)
 - [Reference note duration validation](validation-reference-timing.md)
