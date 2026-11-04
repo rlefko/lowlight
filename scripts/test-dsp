@@ -32,10 +32,15 @@ for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix L
     sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{VoiceMixer,HarmonicGlue,StereoRoom,SongMix,QuietAir,NumpyRandom,SongSource,SongGain,PeakProtector,SongReplay}.cpp
       tests/dsp/SongPairTests.cpp)
   fi
-  for mode in optimized sanitized; do
+  modes=(optimized sanitized)
+  [[ "$suite" != SongPair ]] || modes+=(thread-sanitized)
+  for mode in "${modes[@]}"; do
     build_flags=(-O2)
     if [[ "$mode" == sanitized ]]; then
       build_flags=(-O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all)
+    fi
+    if [[ "$mode" == thread-sanitized ]]; then
+      build_flags=(-O1 -g -fno-omit-frame-pointer -fsanitize=thread -fno-sanitize-recover=all)
     fi
     inputs=("${sources[@]}")
     if [[ "$suite" == SongSource ]]; then

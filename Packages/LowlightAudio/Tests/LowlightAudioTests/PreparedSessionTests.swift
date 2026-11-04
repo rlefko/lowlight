@@ -55,6 +55,9 @@ struct PreparedSessionTests {
         }
         try withExtendedLifetime(session) {
             let value = try #require(session)
+            #expect(throws: PreparedSessionError.renderEndpointUnavailable) {
+                try value.makeRenderEndpoint()
+            }
             #expect(observed?.reservedRacks == 2 && value.requiredVoiceSlots == 2)
             #expect(value.reservedPCMBytes == 64 * 1024 * 1024)
             #expect(throws: PreparedSessionError.notWaiting) { try value.prepareNext() }

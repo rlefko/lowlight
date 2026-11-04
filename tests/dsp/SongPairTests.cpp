@@ -3,20 +3,24 @@
 #include "LowlightDSP.h"
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <new>
+#include <thread>
 #include <vector>
 #if defined(__SSE2__)
 #include <xmmintrin.h>
 #endif
 #pragma STDC FENV_ACCESS ON
 
-static uint64_t allocations = 0, frees = 0;
-static int allocationFailure = -1, allocationAttempt = 0;
+static thread_local uint64_t allocations = 0, frees = 0;
+static thread_local int allocationFailure = -1, allocationAttempt = 0;
 void *operator new(std::size_t bytes) {
     void *pointer = std::malloc(bytes ? bytes : 1); if (!pointer) std::abort();
     ++allocations; return pointer;
@@ -60,8 +64,13 @@ template<class Function> static auto checked(Function call, bool memory = true) 
     CHECK(before.control == after.control && before.status == after.status);
     CHECK(!memory || (news == allocations && deletes == frees)); return result;
 }
-static uint32_t fault = 0, songCalls = 0, peakCalls = 0;
-static bool synthetic = false;
+template<class Condition> static void await(Condition condition) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (!condition()) { CHECK(std::chrono::steady_clock::now() < deadline); std::this_thread::yield(); }
+}
+static thread_local uint32_t fault = 0, songCalls = 0, peakCalls = 0;
+static thread_local bool synthetic = false;
+static thread_local std::atomic<int> *faultGate = nullptr;
 static float control(uint32_t frame, uint32_t channel, bool second) {
     if (!second) {
         if (frame == 12799) return channel ? 1.f : -3.f;
@@ -89,6 +98,7 @@ extern "C" bool ll_test_replay_render(LLSongReplay *song, float *output, uint32_
     return true;
 }
 extern "C" bool ll_test_pair_peak_process(LLPeakProtector *peak, const float *input, float *output, uint32_t count) {
+    if (faultGate) { faultGate->store(1); await([&] { return faultGate->load() == 2; }); return false; }
     if (++peakCalls == 2 && fault == 3) return false;
     return ll_peak_process(peak, input, output, count);
 }
@@ -277,7 +287,7 @@ static void floatingModes() {
     install(original);
 }
 static std::vector<float> rollingRender(LLSongPair *pair, const std::vector<Song *> &songs,
-                                        const std::vector<uint32_t> &blocks) {
+                                        const std::vector<uint32_t> &blocks, bool streaming = false) {
     const auto n = ll_song_pair_frames(pair); std::vector<float> result; result.reserve(2 * n);
     std::vector<float> output(2 * *std::max_element(blocks.begin(), blocks.end()) + 1, 7);
     uint32_t index = 0, next = 2;
@@ -298,6 +308,13 @@ static std::vector<float> rollingRender(LLSongPair *pair, const std::vector<Song
         CHECK(std::all_of(output.begin(), output.begin() + 2 * capacity, zero));
         checked([&] { ll_song_pair_reset(pair); return true; }); // Single-pass: no rewind.
         CHECK(ll_song_pair_position(pair) == position && ll_song_pair_needs_preparation(pair));
+        if (streaming) {
+            LLSongReplay *retired = nullptr;
+            CHECK(checked([&] { return ll_song_pair_claim_retired(pair, &retired); }) && retired == old);
+            const auto following = next + 1 < songs.size() ? uint32_t(ll_song_replay_origin(songs[next + 1]->value)) : n;
+            CHECK(checked([&] { return ll_song_pair_publish(pair, songs[next++]->value, following); }));
+            continue;
+        }
         CHECK(!checked([&] { return ll_song_pair_append(pair, songs[next]->value, n); }));
         CHECK(checked([&] { return ll_song_pair_retire_first(pair); }));
         CHECK(!checked([&] { return ll_song_pair_retire_first(pair); }));
@@ -394,6 +411,10 @@ static void rollingActiveControl() {
         CHECK(std::abs(actual[2 * probe[0] + channel] - wanted) <= 2e-6f);
     }
     CHECK(actual[2 * 80001] < 1); // Hot third onset retains the already active global envelope.
+    ll_song_pair_destroy(pair);
+    for (auto *song : {&first, &second, &third}) ll_song_replay_reset(song->value);
+    pair = ll_song_pair_create_streaming(first.value, second.value, 100000, 80001); CHECK(pair);
+    CHECK(same(actual, rollingRender(pair, {&first, &second, &third}, {1, 159, 160, 161, 257}, true)));
     ll_song_pair_destroy(pair); synthetic = false;
 }
 static void rollingModes() {
@@ -413,16 +434,116 @@ static void rollingModes() {
         install({(original.control & ~uint64_t{0xe07f}) | (rounding << 13) |
                  ((flush & 1) ? 0x40u : 0u) | ((flush & 2) ? 0x8000u : 0u) | (flags ? 0x21u : 0u), 0});
 #endif
-        auto *pair = checked([&] { return ll_song_pair_create_rolling(first.value, second.value, 1026, 513); }, false);
-        CHECK(pair && same(expected, rollingRender(pair, {&first, &second, &third}, {1, 257})));
-        ll_song_pair_destroy(pair);
-        for (auto *song : {&first, &second, &third}) checked([&] { ll_song_replay_reset(song->value); return true; });
+        for (bool streaming : {false, true}) {
+            auto *pair = checked([&] { return streaming
+                ? ll_song_pair_create_streaming(first.value, second.value, 1026, 513)
+                : ll_song_pair_create_rolling(first.value, second.value, 1026, 513); }, false);
+            CHECK(pair && same(expected, rollingRender(pair, {&first, &second, &third}, {1, 257}, streaming)));
+            ll_song_pair_destroy(pair);
+            for (auto *song : {&first, &second, &third}) checked([&] { ll_song_replay_reset(song->value); return true; });
+        }
     }
     install(original);
+}
+static void streamingThreads(bool late, bool tie, bool freeRun = false) {
+    const uint32_t onset = tie ? 513 : 2048, n = 9000;
+    std::array<std::unique_ptr<Song>, 2> owners{std::make_unique<Song>(513, 0), std::make_unique<Song>(5000, 17)};
+    std::vector<float> expected;
+    { Song third(5000, onset), fourth(5000, 5017); expected = reference({owners[0].get(), owners[1].get(), &third, &fourth}, n); }
+    auto *pair = checked([&] { return ll_song_pair_create_streaming(owners[0]->value, owners[1]->value, n, onset); }, false);
+    CHECK(pair); std::vector<float> actual(2 * n); std::atomic<uint32_t> stalls{0}, published{0};
+    std::thread consumer([&] {
+        const auto prior = state();
+#if defined(__aarch64__)
+        install({prior.control | (uint64_t{3} << 22) | (uint64_t{1} << 24), 0x11});
+#else
+        install({prior.control | 0xe061, 0});
+#endif
+        std::array<float, 2 * 353 + 1> out{}; uint32_t offset = 0, turn = 0;
+        while (offset < n) {
+            const uint32_t capacity = turn++ == 0 ? 353 : (turn % 2 ? 257 : 1);
+            uint32_t written = 99; out[2 * capacity] = 7;
+            CHECK(pull(pair, out.data(), capacity, &written) && written <= capacity && out[2 * capacity] == 7);
+            CHECK(std::all_of(out.begin() + 2 * written, out.begin() + 2 * capacity, zero));
+            std::copy_n(out.data(), 2 * written, actual.data() + 2 * offset); offset += written;
+            CHECK(ll_song_pair_position(pair) == offset && !ll_song_pair_faulted(pair));
+            if (turn == 1 && !late && !freeRun) await([&] { return published.load() != 0; });
+            if (!written) { ++stalls; std::this_thread::yield(); }
+        }
+        uint32_t written = 99; CHECK(pull(pair, out.data(), 1, &written) && !written);
+        install(prior);
+    });
+    for (uint32_t generation = 0; generation < 2; ++generation) {
+        await([&] { return ll_song_pair_needs_preparation(pair); });
+        LLSongReplay *retired = nullptr;
+        CHECK(checked([&] { return ll_song_pair_claim_retired(pair, &retired); }) && retired == owners[0]->value);
+        CHECK(ll_song_replay_position(retired) == ll_song_replay_frames(retired));
+        CHECK(!checked([&] { return ll_song_pair_claim_retired(pair, &retired); }) && !retired);
+        CHECK(!checked([&] { return ll_song_pair_publish(pair, owners[1]->value, n); }));
+        const auto before = frees; owners[0].reset(); CHECK(frees > before); // Reclamation is worker-only.
+        owners[0] = std::move(owners[1]);
+        const uint32_t origin = generation ? 5017 : onset, following = generation ? n : 5017;
+        if (!freeRun && (late || generation))
+            await([&] { return ll_song_pair_position(pair) == origin - LL_PEAK_LATENCY && stalls.load(); });
+        owners[1] = std::make_unique<Song>(5000, origin);
+        CHECK(!checked([&] { return ll_song_pair_publish(pair, owners[1]->value, origin); }));
+        CHECK(checked([&] { return ll_song_pair_publish(pair, owners[1]->value, following); }));
+        // Free-run uses only the native protocol, including rapid mailbox reuse
+        // before the worker finishes its prior generation's post-publication work.
+        if (freeRun && !generation) await([&] { return ll_song_pair_needs_preparation(pair); });
+        ++published;
+    }
+    consumer.join(); CHECK(same(actual, expected) && !ll_song_pair_needs_preparation(pair));
+    ll_song_pair_destroy(pair); // Both roles quiescent before owners are released.
+}
+static void streamingFailures() {
+    Song first(513, 0, 32), second(5000, 17, 32), third(5000, 2048, 32), excess(5000, 2048, 33);
+    for (uint32_t stage = 0; stage < 4; ++stage) { // Active, requested, preparing, and ready teardown.
+        auto *pair = ll_song_pair_create_streaming(first.value, second.value, 7048, 2048); CHECK(pair);
+        LLSongReplay *retired = first.value; uint32_t written = 0; std::array<float, 2 * 353> out{};
+        CHECK(!ll_song_pair_claim_retired(pair, &retired) && !retired && !ll_song_pair_publish(pair, third.value, 7048));
+        if (stage) CHECK(pull(pair, out.data(), 353, &written) && written == 353 && ll_song_pair_needs_preparation(pair));
+        if (stage >= 2) {
+            CHECK(ll_song_pair_claim_retired(pair, &retired) && retired == first.value);
+            CHECK(!ll_song_pair_retire_first(pair) && !ll_song_pair_append(pair, third.value, 7048));
+            for (auto *bad : {static_cast<LLSongReplay *>(nullptr), second.value, first.value, excess.value})
+                CHECK(!checked([&] { return ll_song_pair_publish(pair, bad, 7048); }));
+            CHECK(ll_song_replay_render(third.value, out.data(), 1, &written));
+            CHECK(!ll_song_pair_publish(pair, third.value, 7048)); ll_song_replay_reset(third.value);
+            CHECK(ll_song_pair_needs_preparation(pair));
+        }
+        if (stage == 3) CHECK(ll_song_pair_publish(pair, third.value, 7048) && !ll_song_pair_needs_preparation(pair));
+        ll_song_pair_destroy(pair); CHECK(!ll_song_replay_position(third.value)); // Ready candidate never consumed/deleted.
+        for (auto *song : {&first, &second}) ll_song_replay_reset(song->value);
+    }
+    for (bool publishFirst : {false, true}) {
+        auto *pair = ll_song_pair_create_streaming(first.value, second.value, 7048, 2048); CHECK(pair);
+        std::array<float, 2 * 353> out{}; uint32_t written = 0; LLSongReplay *retired = nullptr;
+        CHECK(pull(pair, out.data(), 353, &written) && ll_song_pair_claim_retired(pair, &retired));
+        std::atomic<int> gate{0};
+        std::thread consumer([&] {
+            faultGate = &gate;
+            CHECK(!pull(pair, out.data(), 353, &written) && !written && std::all_of(out.begin(), out.end(), zero));
+            faultGate = nullptr;
+        });
+        await([&] { return gate.load() == 1; });
+        if (publishFirst) CHECK(ll_song_pair_publish(pair, third.value, 7048));
+        gate.store(2); consumer.join();
+        CHECK(ll_song_pair_faulted(pair) && ll_song_pair_position(pair) == 353 && !ll_song_pair_needs_preparation(pair));
+        CHECK(!ll_song_pair_publish(pair, third.value, 7048) && !ll_song_replay_position(third.value));
+        ll_song_pair_destroy(pair); // Successful racing publication is retained but unconsumed.
+        for (auto *song : {&first, &second}) ll_song_replay_reset(song->value);
+    }
+    LLSongReplay *retired = first.value;
+    CHECK(!ll_song_pair_claim_retired(nullptr, &retired) && !retired);
+    CHECK(!ll_song_pair_publish(nullptr, third.value, 7048));
 }
 int main() {
     lifecycle(); activeControl(); failures(); setup(); floatingModes();
     rollingBoundaries(); rollingFailures(); rollingActiveControl(); rollingModes();
+    streamingThreads(false, false); streamingThreads(true, false); streamingThreads(true, true); streamingFailures();
+    for (uint32_t trial = 0; trial < 8; ++trial) streamingThreads(false, false, true);
     std::puts("Song pair placement/fades/session-peak alignment, reset/faults, FP and allocation audits passed");
     std::puts("Rolling song pause/retire/append, global peak continuity and bounded-service audits passed");
+    std::puts("Streaming song handoff, two-thread deadlines/retry, reclamation, fault and FP audits passed");
 }
