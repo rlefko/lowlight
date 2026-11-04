@@ -86,4 +86,9 @@ bool ll_song_replay_render(LLSongReplay *replay, float *output, uint32_t capacit
     return true;
 }
 uint32_t ll_song_replay_position(const LLSongReplay *replay) { return replay ? replay->position : 0; }
+uint32_t ll_song_replay_frames(const LLSongReplay *replay) { return replay ? replay->frames : 0; }
+uint64_t ll_song_replay_origin(const LLSongReplay *replay) { return replay ? ll_song_source_origin(replay->source) : 0; }
+uint32_t ll_song_replay_required_voice_slots(const LLSongReplay *replay) {
+    return replay ? ll_song_source_required_voice_slots(replay->source) : 0;
+}
 bool ll_song_replay_faulted(const LLSongReplay *replay) { return !replay || replay->faulted; }

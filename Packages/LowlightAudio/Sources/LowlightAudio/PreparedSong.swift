@@ -157,4 +157,5 @@ public final class PreparedSong {
     public var requiredVoiceSlots: Int { source.requiredVoiceSlots }
     public var stolenVoices: Int { source.stolenVoices }
     public var droppedEvents: Int { source.droppedEvents }
+    var borrowedHandle: OpaquePointer { handle }
 }

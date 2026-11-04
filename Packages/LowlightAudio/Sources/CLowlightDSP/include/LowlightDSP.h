@@ -242,6 +242,8 @@ void ll_song_source_reset(LLSongSource *source); // Resets every stage and clear
 bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacity, uint32_t *written);
 uint32_t ll_song_source_position(const LLSongSource *source); // Logical clock; zero for null.
 uint32_t ll_song_source_frames(const LLSongSource *source); // Declared logical length; zero for null.
+uint64_t ll_song_source_origin(const LLSongSource *source); // Absolute layout origin; zero for null.
+uint32_t ll_song_source_required_voice_slots(const LLSongSource *source); // Immutable raw demand; zero for null.
 bool ll_song_source_faulted(const LLSongSource *source); // True for null.
 
 enum { LL_LOUDNESS_MIN_FRAMES = 12800, LL_LOUDNESS_MAX_FRAMES = 5792000 };
@@ -315,7 +317,33 @@ bool ll_song_replay_gain(const LLSongReplay *replay, LLSongGainValues *values); 
 // whole-chain rollback or hard/true-peak ceiling is claimed. No concurrent calls.
 bool ll_song_replay_render(LLSongReplay *replay, float *output, uint32_t capacity, uint32_t *written);
 uint32_t ll_song_replay_position(const LLSongReplay *replay); // Logical clock; zero for null.
+uint32_t ll_song_replay_frames(const LLSongReplay *replay); // Declared logical length; zero for null.
+uint64_t ll_song_replay_origin(const LLSongReplay *replay); // Absolute layout origin; zero for null.
+uint32_t ll_song_replay_required_voice_slots(const LLSongReplay *replay); // Immutable raw demand; zero for null.
 bool ll_song_replay_faulted(const LLSongReplay *replay); // True for null.
+
+typedef struct LLSongPair LLSongPair;
+// Finite initial-session composition of two exclusively borrowed, distinct replays.
+// Both must be fresh/nonfaulted, first origin=0, 0<second origin<first length,
+// second origin<frame_count<=second origin+second length, and summed raw demand<=64.
+// Creation leaves children untouched, including on failure. They must outlive the
+// pair and cannot be used independently while borrowed. Owns fixed scratch and a
+// session peak protector; never owns/releases either song. Caller separately
+// validates schedule adjacency and stops before a third song is required.
+LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint32_t frame_count);
+void ll_song_pair_destroy(LLSongPair *pair);
+void ll_song_pair_reset(LLSongPair *pair); // Resets both songs/session peak, retaining prepared gains.
+// Oldest-first Float sum, separate Double entry(.4s)/exit(2.8s) fade products with
+// a Float store after each, then session peak protection. Emits exactly frame_count
+// logical frames across calls, removing only the new 160-frame peak startup/drain.
+// No intermediate PCM quantization. Borrowed songs may end or be truncated at EOF;
+// complete song preparation/normalization still uses each declared full length.
+// Same buffer, no-allocation/free, invalid-call and terminal-fault rules as replay.
+// Render/reset never retire songs, release reservations, or transfer ownership.
+bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uint32_t *written);
+uint32_t ll_song_pair_position(const LLSongPair *pair); // Zero for null.
+uint32_t ll_song_pair_frames(const LLSongPair *pair); // Zero for null.
+bool ll_song_pair_faulted(const LLSongPair *pair); // True for null.
 
 #ifdef __cplusplus
 }
