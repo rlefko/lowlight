@@ -21,9 +21,14 @@ struct LLSongPair {
     LLSongReplay *songs[2]{};
     LLPeakProtector *peak = nullptr;
     uint32_t origins[2]{}, lengths[2]{}, frames = 0, input = 0, position = 0, startup = LL_PEAK_LATENCY;
-    bool faulted = false;
+    uint32_t nextOrigin = 0;
+    bool faulted = false, rolling = false;
     float piece[2 * blockFrames]{}, sum[2 * blockFrames]{}, delayed[2 * blockFrames]{};
 
+    bool needsPreparation() const {
+        return rolling && !faulted && nextOrigin < frames &&
+            (!songs[1] || uint64_t{input} >= uint64_t{origins[0]} + lengths[0]);
+    }
     bool mix(uint32_t count) {
         clear(sum, count);
         for (uint32_t song = 0; song < 2; ++song) {
@@ -48,13 +53,16 @@ struct LLSongPair {
     }
 };
 
-LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint32_t frameCount) {
+static LLSongPair *create(LLSongReplay *first, LLSongReplay *second, uint32_t frameCount,
+                         uint32_t nextOrigin, bool rolling) {
     lowlight::FloatingPointMode mode;
     if (!first || !second || first == second || ll_song_replay_faulted(first) || ll_song_replay_faulted(second) ||
         ll_song_replay_position(first) || ll_song_replay_position(second) || ll_song_replay_origin(first)) return nullptr;
     const auto origin = ll_song_replay_origin(second);
     const auto firstFrames = ll_song_replay_frames(first), secondFrames = ll_song_replay_frames(second);
-    if (!origin || origin >= firstFrames || frameCount <= origin || uint64_t{frameCount} > origin + secondFrames ||
+    if (!origin || origin >= firstFrames || nextOrigin <= origin || nextOrigin > frameCount ||
+        uint64_t{nextOrigin} > origin + secondFrames ||
+        (nextOrigin < frameCount && (firstFrames > nextOrigin || uint64_t{nextOrigin} == origin + secondFrames)) ||
         uint64_t{ll_song_replay_required_voice_slots(first)} + ll_song_replay_required_voice_slots(second) > LL_VOICE_LIMIT)
         return nullptr;
     auto *pair = new (std::nothrow) LLSongPair;
@@ -62,16 +70,48 @@ LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint3
     pair->songs[0] = first; pair->songs[1] = second;
     pair->origins[1] = static_cast<uint32_t>(origin);
     pair->lengths[0] = firstFrames; pair->lengths[1] = secondFrames; pair->frames = frameCount;
+    pair->nextOrigin = nextOrigin; pair->rolling = rolling;
     pair->peak = ll_peak_create(LL_PEAK_SESSION);
     if (!pair->peak) { delete pair; return nullptr; }
     return pair;
+}
+LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint32_t frameCount) {
+    return create(first, second, frameCount, frameCount, false);
+}
+LLSongPair *ll_song_pair_create_rolling(LLSongReplay *first, LLSongReplay *second,
+                                      uint32_t frameCount, uint32_t nextOrigin) {
+    return create(first, second, frameCount, nextOrigin, true);
+}
+bool ll_song_pair_needs_preparation(const LLSongPair *pair) { return pair && pair->needsPreparation(); }
+bool ll_song_pair_retire_first(LLSongPair *pair) {
+    if (!pair || !pair->needsPreparation() || !pair->songs[1] ||
+        ll_song_replay_position(pair->songs[0]) != pair->lengths[0]) return false;
+    pair->songs[0] = pair->songs[1]; pair->songs[1] = nullptr;
+    pair->origins[0] = pair->origins[1]; pair->lengths[0] = pair->lengths[1];
+    pair->origins[1] = pair->lengths[1] = 0;
+    return true;
+}
+bool ll_song_pair_append(LLSongPair *pair, LLSongReplay *next, uint32_t nextOrigin) {
+    if (!pair || !pair->needsPreparation() || pair->songs[1] || !next || next == pair->songs[0] ||
+        ll_song_replay_position(next) || ll_song_replay_faulted(next)) return false;
+    const auto origin = ll_song_replay_origin(next);
+    const auto length = ll_song_replay_frames(next);
+    const uint64_t oldEnd = uint64_t{pair->origins[0]} + pair->lengths[0];
+    if (origin != pair->nextOrigin || origin < pair->input || origin >= oldEnd ||
+        nextOrigin <= origin || nextOrigin > pair->frames || uint64_t{nextOrigin} > origin + length ||
+        (nextOrigin < pair->frames && (oldEnd > nextOrigin || uint64_t{nextOrigin} == origin + length)) ||
+        uint64_t{ll_song_replay_required_voice_slots(pair->songs[0])} + ll_song_replay_required_voice_slots(next) > LL_VOICE_LIMIT)
+        return false;
+    pair->songs[1] = next; pair->origins[1] = static_cast<uint32_t>(origin);
+    pair->lengths[1] = length; pair->nextOrigin = nextOrigin;
+    return true;
 }
 void ll_song_pair_destroy(LLSongPair *pair) {
     if (!pair) return;
     ll_peak_destroy(pair->peak); delete pair;
 }
 void ll_song_pair_reset(LLSongPair *pair) {
-    if (!pair) return;
+    if (!pair || pair->rolling) return;
     lowlight::FloatingPointMode mode;
     for (auto *song : pair->songs) ll_song_replay_reset(song);
     ll_peak_reset(pair->peak);
@@ -86,10 +126,13 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
     const uint32_t requested = std::min(capacity, pair->frames - pair->position);
     uint32_t produced = 0;
     while (produced < requested) {
+        if (pair->needsPreparation()) break;
         uint32_t physical = static_cast<uint32_t>(std::min(uint64_t{blockFrames}, uint64_t{requested - produced} + pair->startup));
         bool success;
         if (pair->input < pair->frames) {
             physical = std::min(physical, pair->frames - pair->input);
+            if (pair->rolling && pair->nextOrigin < pair->frames)
+                physical = static_cast<uint32_t>(std::min(uint64_t{physical}, uint64_t{pair->origins[0]} + pair->lengths[0] - pair->input));
             success = pair->mix(physical);
             if (success) pair->input += physical;
         } else {

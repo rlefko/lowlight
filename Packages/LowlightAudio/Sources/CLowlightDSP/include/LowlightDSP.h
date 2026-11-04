@@ -331,8 +331,24 @@ typedef struct LLSongPair LLSongPair;
 // session peak protector; never owns/releases either song. Caller separately
 // validates schedule adjacency and stops before a third song is required.
 LLSongPair *ll_song_pair_create(LLSongReplay *first, LLSongReplay *second, uint32_t frame_count);
+// Single-pass rolling variant, using the same mix/fade/peak path. next_origin is
+// the following unprepared onset capped at frame_count. It must follow the second
+// origin and not exceed that child's EOF. A required successor must start before
+// that EOF and at/after oldest full EOF, preventing three simultaneous racks.
+LLSongPair *ll_song_pair_create_rolling(LLSongReplay *first, LLSongReplay *second,
+                                      uint32_t frame_count, uint32_t next_origin);
+// Rolling render pauses eagerly at oldest full EOF, returning a successful short/0
+// count and zeroing unused output. No silence is consumed or peak drained/reset.
+// Audible position can be 160 frames behind the retirement input clock.
+bool ll_song_pair_needs_preparation(const LLSongPair *pair); // False for null/faulted.
+// Serialized off-callback service only. Detach before releasing the old owner;
+// neither function deletes songs. Failed calls preserve state. Waiting persists
+// after retirement until a distinct fresh child is appended at the exact expected
+// origin. Append validates following coverage, no triple overlap and <=64 slots.
+bool ll_song_pair_retire_first(LLSongPair *pair);
+bool ll_song_pair_append(LLSongPair *pair, LLSongReplay *next, uint32_t next_origin);
 void ll_song_pair_destroy(LLSongPair *pair);
-void ll_song_pair_reset(LLSongPair *pair); // Resets both songs/session peak, retaining prepared gains.
+void ll_song_pair_reset(LLSongPair *pair); // Fixed pair rewind; rolling mode is a no-op.
 // Oldest-first Float sum, separate Double entry(.4s)/exit(2.8s) fade products with
 // a Float store after each, then session peak protection. Emits exactly frame_count
 // logical frames across calls, removing only the new 160-frame peak startup/drain.

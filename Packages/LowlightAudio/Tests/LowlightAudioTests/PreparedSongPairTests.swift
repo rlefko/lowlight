@@ -119,7 +119,7 @@ struct PreparedSongPairTests {
         }
     }
 
-    private func make(
+    func make(
         _ pool: SongPreparationPool, _ preparer: TonalSamplePreparer,
         origin: UInt64, silent: Bool = false
     ) throws -> PreparedSong {
