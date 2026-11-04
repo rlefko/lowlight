@@ -12,7 +12,7 @@ private let scheduledRoot = URL(fileURLWithPath: #filePath).deletingLastPathComp
     .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     .deletingLastPathComponent()
 
-@Suite(.serialized)
+@Suite
 struct ScheduledSongTests {
     @Test func firstNativeScheduleMatchesExplicitPreparation() throws {
         var timeline = try SessionTimeline()
