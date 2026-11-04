@@ -812,11 +812,96 @@ static void highSampleVoiceLimits() {
     }
 }
 
+static void loadWithRequiredSlots(Mixer &mixer, const std::vector<LLEvent> &score, uint32_t expected) {
+    const auto control = floatingControl();
+    auditing = true;
+    const bool loaded = ll_mixer_load_events(mixer.value, score.data(), static_cast<uint32_t>(score.size()));
+    const uint32_t slots = ll_mixer_required_voice_slots(mixer.value);
+    auditing = false;
+    CHECK(loaded && slots == expected && floatingControl() == control);
+    CHECK(allocations == 0 && deallocations == 0);
+}
+
+static void requiredVoiceLifetimes() {
+    CHECK(ll_mixer_required_voice_slots(nullptr) == 0);
+    Mixer mixer;
+    constexpr uint64_t origin = uint64_t{1} << 40;
+    CHECK(ll_mixer_configure_origin(mixer.value, origin));
+    CHECK(ll_mixer_configure_buses(mixer.value, .5));
+    const LLRackFades ended{0, 0, 0, 1, 0, 1};
+    CHECK(ll_mixer_configure_fades(mixer.value, &ended));
+    CHECK(mixer.sample(0, 3) == 0 && mixer.sample(.2f, 10) == 1 && mixer.sample(.2f, 1) == 2);
+    CHECK(ll_mixer_required_voice_slots(mixer.value) == 0);
+    auto a = event(0, origin, 8, 4); // Silent PCM still reads; sample truncates the interval to three frames.
+    auto b = event(1, origin + 3, 2, 1); // Gate/release truncates this ten-frame sample to three.
+    auto c = event(1, origin + 6, 1, 0); c.instrument = 1;
+    loadWithRequiredSlots(mixer, {a, b, c}, 1); // Ends retire before coincident starts, including one-frame notes.
+    const auto faded = mixer.buses(8);
+    for (const auto &frame : faded) CHECK(frame.guitar[0] == 0 && frame.piano[0] == 0);
+    CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_required_voice_slots(mixer.value) == 1);
+    mixer.reset(); CHECK(ll_mixer_required_voice_slots(mixer.value) == 1);
+    CHECK(sameBuses(faded, mixer.buses(8, {1, 3})));
+    b.start_frame = origin + 2; loadWithRequiredSlots(mixer, {a, b, c}, 2);
+    auto kick = percussion(3, 1, origin); kick.hold_frames = 1; kick.release_frames = 0;
+    auto hit = percussion(5, 2, origin + 9);
+    loadWithRequiredSlots(mixer, {kick, hit}, 2); // Percussion retains all ten sample frames despite the tiny gate.
+    hit.start_frame = origin + 10; loadWithRequiredSlots(mixer, {kick, hit}, 1);
+    kick.velocity = 0; loadWithRequiredSlots(mixer, {kick}, 0);
+    CHECK(mixer.buses(1)[0].duck == .945f && ll_mixer_active_voices(mixer.value) == 0);
+    a.velocity = std::numeric_limits<float>::min(); // Positive input whose prepared Float gain flushes to zero.
+    loadWithRequiredSlots(mixer, {a}, 0);
+    auto low = bass(origin); low.velocity = 0;
+    loadWithRequiredSlots(mixer, {low}, 1); // Even silent bass reserves slot63.
+    low.velocity = 1;
+    auto next = low; next.start_frame += 1;
+    auto pending = next; pending.start_frame += 1;
+    loadWithRequiredSlots(mixer, {low, next, pending}, 1);
+    mixer.buses(4); CHECK(ll_mixer_active_voices(mixer.value) == 1);
+    CHECK(ll_mixer_required_voice_slots(mixer.value) == 1 && ll_mixer_steals(mixer.value) == 1);
+    a = event(0, (uint64_t{1} << 52) - 215513, 8, 4);
+    loadWithRequiredSlots(mixer, {a}, 1); // Addition remains exact at the timeline's accepted upper edge.
+    loadWithRequiredSlots(mixer, {}, 0);
+}
+
+static void requiredVoiceCapacityAndReload() {
+    Mixer mixer; CHECK(mixer.sample(.2f, 1000) == 0);
+    for (const uint32_t count : {64u, 65u, 2048u}) {
+        std::vector<LLEvent> score(count, event(0, 0, 1000, 0));
+        loadWithRequiredSlots(mixer, score, count); // Raw demand must not be clamped to physical capacity.
+        mixer.render(1);
+        CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_required_voice_slots(mixer.value) == count);
+        CHECK(ll_mixer_steals(mixer.value) == (count == 64 ? 0 : (count == 65 ? 1 : 64)));
+        score.back().hold_frames = 0;
+        CHECK(!ll_mixer_load_events(mixer.value, score.data(), count));
+        CHECK(ll_mixer_required_voice_slots(mixer.value) == count && ll_mixer_position(mixer.value) == 1);
+        mixer.reset(); CHECK(ll_mixer_required_voice_slots(mixer.value) == count);
+    }
+    auto low = bass(); low.velocity = 0;
+    for (const uint32_t count : {63u, 64u}) {
+        std::vector<LLEvent> score(count, event(0, 0, 1000, 0)); score.push_back(low);
+        loadWithRequiredSlots(mixer, score, count + 1);
+        mixer.render(1);
+        CHECK(ll_mixer_active_voices(mixer.value) == 63 && ll_mixer_steals(mixer.value) == count - 63);
+    }
+    std::vector<LLEvent> oneFrame(64, event(0, 0, 1, 0));
+    loadWithRequiredSlots(mixer, oneFrame, 64); mixer.render(1);
+    CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_required_voice_slots(mixer.value) == 64);
+    oneFrame.push_back(event(0, 1, 1, 0));
+    loadWithRequiredSlots(mixer, oneFrame, 64); // A block-end active snapshot would miss this peak completely.
+    const auto expected = mixer.render(3); mixer.reset(); mixer.render(1);
+    auto invalid = event(); invalid.sample_index = 166;
+    CHECK(!ll_mixer_load_events(mixer.value, &invalid, 1));
+    CHECK(ll_mixer_required_voice_slots(mixer.value) == 64 && ll_mixer_position(mixer.value) == 1);
+    CHECK(std::vector<float>(expected.begin() + 2, expected.end()) == mixer.render(2));
+    loadWithRequiredSlots(mixer, {}, 0);
+}
+
 int main() {
     timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
     percussionSoundAndBounds(); percussionStealingAndProtection(); busFiltersAndRouting(); busStateAndValidation();
     kickDuckingAndProtection(); rackFadeValidation(); rackFadeArithmeticAndViews(); rackHandoffAndTails();
     rackFadeFloatingBounds(); invalidInputsAndOwnership(); sampleRegistryPlaybackAndEventLimit(); highSampleVoiceLimits();
     originTranslation(); originSetupAndReload(); originTimelineLimit();
+    requiredVoiceLifetimes(); requiredVoiceCapacityAndReload();
     std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }

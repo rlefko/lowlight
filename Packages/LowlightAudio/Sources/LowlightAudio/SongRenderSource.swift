@@ -91,6 +91,7 @@ public final class SongRenderSource {
     public var position: UInt32 { ll_song_source_position(handle) }
     public var isFaulted: Bool { ll_song_source_faulted(handle) }
     public var preparedBytes: Int { mixer.preparedBytes }
+    public var requiredVoiceSlots: Int { mixer.requiredVoiceSlots }
     public var stolenVoices: Int { mixer.stolenVoices }
     public var droppedEvents: Int { mixer.droppedEvents }
 }
