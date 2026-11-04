@@ -6,6 +6,7 @@ import Foundation
 /// A bounded planning cursor, not a playback engine or restored effect/overlap state.
 public struct SessionTimeline {
     public static let version = 1
+    public static let maximumCheckpointByteCount = 131_072
     private var planner: SongPlanner
     public private(set) var current: SongSchedule?
     public private(set) var positionFrame: Int64?
@@ -54,7 +55,9 @@ public struct SessionTimeline {
     }
 
     public static func restore(_ data: Data) throws -> Self {
-        guard data.count <= 131_072 else { throw TimelineError.invalidCheckpoint }
+        guard data.count <= maximumCheckpointByteCount else {
+            throw TimelineError.invalidCheckpoint
+        }
         let state: Checkpoint
         do { state = try JSONDecoder().decode(Checkpoint.self, from: data) } catch {
             throw TimelineError.invalidCheckpoint
