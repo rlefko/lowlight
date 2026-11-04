@@ -23,23 +23,31 @@ public final class SongPreparationPool {
 
     public init() {}
 
-    public func prepare(schedule: SongSchedule, preparer: TonalSamplePreparer) throws
+    public func prepare(
+        schedule: SongSchedule, preparer: TonalSamplePreparer,
+        cancellation: PreparationCancellation? = nil
+    ) throws
         -> PreparedSong
     {
+        try cancellation?.check()
         let reservation = try reserveRack()
-        return try PreparedSong(schedule: schedule, preparer: preparer, reservation: reservation)
+        return try PreparedSong(
+            schedule: schedule, preparer: preparer, reservation: reservation,
+            cancellation: cancellation)
     }
 
     public func prepare(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
-        space: Double, texture: Double, rackFades: SongRackFades
+        space: Double, texture: Double, rackFades: SongRackFades,
+        cancellation: PreparationCancellation? = nil
     ) throws -> PreparedSong {
+        try cancellation?.check()
         let reservation = try reserveRack()
         return try PreparedSong(
             layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
             focus: focus, warmth: warmth, energy: energy, space: space, texture: texture,
-            rackFades: rackFades, reservation: reservation)
+            rackFades: rackFades, reservation: reservation, cancellation: cancellation)
     }
 
     private func reserveRack() throws -> Reservation {

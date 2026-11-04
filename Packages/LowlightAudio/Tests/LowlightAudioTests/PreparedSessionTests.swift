@@ -30,7 +30,7 @@ struct PreparedSessionTests {
         ) {
             try PreparedSession(
                 frameCount: UInt32(frames), accepted: { index += 1 },
-                prepare: { pool in
+                prepare: { pool, _ in
                     observed = pool
                     attempts.append(index)
                     if index == 2 {

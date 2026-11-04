@@ -87,7 +87,7 @@ struct ConcurrentSessionTests {
         var attempts: [Int] = []
         var session: PreparedSession? = try PreparedSession(
             frameCount: UInt32(count), preparation: .concurrent, accepted: { index += 1 },
-            prepare: { shared in
+            prepare: { shared, _ in
                 #expect(pthread_mach_thread_np(pthread_self()) == worker)
                 try #require(index < origins.count)
                 pool = shared
@@ -162,7 +162,7 @@ struct ConcurrentSessionTests {
         var attempts: [Int] = []
         var session: PreparedSession? = try PreparedSession(
             frameCount: UInt32(frames), preparation: .concurrent, accepted: { index += 1 },
-            prepare: { shared in
+            prepare: { shared, _ in
                 #expect(pthread_mach_thread_np(pthread_self()) == worker)
                 pool = shared
                 attempts.append(index)
@@ -277,7 +277,7 @@ struct ConcurrentSessionTests {
         #expect(pool?.reservedVoiceSlots == 0 && pool?.preparedPCMBytes == 0)
     }
 
-    private func independent(
+    func independent(
         _ preparer: TonalSamplePreparer, origins: [UInt64], count: Int? = nil
     ) throws -> [Float] {
         let frames = count ?? self.frames

@@ -42,12 +42,14 @@ public final class TonalVoiceMixer {
     /// Swift preparation preserves subnormals and restores caller FP state, including on failure.
     public init(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
-        busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0
+        busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0,
+        cancellation: PreparationCancellation? = nil
     ) throws {
         handle = try PreparationMode.perform {
             try Self.makeHandle(
                 preparer: preparer, events: events, warmth: warmth,
-                busEnergy: busEnergy, rackFades: rackFades, frameOrigin: frameOrigin)
+                busEnergy: busEnergy, rackFades: rackFades, frameOrigin: frameOrigin,
+                cancellation: cancellation)
         }
     }
 
@@ -55,8 +57,10 @@ public final class TonalVoiceMixer {
     @inline(never)
     private static func makeHandle(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
-        busEnergy: Double?, rackFades: SongRackFades?, frameOrigin: UInt64
+        busEnergy: Double?, rackFades: SongRackFades?, frameOrigin: UInt64,
+        cancellation: PreparationCancellation?
     ) throws -> OpaquePointer {
+        try cancellation?.check()
         guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite,
             frameOrigin <= UInt64(MusicalTime.maximumFrame)
         else {
@@ -96,6 +100,7 @@ public final class TonalVoiceMixer {
             var slots: [Key: UInt32] = [:]
             var score: [LLEvent] = []
             for event in events {
+                try cancellation?.check()
                 let key = try Self.key(for: event)
                 let instrument = key.instrument
                 if slots[key] == nil {
@@ -105,6 +110,7 @@ public final class TonalVoiceMixer {
                     let sample = try preparer.prepare(
                         instrument: instrument, note: key.note,
                         roundRobin: key.roundRobin, warmth: warmth, velocity: event.velocity)
+                    try cancellation?.check()
                     // Preserve the kernel's full-sample bounds, including discarded suffixes.
                     guard (1...2).contains(sample.channels),
                         sample.samples.count.isMultiple(of: sample.channels),
@@ -145,6 +151,7 @@ public final class TonalVoiceMixer {
                             ? 2 : (event.role == .answer ? 1 : 0),
                         midi: UInt8(event.note)))
             }
+            try cancellation?.check()
             guard
                 score.withUnsafeBufferPointer({
                     ll_mixer_load_events(handle, $0.baseAddress, UInt32($0.count))

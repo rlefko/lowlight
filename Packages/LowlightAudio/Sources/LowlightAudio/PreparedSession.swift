@@ -17,7 +17,8 @@ public enum SessionPreparation: Sendable { case serialized, concurrent }
 public final class PreparedSession {
     public let frameCount: UInt32
     private let pool: SongPreparationPool
-    private let prepare: (SongPreparationPool) throws -> (PreparedSong, UInt32)
+    private let prepare:
+        (SongPreparationPool, PreparationCancellation?) throws -> (PreparedSong, UInt32)
     private let accepted: () -> Void
     private let preparation: SessionPreparation
     private var endpointIssued = false
@@ -30,24 +31,28 @@ public final class PreparedSession {
     /// The finite endpoint must follow the second song's onset. Recreate to rewind.
     public convenience init(
         seed: UInt64 = 91_031, controls: Controls = Controls(), frameCount: UInt32,
-        preparation: SessionPreparation = .serialized, preparer: TonalSamplePreparer
+        preparation: SessionPreparation = .serialized, preparer: TonalSamplePreparer,
+        cancellation: PreparationCancellation? = nil
     ) throws {
+        try cancellation?.check()
         let planning = try SessionPlanning(seed: seed, controls: controls)
         var pending: SongSchedule?
         try self.init(
-            frameCount: frameCount, preparation: preparation, accepted: { pending = nil },
-            prepare: { pool in
+            frameCount: frameCount, preparation: preparation, cancellation: cancellation,
+            accepted: { pending = nil },
+            prepare: { pool, cancellation in
                 if pending == nil { pending = try planning.next() }
                 guard let schedule = pending else { throw PreparedSessionError.invalidSession }
                 return try Self.prepareSong(
-                    schedule, frameCount: frameCount, preparer: preparer, pool: pool)
+                    schedule, frameCount: frameCount, preparer: preparer, pool: pool,
+                    cancellation: cancellation)
             })
     }
 
     @inline(never)
     private static func prepareSong(
         _ schedule: SongSchedule, frameCount: UInt32, preparer: TonalSamplePreparer,
-        pool: SongPreparationPool
+        pool: SongPreparationPool, cancellation: PreparationCancellation?
     ) throws -> (PreparedSong, UInt32) {
         let origin = try schedule.frame(at: 0)
         let next = try schedule.outgoing.ramp.frame(at: 0)
@@ -55,7 +60,7 @@ public final class PreparedSession {
             throw PreparedSessionError.invalidSession
         }
         return (
-            try pool.prepare(schedule: schedule, preparer: preparer),
+            try pool.prepare(schedule: schedule, preparer: preparer, cancellation: cancellation),
             UInt32(min(Int64(frameCount), next))
         )
     }
@@ -64,14 +69,21 @@ public final class PreparedSession {
     init(
         frameCount: UInt32,
         preparation: SessionPreparation = .serialized,
+        cancellation: PreparationCancellation? = nil,
         accepted: @escaping () -> Void = {},
-        prepare: @escaping (SongPreparationPool) throws -> (PreparedSong, UInt32)
+        prepare:
+            @escaping (SongPreparationPool, PreparationCancellation?) throws -> (
+                PreparedSong, UInt32
+            )
     ) throws {
         let pool = SongPreparationPool()
         let prepared = try PreparationMode.perform {
-            let first = try prepare(pool)
+            try cancellation?.check()
+            let first = try prepare(pool, cancellation)
+            try cancellation?.check()
             accepted()
-            let second = try prepare(pool)
+            let second = try prepare(pool, cancellation)
+            try cancellation?.check()
             let handle =
                 preparation == .concurrent
                 ? ll_song_pair_create_streaming(
@@ -147,11 +159,15 @@ public final class PreparedSession {
     /// Detaches and destroys the finished rack before preparing its successor. On failure,
     /// retry prepares the same pending schedule. In concurrent mode the survivor can keep
     /// rendering until that successor's onset. Invoke only on the single preparation worker.
-    public func prepareNext() throws {
+    /// Cancellation observed before publication throws and releases the candidate. Retry
+    /// with a new token; a request racing the final check may arrive after admission.
+    public func prepareNext(cancellation: PreparationCancellation? = nil) throws {
+        try cancellation?.check()
         guard needsPreparation else { throw PreparedSessionError.notWaiting }
         try retireFirst()
         try PreparationMode.perform {
-            let candidate = try prepare(pool)
+            let candidate = try prepare(pool, cancellation)
+            try cancellation?.check()
             // Retain before release-publication: the consumer may adopt immediately.
             second = candidate.0
             let admitted =

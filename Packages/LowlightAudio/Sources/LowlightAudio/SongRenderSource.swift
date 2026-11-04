@@ -20,13 +20,14 @@ public final class SongRenderSource {
     public init(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
-        space: Double, texture: Double, rackFades: SongRackFades
+        space: Double, texture: Double, rackFades: SongRackFades,
+        cancellation: PreparationCancellation? = nil
     ) throws {
         let prepared = try PreparationMode.perform {
             try Self.makeSource(
                 layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
                 focus: focus, warmth: warmth, energy: energy, space: space,
-                texture: texture, rackFades: rackFades)
+                texture: texture, rackFades: rackFades, cancellation: cancellation)
         }
         self.layout = layout
         mixer = prepared.mixer
@@ -37,8 +38,10 @@ public final class SongRenderSource {
     private static func makeSource(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
-        space: Double, texture: Double, rackFades: SongRackFades
+        space: Double, texture: Double, rackFades: SongRackFades,
+        cancellation: PreparationCancellation?
     ) throws -> (mixer: TonalVoiceMixer, handle: OpaquePointer) {
+        try cancellation?.check()
         guard takeSeed < (UInt32(1) << 31), events.count <= Int(LL_EVENT_LIMIT),
             [warmth, energy, space, texture].allSatisfy({ $0.isFinite && (0...1).contains($0) })
         else { throw SongRenderSourceError.invalidConfiguration }
@@ -54,13 +57,20 @@ public final class SongRenderSource {
         // The mixer validates every event and fade before decoding any samples.
         let mixer = try TonalVoiceMixer(
             preparer: preparer, events: events, warmth: warmth, busEnergy: energy,
-            rackFades: rackFades, frameOrigin: layout.frameOrigin)
+            rackFades: rackFades, frameOrigin: layout.frameOrigin, cancellation: cancellation)
+        try cancellation?.check()
         var configuration = LLSongSourceConfig(
             frame_origin: layout.frameOrigin, input_frames: layout.inputFrames,
             take_seed: takeSeed, focus: focus.rawValue, space: space, warmth: warmth,
             texture: texture, rack_fades: rackFades.configuration)
         guard let handle = ll_song_source_create(mixer.borrowedHandle, &configuration) else {
             throw SongRenderSourceError.preparationFailed
+        }
+        do {
+            try cancellation?.check()
+        } catch {
+            withExtendedLifetime(mixer) { ll_song_source_destroy(handle) }
+            throw error
         }
         return (mixer, handle)
     }

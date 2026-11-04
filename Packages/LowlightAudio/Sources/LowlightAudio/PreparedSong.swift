@@ -24,25 +24,27 @@ public final class PreparedSong {
     public convenience init(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
-        space: Double, texture: Double, rackFades: SongRackFades
+        space: Double, texture: Double, rackFades: SongRackFades,
+        cancellation: PreparationCancellation? = nil
     ) throws {
         try self.init(
             layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
             focus: focus, warmth: warmth, energy: energy, space: space, texture: texture,
-            rackFades: rackFades, reservation: nil)
+            rackFades: rackFades, reservation: nil, cancellation: cancellation)
     }
 
     convenience init(
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
         space: Double, texture: Double, rackFades: SongRackFades,
-        reservation: SongPreparationPool.Reservation?
+        reservation: SongPreparationPool.Reservation?, cancellation: PreparationCancellation?
     ) throws {
         let prepared = try PreparationMode.perform {
             try Self.makeSong(
                 layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
                 focus: focus, warmth: warmth, energy: energy, space: space,
-                texture: texture, rackFades: rackFades, reservation: reservation)
+                texture: texture, rackFades: rackFades, reservation: reservation,
+                cancellation: cancellation)
         }
         self.init(prepared: prepared, reservation: reservation)
     }
@@ -50,17 +52,22 @@ public final class PreparedSong {
     /// Prepares an already formed native schedule on its shared absolute frame clock.
     /// Schedule validation and render-input derivation use the preparation numeric scope;
     /// earlier planning remains a separate contract. Existing score/storage limits apply.
-    public convenience init(schedule: SongSchedule, preparer: TonalSamplePreparer) throws {
-        try self.init(schedule: schedule, preparer: preparer, reservation: nil)
+    public convenience init(
+        schedule: SongSchedule, preparer: TonalSamplePreparer,
+        cancellation: PreparationCancellation? = nil
+    ) throws {
+        try self.init(
+            schedule: schedule, preparer: preparer, reservation: nil, cancellation: cancellation)
     }
 
     convenience init(
         schedule: SongSchedule, preparer: TonalSamplePreparer,
-        reservation: SongPreparationPool.Reservation?
+        reservation: SongPreparationPool.Reservation?, cancellation: PreparationCancellation?
     ) throws {
         let prepared = try PreparationMode.perform {
             try Self.makeScheduledSong(
-                schedule: schedule, preparer: preparer, reservation: reservation)
+                schedule: schedule, preparer: preparer, reservation: reservation,
+                cancellation: cancellation)
         }
         self.init(prepared: prepared, reservation: reservation)
     }
@@ -78,8 +85,9 @@ public final class PreparedSong {
     @inline(never)
     private static func makeScheduledSong(
         schedule: SongSchedule, preparer: TonalSamplePreparer,
-        reservation: SongPreparationPool.Reservation?
+        reservation: SongPreparationPool.Reservation?, cancellation: PreparationCancellation?
     ) throws -> Prepared {
+        try cancellation?.check()
         try schedule.validate()
         let song = schedule.song
         let layout = try SongRenderLayout(schedule: schedule)
@@ -90,7 +98,7 @@ public final class PreparedSong {
             takeSeed: UInt32(song.takeSeed), focus: song.focus == "guitar" ? .guitar : .piano,
             warmth: song.controls.warmth, energy: song.energy,
             space: song.controls.space, texture: song.controls.texture, rackFades: fades,
-            reservation: reservation)
+            reservation: reservation, cancellation: cancellation)
     }
 
     @inline(never)
@@ -98,12 +106,13 @@ public final class PreparedSong {
         layout: SongRenderLayout, preparer: TonalSamplePreparer, events: [NoteEvent],
         takeSeed: UInt32, focus: HarmonicFocus, warmth: Double, energy: Double,
         space: Double, texture: Double, rackFades: SongRackFades,
-        reservation: SongPreparationPool.Reservation?
+        reservation: SongPreparationPool.Reservation?, cancellation: PreparationCancellation?
     ) throws -> Prepared {
+        try cancellation?.check()
         let source = try SongRenderSource(
             layout: layout, preparer: preparer, events: events, takeSeed: takeSeed,
             focus: focus, warmth: warmth, energy: energy, space: space,
-            texture: texture, rackFades: rackFades)
+            texture: texture, rackFades: rackFades, cancellation: cancellation)
         // Admission precedes the analysis render; failed construction releases the lease.
         try reservation?.claim(
             voiceSlots: source.requiredVoiceSlots, pcmBytes: source.preparedBytes)
@@ -111,16 +120,19 @@ public final class PreparedSong {
         var scratch = [Float](repeating: 0, count: 256 * 2)
         try scratch.withUnsafeMutableBufferPointer { buffer in
             while source.position < layout.inputFrames {
+                try cancellation?.check(analysisFrame: source.position)
                 guard let frames = source.render(into: buffer), frames > 0,
                     body.process(UnsafeBufferPointer(start: buffer.baseAddress, count: frames * 2))
                 else { throw PreparedSongError.analysisFailed }
             }
         }
+        try cancellation?.check()
         let measurement = try body.finish()
         guard let loudness = measurement.integratedLUFS else {
             throw PreparedSongError.unmeasurableBody
         }
         source.reset()
+        try cancellation?.check()
         guard let handle = ll_song_replay_create(source.borrowedHandle, loudness) else {
             throw PreparedSongError.preparationFailed
         }
