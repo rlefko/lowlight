@@ -15,6 +15,17 @@ public final class PreparedSongPair {
     private let songs: (PreparedSong, PreparedSong)
     private let handle: OpaquePointer
 
+    /// Plans the initial adjacent schedules before using the existing finite pair path.
+    public convenience init(
+        seed: UInt64 = 91_031, controls: Controls = Controls(), frameCount: UInt32,
+        preparer: TonalSamplePreparer
+    ) throws {
+        let planning = try SessionPlanning(seed: seed, controls: controls)
+        let first = try planning.next()
+        let second = try planning.next()
+        try self.init(first: first, second: second, frameCount: frameCount, preparer: preparer)
+    }
+
     /// Accepts two already formed, adjacent schedules starting at session frame zero.
     /// End after the second song starts and no later than the third song would start.
     /// Planning itself remains outside the preparation numeric scope.
