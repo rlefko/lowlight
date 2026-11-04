@@ -100,4 +100,8 @@ bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacit
 }
 uint32_t ll_song_source_position(const LLSongSource *source) { return source ? source->position : 0; }
 uint32_t ll_song_source_frames(const LLSongSource *source) { return source ? source->frames : 0; }
+uint64_t ll_song_source_origin(const LLSongSource *source) { return source ? ll_mixer_origin(source->mixer) : 0; }
+uint32_t ll_song_source_required_voice_slots(const LLSongSource *source) {
+    return source ? ll_mixer_required_voice_slots(source->mixer) : 0;
+}
 bool ll_song_source_faulted(const LLSongSource *source) { return !source || source->faulted; }

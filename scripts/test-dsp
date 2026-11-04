@@ -9,7 +9,7 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 mkdir -p .build/DSPTests
 flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
   -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
-for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain SongSource SongReplay FloatingPoint; do
+for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain SongSource SongReplay SongPair FloatingPoint; do
   sources=("Packages/LowlightAudio/Sources/CLowlightDSP/$suite.cpp" "tests/dsp/${suite}Tests.cpp")
   if [[ "$suite" == FloatingPoint ]]; then
     sources=(Packages/LowlightAudio/Sources/CLowlightDSP/*.cpp tests/dsp/FloatingPointTests.cpp)
@@ -27,6 +27,10 @@ for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix L
   if [[ "$suite" == SongReplay ]]; then
     sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{VoiceMixer,HarmonicGlue,StereoRoom,SongMix,QuietAir,NumpyRandom,SongSource,SongGain,PeakProtector}.cpp
       tests/dsp/SongReplayTests.cpp)
+  fi
+  if [[ "$suite" == SongPair ]]; then
+    sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{VoiceMixer,HarmonicGlue,StereoRoom,SongMix,QuietAir,NumpyRandom,SongSource,SongGain,PeakProtector,SongReplay}.cpp
+      tests/dsp/SongPairTests.cpp)
   fi
   for mode in optimized sanitized; do
     build_flags=(-O2)
@@ -47,6 +51,14 @@ for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix L
       xcrun clang++ "${flags[@]}" "${build_flags[@]}" -Dll_song_source_render=ll_test_source_render \
         -Dll_peak_process=ll_test_peak_process -Dll_peak_drain=ll_test_peak_drain \
         -c Packages/LowlightAudio/Sources/CLowlightDSP/SongReplay.cpp -o "$object"
+      inputs+=("$object")
+    fi
+    if [[ "$suite" == SongPair ]]; then
+      # Pair-only redirection exercises frozen song outputs and downstream failures.
+      object=".build/DSPTests/SongPair-$mode.o"
+      xcrun clang++ "${flags[@]}" "${build_flags[@]}" -Dll_song_replay_render=ll_test_replay_render \
+        -Dll_peak_process=ll_test_pair_peak_process -Dll_peak_drain=ll_test_pair_peak_drain \
+        -c Packages/LowlightAudio/Sources/CLowlightDSP/SongPair.cpp -o "$object"
       inputs+=("$object")
     fi
     xcrun clang++ "${flags[@]}" "${build_flags[@]}" "${inputs[@]}" -o ".build/DSPTests/$suite-$mode"
