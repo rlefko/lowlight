@@ -16,29 +16,58 @@
 static bool auditing = false;
 static unsigned allocations = 0, deallocations = 0;
 void *operator new(std::size_t bytes) {
-    if (auditing) ++allocations;
+    if (auditing)
+        ++allocations;
     void *pointer = std::malloc(bytes ? bytes : 1);
-    if (!pointer) std::abort();
+    if (!pointer)
+        std::abort();
     return pointer;
 }
-void *operator new[](std::size_t bytes) { return ::operator new(bytes); }
-void *operator new(std::size_t bytes, const std::nothrow_t &) noexcept { return ::operator new(bytes); }
-void *operator new[](std::size_t bytes, const std::nothrow_t &) noexcept { return ::operator new(bytes); }
-void operator delete(void *pointer) noexcept { if (auditing) ++deallocations; std::free(pointer); }
-void operator delete[](void *pointer) noexcept { ::operator delete(pointer); }
-void operator delete(void *pointer, std::size_t) noexcept { ::operator delete(pointer); }
-void operator delete[](void *pointer, std::size_t) noexcept { ::operator delete(pointer); }
-void operator delete(void *pointer, const std::nothrow_t &) noexcept { ::operator delete(pointer); }
-void operator delete[](void *pointer, const std::nothrow_t &) noexcept { ::operator delete(pointer); }
+void *operator new[](std::size_t bytes) {
+    return ::operator new(bytes);
+}
+void *operator new(std::size_t bytes, const std::nothrow_t &) noexcept {
+    return ::operator new(bytes);
+}
+void *operator new[](std::size_t bytes, const std::nothrow_t &) noexcept {
+    return ::operator new(bytes);
+}
+void operator delete(void *pointer) noexcept {
+    if (auditing)
+        ++deallocations;
+    std::free(pointer);
+}
+void operator delete[](void *pointer) noexcept {
+    ::operator delete(pointer);
+}
+void operator delete(void *pointer, std::size_t) noexcept {
+    ::operator delete(pointer);
+}
+void operator delete[](void *pointer, std::size_t) noexcept {
+    ::operator delete(pointer);
+}
+void operator delete(void *pointer, const std::nothrow_t &) noexcept {
+    ::operator delete(pointer);
+}
+void operator delete[](void *pointer, const std::nothrow_t &) noexcept {
+    ::operator delete(pointer);
+}
 
 static void require(bool condition, int line) {
-    if (!condition) { std::fprintf(stderr, "Voice mixer assertion failed at line %d\n", line); std::abort(); }
+    if (!condition) {
+        std::fprintf(stderr, "Voice mixer assertion failed at line %d\n", line);
+        std::abort();
+    }
 }
 #define CHECK(condition) require((condition), __LINE__)
-static bool near(float actual, double expected) { return std::abs(actual - expected) <= 1e-6; }
+static bool near(float actual, double expected) {
+    return std::abs(actual - expected) <= 1e-6;
+}
 static uint64_t floatingControl() {
 #if defined(__aarch64__) || defined(__arm64__)
-    uint64_t value; __asm__ volatile("mrs %0, fpcr" : "=r"(value)); return value;
+    uint64_t value;
+    __asm__ volatile("mrs %0, fpcr" : "=r"(value));
+    return value;
 #elif defined(__x86_64__)
     return _mm_getcsr();
 #else
@@ -55,16 +84,21 @@ static void setFloatingControl(uint64_t value) {
 #endif
 }
 static bool sameFrame(const LLBusFrame &a, const LLBusFrame &b) {
-    return std::equal(a.guitar, a.guitar + 2, b.guitar) && std::equal(a.piano, a.piano + 2, b.piano) &&
-        std::equal(a.bass, a.bass + 2, b.bass) && std::equal(a.drums, a.drums + 2, b.drums) && a.duck == b.duck;
+    return std::equal(a.guitar, a.guitar + 2, b.guitar) &&
+           std::equal(a.piano, a.piano + 2, b.piano) && std::equal(a.bass, a.bass + 2, b.bass) &&
+           std::equal(a.drums, a.drums + 2, b.drums) && a.duck == b.duck;
 }
 static bool sameBuses(const std::vector<LLBusFrame> &a, const std::vector<LLBusFrame> &b) {
     return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), sameFrame);
 }
 struct Mixer {
     LLMixer *value = ll_mixer_create();
-    Mixer() { CHECK(value); }
-    ~Mixer() { ll_mixer_destroy(value); }
+    Mixer() {
+        CHECK(value);
+    }
+    ~Mixer() {
+        ll_mixer_destroy(value);
+    }
     Mixer(const Mixer &) = delete;
     Mixer &operator=(const Mixer &) = delete;
     int sample(float amplitude, uint32_t frames = 4096, uint32_t channels = 1) {
@@ -89,20 +123,25 @@ struct Mixer {
             CHECK(ll_mixer_active_voices(value) <= LL_VOICE_LIMIT);
             offset += count;
         }
-        CHECK(std::all_of(output.begin(), output.end(), [](float value) { return std::isfinite(value); }));
+        CHECK(std::all_of(output.begin(), output.end(),
+                          [](float value) { return std::isfinite(value); }));
         return output;
     }
     std::vector<LLBusFrame> buses(uint32_t frames, const std::vector<uint32_t> &blocks = {256}) {
         const float nan = std::numeric_limits<float>::quiet_NaN();
-        std::vector<LLBusFrame> output(frames, LLBusFrame{{nan, nan}, {nan, nan}, {nan, nan}, {nan, nan}, nan});
-        uint32_t offset = 0; std::size_t block = 0;
+        std::vector<LLBusFrame> output(
+            frames, LLBusFrame{{nan, nan}, {nan, nan}, {nan, nan}, {nan, nan}, nan});
+        uint32_t offset = 0;
+        std::size_t block = 0;
         while (offset < frames) {
             const uint32_t count = std::min(frames - offset, blocks[block++ % blocks.size()]);
-            const auto control = floatingControl(); auditing = true;
+            const auto control = floatingControl();
+            auditing = true;
             const bool result = ll_mixer_render_buses(value, output.data() + offset, count);
             auditing = false;
             CHECK(result && floatingControl() == control && allocations == 0 && deallocations == 0);
-            CHECK(ll_mixer_active_voices(value) <= LL_VOICE_LIMIT); offset += count;
+            CHECK(ll_mixer_active_voices(value) <= LL_VOICE_LIMIT);
+            offset += count;
         }
         for (const auto &frame : output) {
             CHECK(std::isfinite(frame.duck));
@@ -119,10 +158,14 @@ struct Mixer {
         CHECK(allocations == 0 && deallocations == 0);
     }
 };
-static LLEvent event(uint32_t sample = 0, uint64_t start = 0, uint32_t hold = 1000, uint32_t release = 800) {
+static LLEvent event(uint32_t sample = 0, uint64_t start = 0, uint32_t hold = 1000,
+                     uint32_t release = 800) {
     LLEvent value{};
-    value.sample_index = sample; value.start_frame = start;
-    value.hold_frames = hold; value.release_frames = release; value.velocity = 1;
+    value.sample_index = sample;
+    value.start_frame = start;
+    value.hold_frames = hold;
+    value.release_frames = release;
+    value.velocity = 1;
     return value;
 }
 
@@ -130,12 +173,15 @@ static void timingAndPartitioning() {
     Mixer mixer;
     CHECK(mixer.sample(0.2f) == 0);
     auto delayed = event(0, 17);
-    auto second = event(0, 513, 400, 100); second.pan = 0.3f; second.connected = 1;
+    auto second = event(0, 513, 400, 100);
+    second.pan = 0.3f;
+    second.connected = 1;
     mixer.load({delayed, second});
     const auto whole = mixer.render(4097, {4097});
     CHECK(ll_mixer_position(mixer.value) == 4097 && ll_mixer_active_voices(mixer.value) == 0);
     CHECK(std::all_of(whole.begin(), whole.begin() + 36, [](float sample) { return sample == 0; }));
-    CHECK(std::all_of(whole.begin() + 2 * 1817, whole.end(), [](float sample) { return sample == 0; }));
+    CHECK(std::all_of(whole.begin() + 2 * 1817, whole.end(),
+                      [](float sample) { return sample == 0; }));
     mixer.reset();
     CHECK(ll_mixer_position(mixer.value) == 0);
     CHECK(whole == mixer.render(4097, {1, 17, 255, 256, 257, 503}));
@@ -149,313 +195,518 @@ static void timingAndPartitioning() {
 }
 
 static void envelopesAndStereo() {
-    Mixer mixer; CHECK(mixer.sample(0.2f) == 0);
-    auto note = event(); mixer.load({note});
+    Mixer mixer;
+    CHECK(mixer.sample(0.2f) == 0);
+    auto note = event();
+    mixer.load({note});
     const auto normal = mixer.render(1801);
     CHECK(normal[0] == 0 && near(normal[2 * 447], 0.047));
     CHECK(near(normal[2 * 1000], 0.047) && std::abs(normal[2 * 1799]) < 1e-12);
     CHECK(normal[3600] == 0);
-    for (std::size_t index = 0; index < normal.size(); index += 2) CHECK(normal[index] == normal[index + 1]);
-    note.connected = 1; mixer.load({note}); const auto connected = mixer.render(1801);
+    for (std::size_t index = 0; index < normal.size(); index += 2)
+        CHECK(normal[index] == normal[index + 1]);
+    note.connected = 1;
+    mixer.load({note});
+    const auto connected = mixer.render(1801);
     CHECK(near(connected[1000], normal[1000] * 0.9));
-    note.connected = 0; note.pan = -1; mixer.load({note}); const auto left = mixer.render(600);
+    note.connected = 0;
+    note.pan = -1;
+    mixer.load({note});
+    const auto left = mixer.render(600);
     CHECK(near(left[1000], 0.047 * std::sqrt(2.0)) && left[1001] == 0);
-    note.pan = 1; mixer.load({note}); const auto right = mixer.render(600);
+    note.pan = 1;
+    mixer.load({note});
+    const auto right = mixer.render(600);
     CHECK(std::abs(right[1000]) < 1e-8 && near(right[1001], 0.047 * std::sqrt(2.0)));
-    note = event(0, 0, 1, 0); mixer.load({note}); CHECK(mixer.render(2) == std::vector<float>(4, 0));
-    note = event(0, 0, 800, 1); mixer.load({note});
+    note = event(0, 0, 1, 0);
+    mixer.load({note});
+    CHECK(mixer.render(2) == std::vector<float>(4, 0));
+    note = event(0, 0, 800, 1);
+    mixer.load({note});
     const auto singleRelease = mixer.render(802);
     CHECK(near(singleRelease[1600], 0.047) && singleRelease[1602] == 0);
-    Mixer truncated; CHECK(truncated.sample(0.2f, 850) == 0);
-    truncated.load({event(0, 0, 800, 200)}); const auto tail = truncated.render(851);
+    Mixer truncated;
+    CHECK(truncated.sample(0.2f, 850) == 0);
+    truncated.load({event(0, 0, 800, 200)});
+    const auto tail = truncated.render(851);
     const double phase = 25.0 / 49 * std::acos(-1.0) / 2;
     CHECK(near(tail[2 * 825], 0.047 * std::cos(phase) * std::cos(phase)) && tail[1700] == 0);
-    Mixer stereo; std::vector<float> pcm(4096 * 2);
-    for (std::size_t index = 0; index < pcm.size(); index += 2) { pcm[index] = 0.2f; pcm[index + 1] = 0.1f; }
+    Mixer stereo;
+    std::vector<float> pcm(4096 * 2);
+    for (std::size_t index = 0; index < pcm.size(); index += 2) {
+        pcm[index] = 0.2f;
+        pcm[index + 1] = 0.1f;
+    }
     CHECK(ll_mixer_add_sample(stereo.value, pcm.data(), 4096, 2) == 0);
-    note = event(); note.instrument = 1; stereo.load({note}); const auto piano = stereo.render(600);
+    note = event();
+    note.instrument = 1;
+    stereo.load({note});
+    const auto piano = stereo.render(600);
     CHECK(near(piano[1000], 0.1875 * 0.23) && near(piano[1001], 0.1125 * 0.23));
 }
 
 static void stealing() {
-    Mixer mixer; CHECK(mixer.sample(0.1f) == 0); CHECK(mixer.sample(0.2f) == 1); CHECK(mixer.sample(0.8f) == 2);
+    Mixer mixer;
+    CHECK(mixer.sample(0.1f) == 0);
+    CHECK(mixer.sample(0.2f) == 1);
+    CHECK(mixer.sample(0.8f) == 2);
     std::vector<LLEvent> score(64, event(0, 0, 4000, 0));
-    auto silent = event(0, 100); silent.velocity = 0;
+    auto silent = event(0, 100);
+    silent.velocity = 0;
     score.insert(score.end(), 64, silent); // Silent arrivals consume no voice or pending slot.
-    auto incoming = event(1, 100, 3000, 0); incoming.priority = 2;
+    auto incoming = event(1, 100, 3000, 0);
+    incoming.priority = 2;
     score.insert(score.end(), 64, incoming);
-    incoming.sample_index = 2; score.push_back(incoming); // Every slot already has a pending note.
-    incoming.start_frame = 120; incoming.priority = 0; score.push_back(incoming);
-    incoming.start_frame = 500; score.push_back(incoming); // Melody voices are protected after the fade too.
-    mixer.load(score); const auto first = mixer.render(1000, {1});
+    incoming.sample_index = 2;
+    score.push_back(incoming); // Every slot already has a pending note.
+    incoming.start_frame = 120;
+    incoming.priority = 0;
+    score.push_back(incoming);
+    incoming.start_frame = 500;
+    score.push_back(incoming); // Melody voices are protected after the fade too.
+    mixer.load(score);
+    const auto first = mixer.render(1000, {1});
     CHECK(ll_mixer_steals(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 3);
     CHECK(ll_mixer_active_voices(mixer.value) == 64);
-    CHECK(std::abs(first[2 * 259]) < 1e-8 && first[2 * 260] == 0); // Fade ends, then the pending attack begins.
+    CHECK(std::abs(first[2 * 259]) < 1e-8 &&
+          first[2 * 260] == 0); // Fade ends, then the pending attack begins.
     CHECK(near(first[2 * 900], 64 * 0.047));
-    mixer.reset(); CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
+    mixer.reset();
+    CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
     CHECK(first == mixer.render(1000, {257, 511, 19}));
-    Mixer release; CHECK(release.sample(0.2f) == 0); CHECK(release.sample(0.4f) == 1); CHECK(release.sample(0) == 2);
+    Mixer release;
+    CHECK(release.sample(0.2f) == 0);
+    CHECK(release.sample(0.4f) == 1);
+    CHECK(release.sample(0) == 2);
     score.assign(64, event(2, 0, 3000, 0));
-    for (auto &value : score) value.priority = 2;
-    score[0] = event(0, 0, 2000, 0); score[1] = event(1, 0, 100, 1000);
+    for (auto &value : score)
+        value.priority = 2;
+    score[0] = event(0, 0, 2000, 0);
+    score[1] = event(1, 0, 100, 1000);
     score.push_back(event(2, 500, 2000, 0));
-    release.load(score); const auto preferred = release.render(1200);
+    release.load(score);
+    const auto preferred = release.render(1200);
     CHECK(ll_mixer_steals(release.value) == 1 && near(preferred[2 * 1000], 0.047));
     // Equal priorities/releases choose the oldest voice, then stable slot order.
     for (const uint64_t laterStart : {uint64_t{0}, uint64_t{20}}) {
         score.assign(63, event(2, 0, 3000, 0));
-        for (auto &value : score) value.priority = 2;
+        for (auto &value : score)
+            value.priority = 2;
         score[0] = event(0, 0, 3000, 0);
         score.push_back(event(1, laterStart, 3000, 0));
         score.push_back(event(2, 1000, 2000, 0));
-        release.load(score); const auto oldest = release.render(1700);
+        release.load(score);
+        const auto oldest = release.render(1700);
         CHECK(ll_mixer_steals(release.value) == 1 && near(oldest[2 * 1600], 0.094));
     }
 }
 
 static LLEvent bass(uint64_t start = 0, uint32_t hold = 900, uint32_t release = 300) {
     auto note = event(0, start, hold, release);
-    note.instrument = 2; note.midi = 40; note.priority = 2;
+    note.instrument = 2;
+    note.midi = 40;
+    note.priority = 2;
     return note;
 }
 static float bassReference(uint32_t age, const LLEvent &note, float touch = 0) {
-    if (age >= note.hold_frames + note.release_frames) return 0;
-    const double t = age / 32000.0, phase = 2 * std::acos(-1.0) * 440 * std::pow(2.0, (note.midi - 69) / 12.0) * t;
-    const double tone = .21 * std::sin(phase) + .105 * std::sin(2 * phase) + .037 * std::sin(3 * phase);
-    double value = (tone * (1 - std::exp(-t / .016)) * std::exp(-t / 2.6) + touch) * .24 * std::pow(note.velocity, 1.10);
+    if (age >= note.hold_frames + note.release_frames)
+        return 0;
+    const double t = age / 32000.0,
+                 phase = 2 * std::acos(-1.0) * 440 * std::pow(2.0, (note.midi - 69) / 12.0) * t;
+    const double tone =
+        .21 * std::sin(phase) + .105 * std::sin(2 * phase) + .037 * std::sin(3 * phase);
+    double value = (tone * (1 - std::exp(-t / .016)) * std::exp(-t / 2.6) + touch) * .24 *
+                   std::pow(note.velocity, 1.10);
     if (age >= note.hold_frames && note.release_frames > 1)
-        value *= std::pow(std::cos(std::acos(-1.0) / 2 * (age - note.hold_frames) / (note.release_frames - 1)), 2);
+        value *= std::pow(
+            std::cos(std::acos(-1.0) / 2 * (age - note.hold_frames) / (note.release_frames - 1)),
+            2);
     return static_cast<float>(value) * 0.99999994f;
 }
 static void bassSoundAndBounds() {
-    Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0); CHECK(mixer.sample(.125f, 8, 2) == 1);
-    auto note = bass(); std::vector<float> expected;
+    Mixer mixer;
+    CHECK(mixer.sample(.125f, 8) == 0);
+    CHECK(mixer.sample(.125f, 8, 2) == 1);
+    auto note = bass();
+    std::vector<float> expected;
     for (const uint8_t midi : {31, 40, 57}) {
-        note.midi = midi; mixer.load({note}); expected = mixer.render(1201);
+        note.midi = midi;
+        mixer.load({note});
+        expected = mixer.render(1201);
         for (uint32_t frame = 0; frame < 1201; ++frame) {
             CHECK(near(expected[2 * frame], bassReference(frame, note, frame < 8 ? .125f : 0)));
             CHECK(expected[2 * frame] == expected[2 * frame + 1]);
         }
         CHECK(expected[0] > 0 && expected[2 * 500] != 0 && expected[2400] == 0);
         CHECK(ll_mixer_active_voices(mixer.value) == 0);
-        mixer.reset(); CHECK(expected == mixer.render(1201, {1, 17, 255, 256, 513}));
+        mixer.reset();
+        CHECK(expected == mixer.render(1201, {1, 17, 255, 256, 513}));
     }
-    note.pan = 1; note.connected = 1; mixer.load({note}); CHECK(expected == mixer.render(1201));
-    note.velocity = .5f; mixer.load({note}); const auto quiet = mixer.render(1201);
+    note.pan = 1;
+    note.connected = 1;
+    mixer.load({note});
+    CHECK(expected == mixer.render(1201));
+    note.velocity = .5f;
+    mixer.load({note});
+    const auto quiet = mixer.render(1201);
     CHECK(near(quiet[1000], expected[1000] * std::pow(.5, 1.10)));
-    note.velocity = 0; mixer.load({note}); CHECK(mixer.render(1201) == std::vector<float>(2402, 0));
+    note.velocity = 0;
+    mixer.load({note});
+    CHECK(mixer.render(1201) == std::vector<float>(2402, 0));
     CHECK(ll_mixer_active_voices(mixer.value) == 0);
     for (const uint32_t release : {0u, 1u, 2u}) {
-        note = bass(0, 1, release); mixer.load({note}); const auto tiny = mixer.render(4);
-        for (uint32_t frame = 0; frame < 4; ++frame) CHECK(near(tiny[2 * frame], bassReference(frame, note, .125f)));
+        note = bass(0, 1, release);
+        mixer.load({note});
+        const auto tiny = mixer.render(4);
+        for (uint32_t frame = 0; frame < 4; ++frame)
+            CHECK(near(tiny[2 * frame], bassReference(frame, note, .125f)));
         CHECK(ll_mixer_active_voices(mixer.value) == 0);
     }
-    note = bass(0, 512000, 160000); mixer.load({note}); expected = mixer.render(672001, {1023});
+    note = bass(0, 512000, 160000);
+    mixer.load({note});
+    expected = mixer.render(672001, {1023});
     CHECK(near(expected[2 * 512000], bassReference(512000, note)) && expected[2 * 672000] == 0);
     CHECK(ll_mixer_active_voices(mixer.value) == 0);
-    auto boundary = note; boundary.start_frame = (uint64_t{1} << 52) - 672000; mixer.load({boundary});
-    ++boundary.start_frame; CHECK(!ll_mixer_load_events(mixer.value, &boundary, 1));
-    mixer.load({note}); mixer.render(123);
+    auto boundary = note;
+    boundary.start_frame = (uint64_t{1} << 52) - 672000;
+    mixer.load({boundary});
+    ++boundary.start_frame;
+    CHECK(!ll_mixer_load_events(mixer.value, &boundary, 1));
+    mixer.load({note});
+    mixer.render(123);
     std::vector<LLEvent> invalid;
-    auto bad = note; bad.midi = 30; invalid.push_back(bad);
-    bad = note; bad.midi = 58; invalid.push_back(bad);
-    bad = note; bad.sample_index = 1; invalid.push_back(bad);
-    bad = note; bad.hold_frames = 512001; invalid.push_back(bad);
-    bad = note; bad.release_frames = 160001; invalid.push_back(bad);
-    for (const auto &value : invalid) CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
+    auto bad = note;
+    bad.midi = 30;
+    invalid.push_back(bad);
+    bad = note;
+    bad.midi = 58;
+    invalid.push_back(bad);
+    bad = note;
+    bad.sample_index = 1;
+    invalid.push_back(bad);
+    bad = note;
+    bad.hold_frames = 512001;
+    invalid.push_back(bad);
+    bad = note;
+    bad.release_frames = 160001;
+    invalid.push_back(bad);
+    for (const auto &value : invalid)
+        CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
     CHECK(ll_mixer_position(mixer.value) == 123);
     CHECK(std::vector<float>(expected.begin() + 246, expected.begin() + 2048) == mixer.render(901));
 }
 static void bassReservationAndOverlap() {
-    Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0); CHECK(mixer.sample(0, 4096) == 1);
+    Mixer mixer;
+    CHECK(mixer.sample(.125f, 8) == 0);
+    CHECK(mixer.sample(0, 4096) == 1);
     auto first = bass(), second = bass(100), rejected = bass(101);
-    second.midi = 47; rejected.midi = 54; rejected.velocity = .5f;
-    mixer.load({first, second, rejected}); const auto overlap = mixer.render(500, {1});
+    second.midi = 47;
+    rejected.midi = 54;
+    rejected.velocity = .5f;
+    mixer.load({first, second, rejected});
+    const auto overlap = mixer.render(500, {1});
     CHECK(ll_mixer_active_voices(mixer.value) == 1 && ll_mixer_steals(mixer.value) == 1);
     CHECK(ll_mixer_dropped_events(mixer.value) == 1);
     CHECK(near(overlap[2 * 200], bassReference(200, first) * 59.0 / 159));
     CHECK(overlap[2 * 259] == 0 && near(overlap[2 * 260], bassReference(0, second, .125f)));
     CHECK(near(overlap[2 * 400], bassReference(140, second)));
-    mixer.reset(); CHECK(overlap == mixer.render(500, {257, 1, 17}));
+    mixer.reset();
+    CHECK(overlap == mixer.render(500, {257, 1, 17}));
     CHECK(ll_mixer_steals(mixer.value) == 1 && ll_mixer_dropped_events(mixer.value) == 1);
-    auto tone = event(1, 0, 3000, 0); tone.priority = 2;
-    std::vector<LLEvent> mixed(63, tone); first = bass(0, 3000, 0); mixed.push_back(first);
-    tone.start_frame = 100; mixed.insert(mixed.end(), 63, tone);
-    tone.start_frame = 101; mixed.push_back(tone);
-    mixer.load(mixed); const auto saturated = mixer.render(700, {1});
+    auto tone = event(1, 0, 3000, 0);
+    tone.priority = 2;
+    std::vector<LLEvent> mixed(63, tone);
+    first = bass(0, 3000, 0);
+    mixed.push_back(first);
+    tone.start_frame = 100;
+    mixed.insert(mixed.end(), 63, tone);
+    tone.start_frame = 101;
+    mixed.push_back(tone);
+    mixer.load(mixed);
+    const auto saturated = mixer.render(700, {1});
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 63);
     CHECK(ll_mixer_dropped_events(mixer.value) == 1);
     for (uint32_t frame = 0; frame < 700; ++frame)
         CHECK(near(saturated[2 * frame], bassReference(frame, first, frame < 8 ? .125f : 0)));
-    mixer.reset(); CHECK(saturated == mixer.render(700, {700}));
-    tone.start_frame = 0; mixed.assign(64, tone); first.velocity = 0; mixed.push_back(first);
-    mixer.load(mixed); mixer.render(500); // Even a silent bass score reserves its one slot.
+    mixer.reset();
+    CHECK(saturated == mixer.render(700, {700}));
+    tone.start_frame = 0;
+    mixed.assign(64, tone);
+    first.velocity = 0;
+    mixed.push_back(first);
+    mixer.load(mixed);
+    mixer.render(500); // Even a silent bass score reserves its one slot.
     CHECK(ll_mixer_active_voices(mixer.value) == 63 && ll_mixer_steals(mixer.value) == 1);
-    tone.start_frame = 700; mixed.assign(64, tone); mixer.load(mixed); mixer.render(500);
-    auto invalid = bass(); invalid.midi = 58;
+    tone.start_frame = 700;
+    mixed.assign(64, tone);
+    mixer.load(mixed);
+    mixer.render(500);
+    auto invalid = bass();
+    invalid.midi = 58;
     CHECK(!ll_mixer_load_events(mixer.value, &invalid, 1));
-    CHECK(ll_mixer_position(mixer.value) == 500); mixer.render(300);
+    CHECK(ll_mixer_position(mixer.value) == 500);
+    mixer.render(300);
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 0);
 }
 
 static LLEvent percussion(uint8_t instrument = 3, uint32_t sample = 0, uint64_t start = 0) {
     auto note = event(sample, start, 1, 0);
-    note.instrument = instrument; note.midi = instrument == 4 ? 1 : 0;
+    note.instrument = instrument;
+    note.midi = instrument == 4 ? 1 : 0;
     return note;
 }
 static float panFactor(float pan, bool right = false) {
     const double phase = (pan + 1.0) * std::acos(-1.0) / 4;
-    return static_cast<float>(right ? std::sin(phase) : std::cos(phase)) * static_cast<float>(std::sqrt(2.0));
+    return static_cast<float>(right ? std::sin(phase) : std::cos(phase)) *
+           static_cast<float>(std::sqrt(2.0));
 }
 static void percussionSoundAndBounds() {
-    Mixer mixer; CHECK(mixer.sample(.1375f, 997) == 0); CHECK(mixer.sample(.1375f, 997, 2) == 1);
+    Mixer mixer;
+    CHECK(mixer.sample(.1375f, 997) == 0);
+    CHECK(mixer.sample(.1375f, 997, 2) == 1);
     constexpr double gains[] = {.31, .25, .27, .11};
     for (uint8_t instrument = 3; instrument <= 6; ++instrument) {
-        auto note = percussion(instrument); note.pan = .31f; note.velocity = .61f;
-        const float gain = static_cast<float>(gains[instrument - 3] * std::pow(double(note.velocity), 1.25));
-        mixer.load({note}); const auto expected = mixer.render(998, {998});
-        for (uint32_t frame = 0; frame < 997; ++frame) { // No attack, gate truncation, or extra decay.
+        auto note = percussion(instrument);
+        note.pan = .31f;
+        note.velocity = .61f;
+        const float gain =
+            static_cast<float>(gains[instrument - 3] * std::pow(double(note.velocity), 1.25));
+        mixer.load({note});
+        const auto expected = mixer.render(998, {998});
+        for (uint32_t frame = 0; frame < 997;
+             ++frame) { // No attack, gate truncation, or extra decay.
             CHECK(expected[2 * frame] == (.1375f * panFactor(note.pan)) * gain);
             CHECK(expected[2 * frame + 1] == (.1375f * panFactor(note.pan, true)) * gain);
         }
-        CHECK(expected[1994] == 0 && expected[1995] == 0 && ll_mixer_active_voices(mixer.value) == 0);
-        mixer.reset(); CHECK(expected == mixer.render(998, {1, 17, 255, 257}));
-        note.hold_frames = 100; note.release_frames = 800; note.connected = 1;
-        mixer.load({note}); CHECK(expected == mixer.render(998));
+        CHECK(expected[1994] == 0 && expected[1995] == 0 &&
+              ll_mixer_active_voices(mixer.value) == 0);
+        mixer.reset();
+        CHECK(expected == mixer.render(998, {1, 17, 255, 257}));
+        note.hold_frames = 100;
+        note.release_frames = 800;
+        note.connected = 1;
+        mixer.load({note});
+        CHECK(expected == mixer.render(998));
         for (const float pan : {-1.f, 0.f, 1.f}) {
-            auto panned = note; panned.pan = pan; mixer.load({panned}); const auto output = mixer.render(1);
+            auto panned = note;
+            panned.pan = pan;
+            mixer.load({panned});
+            const auto output = mixer.render(1);
             CHECK(output[0] == (.1375f * panFactor(pan)) * gain);
             CHECK(output[1] == (.1375f * panFactor(pan, true)) * gain);
         }
-        auto silent = note; silent.velocity = 0; mixer.load({silent});
-        CHECK(mixer.render(998) == std::vector<float>(1996, 0) && ll_mixer_active_voices(mixer.value) == 0);
-        mixer.load({note}); mixer.render(37);
-        auto bad = note; bad.sample_index = 1; CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
-        bad = note; bad.midi = instrument == 4 ? 0 : 1; CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
+        auto silent = note;
+        silent.velocity = 0;
+        mixer.load({silent});
+        CHECK(mixer.render(998) == std::vector<float>(1996, 0) &&
+              ll_mixer_active_voices(mixer.value) == 0);
+        mixer.load({note});
+        mixer.render(37);
+        auto bad = note;
+        bad.sample_index = 1;
+        CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
+        bad = note;
+        bad.midi = instrument == 4 ? 0 : 1;
+        CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
         for (const uint8_t priority : {1, 2}) {
-            bad = note; bad.priority = priority; CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
+            bad = note;
+            bad.priority = priority;
+            CHECK(!ll_mixer_load_events(mixer.value, &bad, 1));
         }
         CHECK(ll_mixer_position(mixer.value) == 37);
         CHECK(std::vector<float>(expected.begin() + 74, expected.end()) == mixer.render(961));
-        auto boundary = note; boundary.start_frame = (uint64_t{1} << 52) - 997; mixer.load({boundary});
-        ++boundary.start_frame; CHECK(!ll_mixer_load_events(mixer.value, &boundary, 1));
+        auto boundary = note;
+        boundary.start_frame = (uint64_t{1} << 52) - 997;
+        mixer.load({boundary});
+        ++boundary.start_frame;
+        CHECK(!ll_mixer_load_events(mixer.value, &boundary, 1));
     }
 }
 static void percussionStealingAndProtection() {
-    Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0); CHECK(mixer.sample(0, 4096) == 1);
-    CHECK(mixer.sample(.2f, 4096) == 2); CHECK(mixer.sample(.4f, 4096) == 3);
-    auto tone = event(1, 0, 3000, 0); tone.priority = 2;
-    std::vector<LLEvent> score(63, tone); const auto low = bass(0, 3000, 0); score.push_back(low);
+    Mixer mixer;
+    CHECK(mixer.sample(.125f, 8) == 0);
+    CHECK(mixer.sample(0, 4096) == 1);
+    CHECK(mixer.sample(.2f, 4096) == 2);
+    CHECK(mixer.sample(.4f, 4096) == 3);
+    auto tone = event(1, 0, 3000, 0);
+    tone.priority = 2;
+    std::vector<LLEvent> score(63, tone);
+    const auto low = bass(0, 3000, 0);
+    score.push_back(low);
     score.push_back(percussion(3, 2, 100));
-    mixer.load(score); const auto protectedOutput = mixer.render(700, {1});
+    mixer.load(score);
+    const auto protectedOutput = mixer.render(700, {1});
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 0);
     CHECK(ll_mixer_dropped_events(mixer.value) == 1);
     for (uint32_t frame = 0; frame < 700; ++frame)
         CHECK(near(protectedOutput[2 * frame], bassReference(frame, low, frame < 8 ? .125f : 0)));
-    score[0].priority = 0; score.push_back(percussion(6, 3, 101));
-    mixer.load(score); const auto mixed = mixer.render(700, {1});
+    score[0].priority = 0;
+    score.push_back(percussion(6, 3, 101));
+    mixer.load(score);
+    const auto mixed = mixer.render(700, {1});
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 1);
     CHECK(ll_mixer_dropped_events(mixer.value) == 1);
     CHECK(near(mixed[2 * 500], (.2f * panFactor(0)) * .31f + bassReference(500, low)));
-    mixer.reset(); CHECK(mixed == mixer.render(700, {257, 19, 512}));
-    score.assign(63, tone); score.push_back(percussion(3, 2)); // All 64 slots remain available without bass.
-    score.push_back(percussion(6, 3, 100)); score.push_back(percussion(3, 2, 101));
-    mixer.load(score); const auto fade = mixer.render(500, {1});
+    mixer.reset();
+    CHECK(mixed == mixer.render(700, {257, 19, 512}));
+    score.assign(63, tone);
+    score.push_back(percussion(3, 2)); // All 64 slots remain available without bass.
+    score.push_back(percussion(6, 3, 100));
+    score.push_back(percussion(3, 2, 101));
+    mixer.load(score);
+    const auto fade = mixer.render(500, {1});
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == 1);
     CHECK(ll_mixer_dropped_events(mixer.value) == 1);
     CHECK(near(fade[400], (.2f * panFactor(0)) * .31f * 59.0 / 159));
     CHECK(fade[518] == 0 && near(fade[520], (.4f * panFactor(0)) * .11f));
-    score.assign(63, tone); score[0] = percussion(3, 2); score[0].hold_frames = 3000;
-    score.push_back(event(1, 20, 100, 3000)); score.push_back(percussion(6, 1, 500));
-    mixer.load(score); const auto longGate = mixer.render(1000);
+    score.assign(63, tone);
+    score[0] = percussion(3, 2);
+    score[0].hold_frames = 3000;
+    score.push_back(event(1, 20, 100, 3000));
+    score.push_back(percussion(6, 1, 500));
+    mixer.load(score);
+    const auto longGate = mixer.render(1000);
     CHECK(longGate[1800] == 0 && ll_mixer_steals(mixer.value) == 1);
-    score[0].hold_frames = 1; mixer.load(score); CHECK(longGate == mixer.render(1000));
+    score[0].hold_frames = 1;
+    mixer.load(score);
+    CHECK(longGate == mixer.render(1000));
 }
 
 static void busFiltersAndRouting() {
     // Independent scipy.butter(2, cutoff, fs=32000) / sosfilt unit impulse at these frames.
     constexpr uint32_t points[] = {0, 1, 16, 64, 256};
     constexpr double impulse[][5] = {
-        {.00072719561998898325, .0028522695725005961, .024312521476271696, .0039257704401901381, -1.8774906434903657e-6},
-        {.0092497139153492353, .034317411108652898, .020435002649031513, 1.0138348947721731e-6, -2.2474050346769002e-18},
-        {.01679277795958356, .060478000761322551, -.0016612082138870521, 4.6942218049170326e-7, 1.5722569572052899e-23},
-        {.011857682643241161, .043508246422461122, .010443013428789324, -7.5993896337344949e-6, -8.1731505417544658e-20}};
+        {.00072719561998898325, .0028522695725005961, .024312521476271696, .0039257704401901381,
+         -1.8774906434903657e-6},
+        {.0092497139153492353, .034317411108652898, .020435002649031513, 1.0138348947721731e-6,
+         -2.2474050346769002e-18},
+        {.01679277795958356, .060478000761322551, -.0016612082138870521, 4.6942218049170326e-7,
+         1.5722569572052899e-23},
+        {.011857682643241161, .043508246422461122, .010443013428789324, -7.5993896337344949e-6,
+         -8.1731505417544658e-20}};
     constexpr float voiceGains[] = {.31f, .25f, .27f, .11f}, busGains[] = {.50f, .44f, .42f, .24f};
     for (const double energy : {0.0, 1.0}) {
-        Mixer mixer; CHECK(mixer.sample(.2f, 1) == 0 && mixer.sample(.2f) == 1);
+        Mixer mixer;
+        CHECK(mixer.sample(.2f, 1) == 0 && mixer.sample(.2f) == 1);
         CHECK(ll_mixer_configure_buses(mixer.value, energy));
         for (uint8_t kind = 0; kind < 4; ++kind) {
-            mixer.load({percussion(kind + 3)}); const auto output = mixer.buses(257, {1, 17, 239});
+            mixer.load({percussion(kind + 3)});
+            const auto output = mixer.buses(257, {1, 17, 239});
             CHECK(ll_mixer_active_voices(mixer.value) == 0 && output[1].drums[0] != 0);
-            const float gain = kind < 2 ? float(.85 + .45 * energy) : (kind == 2 ? float(.9 + .35 * energy) : 1);
+            const float gain =
+                kind < 2 ? float(.85 + .45 * energy) : (kind == 2 ? float(.9 + .35 * energy) : 1);
             for (uint32_t index = 0; index < 5; ++index) {
-                const float filtered = float(impulse[kind][index] * ((.2f * panFactor(0)) * voiceGains[kind]));
+                const float filtered =
+                    float(impulse[kind][index] * ((.2f * panFactor(0)) * voiceGains[kind]));
                 CHECK(near(output[points[index]].drums[0], (filtered * busGains[kind]) * gain));
                 CHECK(output[points[index]].drums[0] == output[points[index]].drums[1]);
             }
             CHECK(output[0].guitar[0] == 0 && output[0].piano[0] == 0 && output[0].bass[0] == 0);
-            mixer.reset(); CHECK(sameBuses(output, mixer.buses(257, {257})));
+            mixer.reset();
+            CHECK(sameBuses(output, mixer.buses(257, {257})));
         }
         for (uint8_t kind = 0; kind < 3; ++kind) {
-            auto note = event(1); note.instrument = kind; note.midi = 40;
-            mixer.load({note}); const auto dry = mixer.render(500); mixer.reset(); const auto output = mixer.buses(500);
+            auto note = event(1);
+            note.instrument = kind;
+            note.midi = 40;
+            mixer.load({note});
+            const auto dry = mixer.render(500);
+            mixer.reset();
+            const auto output = mixer.buses(500);
             for (uint32_t frame = 0; frame < 500; ++frame) {
                 const auto &bus = output[frame];
                 CHECK(bus.duck == 1 && bus.drums[0] == 0 && bus.drums[1] == 0);
                 for (uint32_t ch = 0; ch < 2; ++ch) {
                     CHECK(bus.guitar[ch] == (kind == 0 ? dry[2 * frame + ch] : 0));
                     CHECK(bus.piano[ch] == (kind == 1 ? dry[2 * frame + ch] : 0));
-                    CHECK(bus.bass[ch] == (kind == 2 ? (dry[2 * frame + ch] * 1.20f) * float(.98 + .06 * energy) : 0));
+                    CHECK(bus.bass[ch] ==
+                          (kind == 2 ? (dry[2 * frame + ch] * 1.20f) * float(.98 + .06 * energy)
+                                     : 0));
                 }
             }
         }
     }
 }
 static void busStateAndValidation() {
-    Mixer mixer, plain; CHECK(mixer.sample(.2f, 1) == 0 && plain.sample(.2f, 1) == 0);
+    Mixer mixer, plain;
+    CHECK(mixer.sample(.2f, 1) == 0 && plain.sample(.2f, 1) == 0);
     CHECK(mixer.sample(.2f) == 1 && plain.sample(.2f) == 1);
     LLBusFrame output{{7, 7}, {7, 7}, {7, 7}, {7, 7}, 7};
     CHECK(!ll_mixer_render_buses(mixer.value, &output, 1) && sameFrame(output, LLBusFrame{}));
-    CHECK(!ll_mixer_configure_buses(nullptr, .5)); CHECK(ll_mixer_configure_buses(mixer.value, .5));
-    for (const double invalid : {-1.0, 1.01, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
+    CHECK(!ll_mixer_configure_buses(nullptr, .5));
+    CHECK(ll_mixer_configure_buses(mixer.value, .5));
+    for (const double invalid : {-1.0, 1.01, std::numeric_limits<double>::infinity(),
+                                 std::numeric_limits<double>::quiet_NaN()})
         CHECK(!ll_mixer_configure_buses(mixer.value, invalid));
     std::vector<LLEvent> mixed;
     for (uint8_t kind = 0; kind < 7; ++kind) {
-        auto note = kind >= 3 ? percussion(kind, 1) : event(1); note.instrument = kind;
-        if (kind == 2) note.midi = 40;
-        note.pan = kind * .13f - .4f; note.velocity = .37f + kind * .03f; mixed.push_back(note);
+        auto note = kind >= 3 ? percussion(kind, 1) : event(1);
+        note.instrument = kind;
+        if (kind == 2)
+            note.midi = 40;
+        note.pan = kind * .13f - .4f;
+        note.velocity = .37f + kind * .03f;
+        mixed.push_back(note);
     }
-    mixer.load(mixed); plain.load(mixed); CHECK(mixer.render(4097) == plain.render(4097));
-    const auto kick = percussion(); mixer.load({kick}); plain.load({kick});
+    mixer.load(mixed);
+    plain.load(mixed);
+    CHECK(mixer.render(4097) == plain.render(4097));
+    const auto kick = percussion();
+    mixer.load({kick});
+    plain.load({kick});
     CHECK(!ll_mixer_render_buses(plain.value, &output, 1) && ll_mixer_position(plain.value) == 0);
-    CHECK(mixer.render(1025) == plain.render(1025)); mixer.reset(); const auto expected = mixer.buses(1025);
+    CHECK(mixer.render(1025) == plain.render(1025));
+    mixer.reset();
+    const auto expected = mixer.buses(1025);
     CHECK(!ll_mixer_configure_buses(mixer.value, 0));
-    mixer.reset(); CHECK(sameBuses(expected, mixer.buses(1025, {1, 17, 255, 256, 496})));
-    mixer.reset(); mixer.render(37); auto bad = kick; bad.instrument = 7;
+    mixer.reset();
+    CHECK(sameBuses(expected, mixer.buses(1025, {1, 17, 255, 256, 496})));
+    mixer.reset();
+    mixer.render(37);
+    auto bad = kick;
+    bad.instrument = 7;
     CHECK(!ll_mixer_load_events(mixer.value, &bad, 1) && !ll_mixer_configure_buses(mixer.value, 1));
     CHECK(!ll_mixer_render_buses(mixer.value, nullptr, 1) && ll_mixer_position(mixer.value) == 37);
-    CHECK(sameBuses(std::vector<LLBusFrame>(expected.begin() + 37, expected.end()), mixer.buses(988)));
-    mixer.load({kick}); CHECK(sameBuses(expected, mixer.buses(1025)));
-    mixer.load({}); const auto empty = mixer.buses(3);
-    LLBusFrame silence{}; silence.duck = 1; for (const auto &frame : empty) CHECK(sameFrame(frame, silence));
-    output = silence; CHECK(ll_mixer_render_buses(mixer.value, &output, 0) && sameFrame(output, silence));
+    CHECK(sameBuses(std::vector<LLBusFrame>(expected.begin() + 37, expected.end()),
+                    mixer.buses(988)));
+    mixer.load({kick});
+    CHECK(sameBuses(expected, mixer.buses(1025)));
+    mixer.load({});
+    const auto empty = mixer.buses(3);
+    LLBusFrame silence{};
+    silence.duck = 1;
+    for (const auto &frame : empty)
+        CHECK(sameFrame(frame, silence));
+    output = silence;
+    CHECK(ll_mixer_render_buses(mixer.value, &output, 0) && sameFrame(output, silence));
     CHECK(!ll_mixer_render_buses(nullptr, &output, 1) && sameFrame(output, LLBusFrame{}));
 }
 static void kickDuckingAndProtection() {
-    Mixer mixer; CHECK(mixer.sample(.2f, 1) == 0 && mixer.sample(0, 4096) == 1);
+    Mixer mixer;
+    CHECK(mixer.sample(.2f, 1) == 0 && mixer.sample(0, 4096) == 1);
     CHECK(ll_mixer_configure_buses(mixer.value, .5));
-    auto first = percussion(3, 0, 5); first.velocity = 0;
-    auto next = first; next.start_frame = 105; mixer.load({first, next, next});
+    auto first = percussion(3, 0, 5);
+    first.velocity = 0;
+    auto next = first;
+    next.start_frame = 105;
+    mixer.load({first, next, next});
     const auto duck = mixer.buses(9066, {9066});
     CHECK(duck[4].duck == 1 && duck[5].duck == .945f && duck[105].duck == .945f);
     CHECK(near(duck[104].duck, 1 - .055 * std::exp(-99.0 / 32000 / .105)));
-    CHECK(near(duck[9064].duck, 1 - .055 * std::exp(-8959.0 / 32000 / .105)) && duck[9065].duck == 1);
+    CHECK(near(duck[9064].duck, 1 - .055 * std::exp(-8959.0 / 32000 / .105)) &&
+          duck[9065].duck == 1);
     CHECK(ll_mixer_active_voices(mixer.value) == 0);
-    for (const auto &frame : duck) CHECK(frame.drums[0] == 0 && frame.drums[1] == 0);
-    mixer.reset(); CHECK(sameBuses(duck, mixer.buses(9066, {1, 17, 255, 257, 1023})));
-    auto tone = event(1, 0, 1000, 0); tone.priority = 2;
-    std::vector<LLEvent> crowded(63, tone); crowded.push_back(bass(0, 1000, 0));
-    first.velocity = 1; crowded.push_back(first); mixer.load(crowded);
+    for (const auto &frame : duck)
+        CHECK(frame.drums[0] == 0 && frame.drums[1] == 0);
+    mixer.reset();
+    CHECK(sameBuses(duck, mixer.buses(9066, {1, 17, 255, 257, 1023})));
+    auto tone = event(1, 0, 1000, 0);
+    tone.priority = 2;
+    std::vector<LLEvent> crowded(63, tone);
+    crowded.push_back(bass(0, 1000, 0));
+    first.velocity = 1;
+    crowded.push_back(first);
+    mixer.load(crowded);
     const auto dropped = mixer.buses(20, {1});
     CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 1);
     CHECK(dropped[4].duck == 1 && dropped[5].duck == .945f && dropped[5].drums[0] == 0);
@@ -470,38 +721,55 @@ static void rackFadeValidation() {
     CHECK(ll_mixer_configure_buses(mixer.value, .5));
     CHECK(!ll_mixer_configure_fades(mixer.value, nullptr));
     CHECK(ll_mixer_configure_fades(mixer.value, &fades));
-    double LLRackFades::*fields[] = {&LLRackFades::tonal_in_start_frame, &LLRackFades::tonal_in_end_frame,
+    double LLRackFades::*fields[] = {
+        &LLRackFades::tonal_in_start_frame,  &LLRackFades::tonal_in_end_frame,
         &LLRackFades::tonal_out_start_frame, &LLRackFades::tonal_out_end_frame,
-        &LLRackFades::rhythm_in_frame, &LLRackFades::rhythm_out_frame};
+        &LLRackFades::rhythm_in_frame,       &LLRackFades::rhythm_out_frame};
     for (const auto field : fields)
-        for (const double invalid : {-1., -std::numeric_limits<double>::denorm_min(),
-                std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN(),
-                std::nextafter(double(uint64_t{1} << 52), std::numeric_limits<double>::infinity())}) {
-            auto bad = fades; bad.*field = invalid; CHECK(!ll_mixer_configure_fades(mixer.value, &bad));
+        for (const double invalid :
+             {-1., -std::numeric_limits<double>::denorm_min(),
+              std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN(),
+              std::nextafter(double(uint64_t{1} << 52), std::numeric_limits<double>::infinity())}) {
+            auto bad = fades;
+            bad.*field = invalid;
+            CHECK(!ll_mixer_configure_fades(mixer.value, &bad));
         }
     for (const LLRackFades bad : {LLRackFades{0, .5, 1000, 2400, 0, 2000},
-            {1, 1, 1000, 2400, 0, 2000}, {2, 1, 1000, 2400, 0, 2000},
-            {0, 0, 1000, 1000.5, 0, 2000}, {0, 0, 1000, 999, 0, 2000},
-            {0, 0, 1000, 2400, 2001, 2000}}) CHECK(!ll_mixer_configure_fades(mixer.value, &bad));
+                                  {1, 1, 1000, 2400, 0, 2000},
+                                  {2, 1, 1000, 2400, 0, 2000},
+                                  {0, 0, 1000, 1000.5, 0, 2000},
+                                  {0, 0, 1000, 999, 0, 2000},
+                                  {0, 0, 1000, 2400, 2001, 2000}})
+        CHECK(!ll_mixer_configure_fades(mixer.value, &bad));
     const double limit = double(uint64_t{1} << 52);
     const LLRackFades boundary{limit - 1, limit, limit - 1, limit, limit, limit};
-    CHECK(ll_mixer_configure_fades(mixer.value, &boundary)); // Inclusive bound and one-frame overlapping spans.
+    CHECK(ll_mixer_configure_fades(mixer.value,
+                                   &boundary)); // Inclusive bound and one-frame overlapping spans.
     CHECK(mixer.sample(.1375f, 4096) == 0);
-    auto invalidScore = event(); invalidScore.instrument = 7;
+    auto invalidScore = event();
+    invalidScore.instrument = 7;
     CHECK(!ll_mixer_load_events(mixer.value, &invalidScore, 1));
     CHECK(ll_mixer_configure_fades(mixer.value, &fades)); // Failed load does not lock setup.
-    auto invalidLast = fades; invalidLast.tonal_out_end_frame = 7000;
+    auto invalidLast = fades;
+    invalidLast.tonal_out_end_frame = 7000;
     invalidLast.rhythm_out_frame = std::numeric_limits<double>::quiet_NaN();
-    CHECK(!ll_mixer_configure_fades(mixer.value, &invalidLast)); // Reject the whole descriptor transactionally.
-    fades.tonal_out_end_frame = 0; // The mixer owns a value copy.
-    mixer.load({event(0, 0, 4000, 0)}); const auto expected = mixer.buses(4096);
+    CHECK(!ll_mixer_configure_fades(mixer.value,
+                                    &invalidLast)); // Reject the whole descriptor transactionally.
+    fades.tonal_out_end_frame = 0;                  // The mixer owns a value copy.
+    mixer.load({event(0, 0, 4000, 0)});
+    const auto expected = mixer.buses(4096);
     CHECK(expected[1500].guitar[0] > 0 && expected[2400].guitar[0] == 0);
     CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
-    mixer.reset(); CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
+    mixer.reset();
+    CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
     CHECK(sameBuses(expected, mixer.buses(4096, {1, 17, 257})));
-    mixer.load({}); CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
-    Mixer empty; CHECK(ll_mixer_configure_buses(empty.value, 0)); empty.load({});
-    CHECK(!ll_mixer_configure_fades(empty.value, &boundary)); // Even an empty successful load locks setup.
+    mixer.load({});
+    CHECK(!ll_mixer_configure_fades(mixer.value, &boundary));
+    Mixer empty;
+    CHECK(ll_mixer_configure_buses(empty.value, 0));
+    empty.load({});
+    CHECK(!ll_mixer_configure_fades(empty.value,
+                                    &boundary)); // Even an empty successful load locks setup.
 }
 
 static void rackFadeArithmeticAndViews() {
@@ -511,16 +779,23 @@ static void rackFadeArithmeticAndViews() {
         CHECK(ll_mixer_configure_buses(mixer->value, .5));
     }
     const LLRackFades fades{0, 2800, 1000, 2400, 1750.5, 2400.25};
-    CHECK(ll_mixer_configure_fades(faded.value, &fades)); // Incoming and outgoing envelopes overlap.
+    CHECK(
+        ll_mixer_configure_fades(faded.value, &fades)); // Incoming and outgoing envelopes overlap.
     auto guitar = event(0, 0, 7000, 0), second = event(1, 0, 7000, 0), piano = guitar;
-    second.velocity = .71f; piano.instrument = 1;
+    second.velocity = .71f;
+    piano.instrument = 1;
     const std::vector<LLEvent> score{guitar, second, piano, bass(0, 7000, 0)};
-    faded.load(score); plain.load(score);
+    faded.load(score);
+    plain.load(score);
     CHECK(faded.render(8000) == plain.render(8000)); // Raw diagnostic dry view is invariant.
-    faded.reset(); plain.reset(); const auto whole = faded.buses(8000), unscaled = plain.buses(8000);
+    faded.reset();
+    plain.reset();
+    const auto whole = faded.buses(8000), unscaled = plain.buses(8000);
     bool detectsFloatGain = false;
-    for (const uint32_t frame : {0u, 1000u, 1400u, 1750u, 1751u, 2000u, 2200u, 2399u, 2400u, 2800u}) {
-        const double gain = frame >= 2400 ? 0 : (frame <= 1000 ? 1 : (2400.0 - frame) / 1400) * (frame / 2800.0);
+    for (const uint32_t frame :
+         {0u, 1000u, 1400u, 1750u, 1751u, 2000u, 2200u, 2399u, 2400u, 2800u}) {
+        const double gain =
+            frame >= 2400 ? 0 : (frame <= 1000 ? 1 : (2400.0 - frame) / 1400) * (frame / 2800.0);
         for (uint32_t ch = 0; ch < 2; ++ch) {
             const float expected = float(double(unscaled[frame].guitar[ch]) * gain);
             CHECK(whole[frame].guitar[ch] == expected);
@@ -529,19 +804,33 @@ static void rackFadeArithmeticAndViews() {
         }
     }
     CHECK(detectsFloatGain && whole[1750].bass[0] == 0 && whole[1751].bass[0] != 0);
-    CHECK(whole[2400].bass[0] != 0 && whole[2401].bass[0] == 0); // Keep the fractional departure endpoint.
-    faded.reset(); CHECK(sameBuses(whole, faded.buses(8000, {1, 17, 255, 256, 257, 1023})));
-    faded.reset(); faded.render(1777); CHECK(sameBuses(std::vector<LLBusFrame>(whole.begin() + 1777, whole.end()), faded.buses(6223)));
-    faded.load(score); CHECK(sameBuses(whole, faded.buses(8000)));
-    faded.reset(); faded.buses(1777); const auto dryRemainder = faded.render(6223);
-    plain.reset(); plain.render(1777); CHECK(dryRemainder == plain.render(6223));
-    Mixer fractional; CHECK(fractional.sample(.1375f, 4096) == 0);
+    CHECK(whole[2400].bass[0] != 0 &&
+          whole[2401].bass[0] == 0); // Keep the fractional departure endpoint.
+    faded.reset();
+    CHECK(sameBuses(whole, faded.buses(8000, {1, 17, 255, 256, 257, 1023})));
+    faded.reset();
+    faded.render(1777);
+    CHECK(sameBuses(std::vector<LLBusFrame>(whole.begin() + 1777, whole.end()), faded.buses(6223)));
+    faded.load(score);
+    CHECK(sameBuses(whole, faded.buses(8000)));
+    faded.reset();
+    faded.buses(1777);
+    const auto dryRemainder = faded.render(6223);
+    plain.reset();
+    plain.render(1777);
+    CHECK(dryRemainder == plain.render(6223));
+    Mixer fractional;
+    CHECK(fractional.sample(.1375f, 4096) == 0);
     CHECK(ll_mixer_configure_buses(fractional.value, .5));
     const LLRackFades exact{0, 0, 1000.25, 2400.75, 0, 2400.25};
-    CHECK(ll_mixer_configure_fades(fractional.value, &exact)); fractional.load({guitar});
-    const auto raw = fractional.render(2402); fractional.reset(); const auto tail = fractional.buses(2402);
+    CHECK(ll_mixer_configure_fades(fractional.value, &exact));
+    fractional.load({guitar});
+    const auto raw = fractional.render(2402);
+    fractional.reset();
+    const auto tail = fractional.buses(2402);
     CHECK(tail[1000].guitar[0] == raw[2000] && tail[2401].guitar[0] == 0);
-    CHECK(tail[2400].guitar[0] == float(double(raw[4800]) * (.75 / 1400.5)) && tail[2400].guitar[0] != 0);
+    CHECK(tail[2400].guitar[0] == float(double(raw[4800]) * (.75 / 1400.5)) &&
+          tail[2400].guitar[0] != 0);
 }
 
 static void rackFadeFloatingBounds() {
@@ -554,18 +843,26 @@ static void rackFadeFloatingBounds() {
     const uint64_t flushMask = 0;
 #endif
     for (const uint64_t control : {original & ~flushMask, original | flushMask}) {
-        setFloatingControl(control); Mixer mixer; CHECK(mixer.sample(.125f, 8) == 0);
+        setFloatingControl(control);
+        Mixer mixer;
+        CHECK(mixer.sample(.125f, 8) == 0);
         CHECK(ll_mixer_configure_buses(mixer.value, .5));
         const double tiny = std::numeric_limits<double>::denorm_min();
         LLRackFades fades{-0., -0., 0, 1, tiny, 2401};
         CHECK(ll_mixer_configure_fades(mixer.value, &fades));
-        fades.rhythm_in_frame = -tiny; CHECK(!ll_mixer_configure_fades(mixer.value, &fades));
-        fades.rhythm_in_frame = tiny; fades.tonal_out_start_frame = -tiny;
+        fades.rhythm_in_frame = -tiny;
         CHECK(!ll_mixer_configure_fades(mixer.value, &fades));
-        fades.tonal_out_start_frame = 0; fades.rhythm_out_frame = 0;
-        CHECK(!ll_mixer_configure_fades(mixer.value, &fades)); // Positive subnormal arrival is after zero.
-        mixer.load({bass()}); const auto output = mixer.buses(2);
-        CHECK(output[0].bass[0] == 0 && output[1].bass[0] != 0); // Fractional gate opens at its ceiling frame.
+        fades.rhythm_in_frame = tiny;
+        fades.tonal_out_start_frame = -tiny;
+        CHECK(!ll_mixer_configure_fades(mixer.value, &fades));
+        fades.tonal_out_start_frame = 0;
+        fades.rhythm_out_frame = 0;
+        CHECK(!ll_mixer_configure_fades(mixer.value,
+                                        &fades)); // Positive subnormal arrival is after zero.
+        mixer.load({bass()});
+        const auto output = mixer.buses(2);
+        CHECK(output[0].bass[0] == 0 &&
+              output[1].bass[0] != 0); // Fractional gate opens at its ceiling frame.
     }
     setFloatingControl(original);
 }
@@ -576,64 +873,97 @@ static void rackHandoffAndTails() {
         CHECK(mixer->sample(.1375f, 4096) == 0 && mixer->sample(.2f, 1) == 1);
         CHECK(ll_mixer_configure_buses(mixer->value, .5));
     }
-    const LLRackFades outgoing{0, 0, 1000, 2400, 0, 1700}, incoming{1000, 2400, 10000, 11000, 1700, 10500};
-    CHECK(ll_mixer_configure_fades(old.value, &outgoing) && ll_mixer_configure_fades(next.value, &incoming));
+    const LLRackFades outgoing{0, 0, 1000, 2400, 0, 1700},
+        incoming{1000, 2400, 10000, 11000, 1700, 10500};
+    CHECK(ll_mixer_configure_fades(old.value, &outgoing) &&
+          ll_mixer_configure_fades(next.value, &incoming));
     const std::vector<LLEvent> score{event(0, 0, 4000, 0), bass(0, 4000, 0)};
-    old.load(score); next.load(score); plain.load(score);
+    old.load(score);
+    next.load(score);
+    plain.load(score);
     const auto a = old.buses(3000), b = next.buses(3000), dry = plain.buses(3000);
     for (const uint32_t frame : {1000u, 1699u, 1700u, 1701u, 2399u, 2400u}) {
         CHECK(near(a[frame].guitar[0] + b[frame].guitar[0], dry[frame].guitar[0]));
-        if (frame < 1700) CHECK(a[frame].bass[0] != 0 && b[frame].bass[0] == 0);
-        else CHECK(a[frame].bass[0] == 0 && b[frame].bass[0] == dry[frame].bass[0]);
+        if (frame < 1700)
+            CHECK(a[frame].bass[0] != 0 && b[frame].bass[0] == 0);
+        else
+            CHECK(a[frame].bass[0] == 0 && b[frame].bass[0] == dry[frame].bass[0]);
     }
     auto before = percussion(3, 1, 1699), after = percussion(3, 1, 1700);
-    old.load({before, after}); const auto tail = old.buses(2000);
-    old.load({before}); const auto single = old.buses(2000);
+    old.load({before, after});
+    const auto tail = old.buses(2000);
+    old.load({before});
+    const auto single = old.buses(2000);
     for (uint32_t frame = 0; frame < 2000; ++frame)
-        CHECK(tail[frame].drums[0] == single[frame].drums[0] && tail[frame].drums[1] == single[frame].drums[1]);
+        CHECK(tail[frame].drums[0] == single[frame].drums[0] &&
+              tail[frame].drums[1] == single[frame].drums[1]);
     CHECK(tail[1700].drums[0] != 0 && tail[1700].duck == .945f && single[1700].duck > .945f);
-    CHECK(ll_mixer_active_voices(old.value) == 0); // The last input is gone, but the filter tail survives ownership transfer.
-    next.load({before, after}); const auto arriving = next.buses(2000);
-    next.load({after}); const auto admitted = next.buses(2000);
-    for (uint32_t frame = 0; frame < 2000; ++frame) CHECK(arriving[frame].drums[0] == admitted[frame].drums[0]);
-    CHECK(arriving[1699].drums[0] == 0 && arriving[1699].duck == .945f && arriving[1700].drums[0] != 0);
+    CHECK(ll_mixer_active_voices(old.value) ==
+          0); // The last input is gone, but the filter tail survives ownership transfer.
+    next.load({before, after});
+    const auto arriving = next.buses(2000);
+    next.load({after});
+    const auto admitted = next.buses(2000);
+    for (uint32_t frame = 0; frame < 2000; ++frame)
+        CHECK(arriving[frame].drums[0] == admitted[frame].drums[0]);
+    CHECK(arriving[1699].drums[0] == 0 && arriving[1699].duck == .945f &&
+          arriving[1700].drums[0] != 0);
 }
 
 static void originTranslation() {
     constexpr uint32_t count = 6000;
     const LLRackFades localFades{.25, 1000.5, 900.25, 2400.75, 5.5, 2300.25};
     std::vector<LLEvent> local{event(0, 0, 3000, 700)};
-    auto piano = event(0, 3, 2800, 500); piano.instrument = 1; piano.pan = .3f;
-    local.push_back(piano); local.push_back(bass(5, 2700, 500));
-    for (uint8_t kind = 3; kind < 7; ++kind) local.push_back(percussion(kind, 1, 2 * kind + 1));
+    auto piano = event(0, 3, 2800, 500);
+    piano.instrument = 1;
+    piano.pan = .3f;
+    local.push_back(piano);
+    local.push_back(bass(5, 2700, 500));
+    for (uint8_t kind = 3; kind < 7; ++kind)
+        local.push_back(percussion(kind, 1, 2 * kind + 1));
     local.push_back(percussion(3, 1, 2300));
-    auto silent = percussion(3, 1, 2401); silent.velocity = 0; local.push_back(silent);
+    auto silent = percussion(3, 1, 2401);
+    silent.velocity = 0;
+    local.push_back(silent);
     auto setup = [&](Mixer &m, uint64_t origin) {
         CHECK(m.sample(.1375f) == 0 && m.sample(.2f, 1) == 1);
         CHECK(ll_mixer_configure_buses(m.value, .5));
         auto fades = localFades;
-        fades.tonal_in_start_frame += origin; fades.tonal_in_end_frame += origin;
-        fades.tonal_out_start_frame += origin; fades.tonal_out_end_frame += origin;
-        fades.rhythm_in_frame += origin; fades.rhythm_out_frame += origin;
+        fades.tonal_in_start_frame += origin;
+        fades.tonal_in_end_frame += origin;
+        fades.tonal_out_start_frame += origin;
+        fades.tonal_out_end_frame += origin;
+        fades.rhythm_in_frame += origin;
+        fades.rhythm_out_frame += origin;
         CHECK(ll_mixer_configure_fades(m.value, &fades));
-        auto score = local; for (auto &note : score) note.start_frame += origin;
+        auto score = local;
+        for (auto &note : score)
+            note.start_frame += origin;
         m.load(score);
     };
-    Mixer zero; setup(zero, 0); // Existing default, without calling the new API.
-    const auto dry = zero.render(count, {count}); zero.reset();
+    Mixer zero;
+    setup(zero, 0); // Existing default, without calling the new API.
+    const auto dry = zero.render(count, {count});
+    zero.reset();
     const auto buses = zero.buses(count, {count});
     CHECK(buses[2301].drums[0] != 0 && buses[2401].duck == .945f);
     for (const uint64_t origin : {uint64_t{37}, uint64_t{2764800123}, uint64_t{1} << 40}) {
-        Mixer shifted; CHECK(ll_mixer_configure_origin(shifted.value, origin));
-        CHECK(ll_mixer_position(shifted.value) == origin); setup(shifted, origin);
+        Mixer shifted;
+        CHECK(ll_mixer_configure_origin(shifted.value, origin));
+        CHECK(ll_mixer_position(shifted.value) == origin);
+        setup(shifted, origin);
         const auto actualDry = shifted.render(count, {1, 17, 255, 257, 1023});
         CHECK(std::memcmp(dry.data(), actualDry.data(), dry.size() * sizeof(float)) == 0);
         CHECK(ll_mixer_position(shifted.value) == origin + count);
-        shifted.reset(); const auto actualBuses = shifted.buses(count, {1, 17, 255, 257, 1023});
+        shifted.reset();
+        const auto actualBuses = shifted.buses(count, {1, 17, 255, 257, 1023});
         static_assert(sizeof(LLBusFrame) == 9 * sizeof(float), "Bus comparison has no padding");
-        CHECK(std::memcmp(buses.data(), actualBuses.data(), buses.size() * sizeof(LLBusFrame)) == 0);
-        shifted.reset(); shifted.render(1777);
-        CHECK(sameBuses(std::vector<LLBusFrame>(buses.begin() + 1777, buses.end()), shifted.buses(count - 1777)));
+        CHECK(std::memcmp(buses.data(), actualBuses.data(), buses.size() * sizeof(LLBusFrame)) ==
+              0);
+        shifted.reset();
+        shifted.render(1777);
+        CHECK(sameBuses(std::vector<LLBusFrame>(buses.begin() + 1777, buses.end()),
+                        shifted.buses(count - 1777)));
         CHECK(ll_mixer_active_voices(shifted.value) == 0);
         CHECK(ll_mixer_steals(shifted.value) == 0 && ll_mixer_dropped_events(shifted.value) == 0);
     }
@@ -641,116 +971,188 @@ static void originTranslation() {
 
 static void originSetupAndReload() {
     constexpr uint64_t origin = uint64_t{1} << 40, limit = uint64_t{1} << 52;
-    Mixer mixer; CHECK(ll_mixer_position(mixer.value) == 0);
+    Mixer mixer;
+    CHECK(ll_mixer_position(mixer.value) == 0);
     CHECK(!ll_mixer_configure_origin(nullptr, 0));
     CHECK(ll_mixer_configure_origin(mixer.value, 17));
     for (const uint64_t invalid : {limit + 1, UINT64_MAX}) {
         CHECK(!ll_mixer_configure_origin(mixer.value, invalid));
         CHECK(ll_mixer_position(mixer.value) == 17);
     }
-    mixer.reset(); CHECK(ll_mixer_position(mixer.value) == 17);
+    mixer.reset();
+    CHECK(ll_mixer_position(mixer.value) == 17);
     CHECK(mixer.sample(.125f) == 0 && ll_mixer_configure_buses(mixer.value, .5));
-    auto early = event(0, 16); CHECK(!ll_mixer_load_events(mixer.value, &early, 1));
-    CHECK(ll_mixer_configure_origin(mixer.value, origin)); // Failed first load does not lock configuration.
+    auto early = event(0, 16);
+    CHECK(!ll_mixer_load_events(mixer.value, &early, 1));
+    CHECK(ll_mixer_configure_origin(mixer.value,
+                                    origin)); // Failed first load does not lock configuration.
     std::vector<LLEvent> score(64, event(0, origin, 4000, 0));
-    auto incoming = event(0, origin + 100, 3000, 0); incoming.priority = 2;
+    auto incoming = event(0, origin + 100, 3000, 0);
+    incoming.priority = 2;
     score.insert(score.end(), 64, incoming);
-    incoming.start_frame = origin + 101; incoming.priority = 0; score.push_back(incoming);
-    auto kick = percussion(3, 0, origin + 110); kick.velocity = 0; score.push_back(kick);
-    mixer.load(score); const auto expected = mixer.buses(5000);
+    incoming.start_frame = origin + 101;
+    incoming.priority = 0;
+    score.push_back(incoming);
+    auto kick = percussion(3, 0, origin + 110);
+    kick.velocity = 0;
+    score.push_back(kick);
+    mixer.load(score);
+    const auto expected = mixer.buses(5000);
     CHECK(ll_mixer_steals(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 1);
-    mixer.reset(); CHECK(ll_mixer_position(mixer.value) == origin);
+    mixer.reset();
+    CHECK(ll_mixer_position(mixer.value) == origin);
     CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
     mixer.buses(150); // Pending replacements, live duck envelope, and active voices.
     const auto voices = ll_mixer_active_voices(mixer.value);
     for (const uint64_t late : {uint64_t{0}, origin, origin + 1, limit + 1})
         CHECK(!ll_mixer_configure_origin(mixer.value, late));
     early.start_frame = origin - 1;
-    CHECK(!ll_mixer_load_events(mixer.value, &early, 1)); // Sorted, otherwise valid, pre-origin event.
-    early.velocity = 0; CHECK(!ll_mixer_load_events(mixer.value, &early, 1)); // Silent notes are not exempt.
+    CHECK(!ll_mixer_load_events(mixer.value, &early,
+                                1)); // Sorted, otherwise valid, pre-origin event.
+    early.velocity = 0;
+    CHECK(!ll_mixer_load_events(mixer.value, &early, 1)); // Silent notes are not exempt.
     const LLEvent invalidLast[] = {event(0, origin), early};
-    CHECK(!ll_mixer_load_events(mixer.value, invalidLast, 2)); // Also unsorted; whole load must be atomic.
-    CHECK(ll_mixer_position(mixer.value) == origin + 150 && ll_mixer_active_voices(mixer.value) == voices);
+    CHECK(!ll_mixer_load_events(mixer.value, invalidLast,
+                                2)); // Also unsorted; whole load must be atomic.
+    CHECK(ll_mixer_position(mixer.value) == origin + 150 &&
+          ll_mixer_active_voices(mixer.value) == voices);
     CHECK(ll_mixer_steals(mixer.value) == 64 && ll_mixer_dropped_events(mixer.value) == 1);
-    CHECK(sameBuses(std::vector<LLBusFrame>(expected.begin() + 150, expected.end()), mixer.buses(4850)));
+    CHECK(sameBuses(std::vector<LLBusFrame>(expected.begin() + 150, expected.end()),
+                    mixer.buses(4850)));
     for (const bool reload : {false, true}) {
-        mixer.reset(); mixer.buses(150);
-        if (reload) mixer.load(score); else mixer.reset();
+        mixer.reset();
+        mixer.buses(150);
+        if (reload)
+            mixer.load(score);
+        else
+            mixer.reset();
         CHECK(ll_mixer_position(mixer.value) == origin && ll_mixer_active_voices(mixer.value) == 0);
         CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
         CHECK(sameBuses(expected, mixer.buses(5000, {1, 17, 257})));
     }
-    mixer.load({}); CHECK(ll_mixer_position(mixer.value) == origin && ll_mixer_active_voices(mixer.value) == 0);
+    mixer.load({});
+    CHECK(ll_mixer_position(mixer.value) == origin && ll_mixer_active_voices(mixer.value) == 0);
     CHECK(ll_mixer_steals(mixer.value) == 0 && ll_mixer_dropped_events(mixer.value) == 0);
-    LLBusFrame silence{}; silence.duck = 1;
-    for (const auto &frame : mixer.buses(3)) CHECK(sameFrame(frame, silence));
+    LLBusFrame silence{};
+    silence.duck = 1;
+    for (const auto &frame : mixer.buses(3))
+        CHECK(sameFrame(frame, silence));
     CHECK(!ll_mixer_configure_origin(mixer.value, 0));
-    mixer.reset(); CHECK(ll_mixer_position(mixer.value) == origin);
+    mixer.reset();
+    CHECK(ll_mixer_position(mixer.value) == origin);
 }
 
 static void originTimelineLimit() {
     constexpr uint64_t limit = uint64_t{1} << 52;
     for (const uint64_t origin : {limit - 2, limit}) {
-        Mixer mixer; CHECK(ll_mixer_configure_origin(mixer.value, origin));
-        CHECK(ll_mixer_configure_buses(mixer.value, .5)); mixer.load({});
-        CHECK(ll_mixer_render(mixer.value, nullptr, 0) && ll_mixer_render_buses(mixer.value, nullptr, 0));
+        Mixer mixer;
+        CHECK(ll_mixer_configure_origin(mixer.value, origin));
+        CHECK(ll_mixer_configure_buses(mixer.value, .5));
+        mixer.load({});
+        CHECK(ll_mixer_render(mixer.value, nullptr, 0) &&
+              ll_mixer_render_buses(mixer.value, nullptr, 0));
         CHECK(!ll_mixer_configure_origin(mixer.value, 0)); // Even the first empty load locks setup.
         float dry[] = {7, 7, 7, 7, 7, 7};
-        LLBusFrame buses[3]; for (auto &frame : buses) frame = {{7, 7}, {7, 7}, {7, 7}, {7, 7}, 7};
+        LLBusFrame buses[3];
+        for (auto &frame : buses)
+            frame = {{7, 7}, {7, 7}, {7, 7}, {7, 7}, 7};
         auditing = true;
         const bool dryResult = ll_mixer_render(mixer.value, dry, 3);
         const bool busResult = ll_mixer_render_buses(mixer.value, buses, 3);
         auditing = false;
         CHECK(!dryResult && !busResult && allocations == 0 && deallocations == 0);
         CHECK(ll_mixer_position(mixer.value) == origin);
-        for (const float sample : dry) CHECK(sample == 0);
-        for (const auto &frame : buses) CHECK(sameFrame(frame, LLBusFrame{}));
-        if (origin < limit) { mixer.render(1); mixer.buses(1); }
+        for (const float sample : dry)
+            CHECK(sample == 0);
+        for (const auto &frame : buses)
+            CHECK(sameFrame(frame, LLBusFrame{}));
+        if (origin < limit) {
+            mixer.render(1);
+            mixer.buses(1);
+        }
         CHECK(ll_mixer_position(mixer.value) == limit);
-        CHECK(ll_mixer_render(mixer.value, nullptr, 0) && ll_mixer_render_buses(mixer.value, nullptr, 0));
-        mixer.reset(); CHECK(ll_mixer_position(mixer.value) == origin);
-        mixer.load({}); CHECK(ll_mixer_position(mixer.value) == origin);
+        CHECK(ll_mixer_render(mixer.value, nullptr, 0) &&
+              ll_mixer_render_buses(mixer.value, nullptr, 0));
+        mixer.reset();
+        CHECK(ll_mixer_position(mixer.value) == origin);
+        mixer.load({});
+        CHECK(ll_mixer_position(mixer.value) == origin);
     }
 }
 
 static void invalidInputsAndOwnership() {
-    Mixer mixer; const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
+    Mixer mixer;
+    const float nan = std::numeric_limits<float>::quiet_NaN(), excessive = 9;
     CHECK(ll_mixer_add_sample(mixer.value, nullptr, 1, 1) == -1);
     CHECK(ll_mixer_add_sample(mixer.value, &nan, 1, 1) == -1);
     CHECK(ll_mixer_add_sample(mixer.value, &excessive, 1, 1) == -1);
     CHECK(ll_mixer_add_sample(mixer.value, &excessive, 0, 1) == -1);
     CHECK(ll_mixer_add_sample(mixer.value, &excessive, 215514, 1) == -1);
     CHECK(ll_mixer_add_sample(mixer.value, &excessive, 1, 3) == -1);
-    CHECK(mixer.sample(0.2f) == 0); auto note = event(); mixer.load({note});
+    CHECK(mixer.sample(0.2f) == 0);
+    auto note = event();
+    mixer.load({note});
     CHECK(ll_mixer_add_sample(mixer.value, &excessive, 1, 1) == -1);
-    const auto expected = mixer.render(1800); mixer.reset();
+    const auto expected = mixer.render(1800);
+    mixer.reset();
     const auto prefix = mixer.render(123);
     CHECK(std::equal(prefix.begin(), prefix.end(), expected.begin()));
     std::vector<LLEvent> invalid;
-    auto bad = note; bad.sample_index = 1; invalid.push_back(bad);
-    bad = note; bad.start_frame = uint64_t(1) << 52; invalid.push_back(bad);
-    bad = note; bad.hold_frames = 0; invalid.push_back(bad);
-    bad = note; bad.hold_frames = 512001; invalid.push_back(bad);
-    bad = note; bad.release_frames = 160001; invalid.push_back(bad);
-    bad = note; bad.velocity = nan; invalid.push_back(bad);
-    bad = note; bad.velocity = 1.1f; invalid.push_back(bad);
-    bad = note; bad.pan = 1.1f; invalid.push_back(bad);
-    bad = note; bad.pan = nan; invalid.push_back(bad);
-    bad = note; bad.instrument = 7; invalid.push_back(bad);
-    bad = note; bad.connected = 2; invalid.push_back(bad);
-    bad = note; bad.priority = 3; invalid.push_back(bad);
-    for (const auto &value : invalid) CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
+    auto bad = note;
+    bad.sample_index = 1;
+    invalid.push_back(bad);
+    bad = note;
+    bad.start_frame = uint64_t(1) << 52;
+    invalid.push_back(bad);
+    bad = note;
+    bad.hold_frames = 0;
+    invalid.push_back(bad);
+    bad = note;
+    bad.hold_frames = 512001;
+    invalid.push_back(bad);
+    bad = note;
+    bad.release_frames = 160001;
+    invalid.push_back(bad);
+    bad = note;
+    bad.velocity = nan;
+    invalid.push_back(bad);
+    bad = note;
+    bad.velocity = 1.1f;
+    invalid.push_back(bad);
+    bad = note;
+    bad.pan = 1.1f;
+    invalid.push_back(bad);
+    bad = note;
+    bad.pan = nan;
+    invalid.push_back(bad);
+    bad = note;
+    bad.instrument = 7;
+    invalid.push_back(bad);
+    bad = note;
+    bad.connected = 2;
+    invalid.push_back(bad);
+    bad = note;
+    bad.priority = 3;
+    invalid.push_back(bad);
+    for (const auto &value : invalid)
+        CHECK(!ll_mixer_load_events(mixer.value, &value, 1));
     CHECK(!ll_mixer_load_events(mixer.value, nullptr, 1));
     CHECK(!ll_mixer_load_events(mixer.value, &note, 2049));
     const LLEvent unsorted[] = {event(0, 10), event(0, 9)};
     CHECK(!ll_mixer_load_events(mixer.value, unsorted, 2));
     CHECK(ll_mixer_position(mixer.value) == 123);
     CHECK(std::vector<float>(expected.begin() + 246, expected.end()) == mixer.render(1677));
-    Mixer bytes; std::vector<float> large(215513 * 2, 0.1f); uint32_t accepted = 0;
-    while (ll_mixer_add_sample(bytes.value, large.data(), 215513, 2) >= 0) ++accepted;
-    CHECK(accepted == 19 && ll_mixer_sample_bytes(bytes.value) == accepted * large.size() * sizeof(float));
-    const uint32_t remaining = (LL_SAMPLE_BYTES - ll_mixer_sample_bytes(bytes.value)) / sizeof(float);
-    CHECK(bytes.sample(.25f, remaining) == 19 && ll_mixer_sample_bytes(bytes.value) == 32 * 1024 * 1024);
+    Mixer bytes;
+    std::vector<float> large(215513 * 2, 0.1f);
+    uint32_t accepted = 0;
+    while (ll_mixer_add_sample(bytes.value, large.data(), 215513, 2) >= 0)
+        ++accepted;
+    CHECK(accepted == 19 &&
+          ll_mixer_sample_bytes(bytes.value) == accepted * large.size() * sizeof(float));
+    const uint32_t remaining =
+        (LL_SAMPLE_BYTES - ll_mixer_sample_bytes(bytes.value)) / sizeof(float);
+    CHECK(bytes.sample(.25f, remaining) == 19 &&
+          ll_mixer_sample_bytes(bytes.value) == 32 * 1024 * 1024);
     CHECK(bytes.sample(.1f, 1) == -1 && ll_mixer_sample_bytes(bytes.value) == LL_SAMPLE_BYTES);
     bytes.load({percussion(3, 19)});
     CHECK(bytes.render(1)[0] == (.25f * panFactor(0)) * .31f);
@@ -759,12 +1161,14 @@ static void invalidInputsAndOwnership() {
 static void sampleRegistryPlaybackAndEventLimit() {
     CHECK(LL_SAMPLE_LIMIT == 166 && LL_VOICE_LIMIT == 64 && LL_EVENT_LIMIT == 2048);
     Mixer mixer;
-    for (int index = 0; index < 166; ++index) CHECK(mixer.sample((index + 1) / 256.f, 3) == index);
+    for (int index = 0; index < 166; ++index)
+        CHECK(mixer.sample((index + 1) / 256.f, 3) == index);
     const uint32_t bytes = 166 * 3 * sizeof(float);
     CHECK(ll_mixer_sample_bytes(mixer.value) == bytes);
     CHECK(mixer.sample(.5f, 1) == -1 && ll_mixer_sample_bytes(mixer.value) == bytes);
     std::vector<LLEvent> score;
-    for (uint32_t index = 0; index < 2048; ++index) score.push_back(percussion(3, index % 166, 5 * index));
+    for (uint32_t index = 0; index < 2048; ++index)
+        score.push_back(percussion(3, index % 166, 5 * index));
     mixer.load(score);
     const auto whole = mixer.render(10240, {10240});
     for (uint32_t index = 0; index < 2048; ++index) {
@@ -776,8 +1180,10 @@ static void sampleRegistryPlaybackAndEventLimit() {
         }
     }
     CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_steals(mixer.value) == 0);
-    mixer.reset(); CHECK(whole == mixer.render(10240, {1, 17, 255, 257, 503}));
-    mixer.reset(); const auto prefix = mixer.render(137);
+    mixer.reset();
+    CHECK(whole == mixer.render(10240, {1, 17, 255, 257, 503}));
+    mixer.reset();
+    const auto prefix = mixer.render(137);
     CHECK(std::equal(prefix.begin(), prefix.end(), whole.begin()));
     auto invalid = percussion(3, 166);
     CHECK(!ll_mixer_load_events(mixer.value, &invalid, 1));
@@ -789,33 +1195,43 @@ static void sampleRegistryPlaybackAndEventLimit() {
 
 static void highSampleVoiceLimits() {
     Mixer mixer;
-    for (int index = 0; index < 164; ++index) CHECK(mixer.sample(.1f, 1) == index);
+    for (int index = 0; index < 164; ++index)
+        CHECK(mixer.sample(.1f, 1) == index);
     CHECK(mixer.sample(.125f, 8) == 164 && mixer.sample(0, 4096) == 165);
     for (const bool withBass : {false, true}) {
         const uint32_t tonalVoices = withBass ? 63 : 64;
         auto tone = event(165, 0, 3000, 0);
         std::vector<LLEvent> score(tonalVoices, tone);
-        auto low = bass(0, 3000, 0); low.sample_index = 164;
-        if (withBass) score.push_back(low);
-        tone.start_frame = 100; tone.priority = 2;
+        auto low = bass(0, 3000, 0);
+        low.sample_index = 164;
+        if (withBass)
+            score.push_back(low);
+        tone.start_frame = 100;
+        tone.priority = 2;
         score.insert(score.end(), tonalVoices, tone);
-        tone.start_frame = 101; score.push_back(tone); // Pending replacements cannot be overwritten.
-        mixer.load(score); const auto whole = mixer.render(700, {1});
-        CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_steals(mixer.value) == tonalVoices);
+        tone.start_frame = 101;
+        score.push_back(tone); // Pending replacements cannot be overwritten.
+        mixer.load(score);
+        const auto whole = mixer.render(700, {1});
+        CHECK(ll_mixer_active_voices(mixer.value) == 64 &&
+              ll_mixer_steals(mixer.value) == tonalVoices);
         CHECK(ll_mixer_dropped_events(mixer.value) == 1);
         for (uint32_t frame = 0; frame < 700; ++frame) {
             const float expected = withBass ? bassReference(frame, low, frame < 8 ? .125f : 0) : 0;
             CHECK(near(whole[2 * frame], expected) && whole[2 * frame + 1] == whole[2 * frame]);
         }
-        mixer.reset(); CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_steals(mixer.value) == 0);
+        mixer.reset();
+        CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_steals(mixer.value) == 0);
         CHECK(whole == mixer.render(700, {257, 1, 19}));
     }
 }
 
-static void loadWithRequiredSlots(Mixer &mixer, const std::vector<LLEvent> &score, uint32_t expected) {
+static void loadWithRequiredSlots(Mixer &mixer, const std::vector<LLEvent> &score,
+                                  uint32_t expected) {
     const auto control = floatingControl();
     auditing = true;
-    const bool loaded = ll_mixer_load_events(mixer.value, score.data(), static_cast<uint32_t>(score.size()));
+    const bool loaded =
+        ll_mixer_load_events(mixer.value, score.data(), static_cast<uint32_t>(score.size()));
     const uint32_t slots = ll_mixer_required_voice_slots(mixer.value);
     auditing = false;
     CHECK(loaded && slots == expected && floatingControl() == control);
@@ -832,64 +1248,96 @@ static void requiredVoiceLifetimes() {
     CHECK(ll_mixer_configure_fades(mixer.value, &ended));
     CHECK(mixer.sample(0, 3) == 0 && mixer.sample(.2f, 10) == 1 && mixer.sample(.2f, 1) == 2);
     CHECK(ll_mixer_required_voice_slots(mixer.value) == 0);
-    auto a = event(0, origin, 8, 4); // Silent PCM still reads; sample truncates the interval to three frames.
+    auto a = event(0, origin, 8,
+                   4); // Silent PCM still reads; sample truncates the interval to three frames.
     auto b = event(1, origin + 3, 2, 1); // Gate/release truncates this ten-frame sample to three.
-    auto c = event(1, origin + 6, 1, 0); c.instrument = 1;
-    loadWithRequiredSlots(mixer, {a, b, c}, 1); // Ends retire before coincident starts, including one-frame notes.
+    auto c = event(1, origin + 6, 1, 0);
+    c.instrument = 1;
+    loadWithRequiredSlots(mixer, {a, b, c},
+                          1); // Ends retire before coincident starts, including one-frame notes.
     const auto faded = mixer.buses(8);
-    for (const auto &frame : faded) CHECK(frame.guitar[0] == 0 && frame.piano[0] == 0);
-    CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_required_voice_slots(mixer.value) == 1);
-    mixer.reset(); CHECK(ll_mixer_required_voice_slots(mixer.value) == 1);
+    for (const auto &frame : faded)
+        CHECK(frame.guitar[0] == 0 && frame.piano[0] == 0);
+    CHECK(ll_mixer_active_voices(mixer.value) == 0 &&
+          ll_mixer_required_voice_slots(mixer.value) == 1);
+    mixer.reset();
+    CHECK(ll_mixer_required_voice_slots(mixer.value) == 1);
     CHECK(sameBuses(faded, mixer.buses(8, {1, 3})));
-    b.start_frame = origin + 2; loadWithRequiredSlots(mixer, {a, b, c}, 2);
-    auto kick = percussion(3, 1, origin); kick.hold_frames = 1; kick.release_frames = 0;
+    b.start_frame = origin + 2;
+    loadWithRequiredSlots(mixer, {a, b, c}, 2);
+    auto kick = percussion(3, 1, origin);
+    kick.hold_frames = 1;
+    kick.release_frames = 0;
     auto hit = percussion(5, 2, origin + 9);
-    loadWithRequiredSlots(mixer, {kick, hit}, 2); // Percussion retains all ten sample frames despite the tiny gate.
-    hit.start_frame = origin + 10; loadWithRequiredSlots(mixer, {kick, hit}, 1);
-    kick.velocity = 0; loadWithRequiredSlots(mixer, {kick}, 0);
+    loadWithRequiredSlots(mixer, {kick, hit},
+                          2); // Percussion retains all ten sample frames despite the tiny gate.
+    hit.start_frame = origin + 10;
+    loadWithRequiredSlots(mixer, {kick, hit}, 1);
+    kick.velocity = 0;
+    loadWithRequiredSlots(mixer, {kick}, 0);
     CHECK(mixer.buses(1)[0].duck == .945f && ll_mixer_active_voices(mixer.value) == 0);
-    a.velocity = std::numeric_limits<float>::min(); // Positive input whose prepared Float gain flushes to zero.
+    a.velocity = std::numeric_limits<
+        float>::min(); // Positive input whose prepared Float gain flushes to zero.
     loadWithRequiredSlots(mixer, {a}, 0);
-    auto low = bass(origin); low.velocity = 0;
+    auto low = bass(origin);
+    low.velocity = 0;
     loadWithRequiredSlots(mixer, {low}, 1); // Even silent bass reserves slot63.
     low.velocity = 1;
-    auto next = low; next.start_frame += 1;
-    auto pending = next; pending.start_frame += 1;
+    auto next = low;
+    next.start_frame += 1;
+    auto pending = next;
+    pending.start_frame += 1;
     loadWithRequiredSlots(mixer, {low, next, pending}, 1);
-    mixer.buses(4); CHECK(ll_mixer_active_voices(mixer.value) == 1);
+    mixer.buses(4);
+    CHECK(ll_mixer_active_voices(mixer.value) == 1);
     CHECK(ll_mixer_required_voice_slots(mixer.value) == 1 && ll_mixer_steals(mixer.value) == 1);
     a = event(0, (uint64_t{1} << 52) - 215513, 8, 4);
-    loadWithRequiredSlots(mixer, {a}, 1); // Addition remains exact at the timeline's accepted upper edge.
+    loadWithRequiredSlots(mixer, {a},
+                          1); // Addition remains exact at the timeline's accepted upper edge.
     loadWithRequiredSlots(mixer, {}, 0);
 }
 
 static void requiredVoiceCapacityAndReload() {
-    Mixer mixer; CHECK(mixer.sample(.2f, 1000) == 0);
+    Mixer mixer;
+    CHECK(mixer.sample(.2f, 1000) == 0);
     for (const uint32_t count : {64u, 65u, 2048u}) {
         std::vector<LLEvent> score(count, event(0, 0, 1000, 0));
-        loadWithRequiredSlots(mixer, score, count); // Raw demand must not be clamped to physical capacity.
+        loadWithRequiredSlots(mixer, score,
+                              count); // Raw demand must not be clamped to physical capacity.
         mixer.render(1);
-        CHECK(ll_mixer_active_voices(mixer.value) == 64 && ll_mixer_required_voice_slots(mixer.value) == count);
+        CHECK(ll_mixer_active_voices(mixer.value) == 64 &&
+              ll_mixer_required_voice_slots(mixer.value) == count);
         CHECK(ll_mixer_steals(mixer.value) == (count == 64 ? 0 : (count == 65 ? 1 : 64)));
         score.back().hold_frames = 0;
         CHECK(!ll_mixer_load_events(mixer.value, score.data(), count));
-        CHECK(ll_mixer_required_voice_slots(mixer.value) == count && ll_mixer_position(mixer.value) == 1);
-        mixer.reset(); CHECK(ll_mixer_required_voice_slots(mixer.value) == count);
+        CHECK(ll_mixer_required_voice_slots(mixer.value) == count &&
+              ll_mixer_position(mixer.value) == 1);
+        mixer.reset();
+        CHECK(ll_mixer_required_voice_slots(mixer.value) == count);
     }
-    auto low = bass(); low.velocity = 0;
+    auto low = bass();
+    low.velocity = 0;
     for (const uint32_t count : {63u, 64u}) {
-        std::vector<LLEvent> score(count, event(0, 0, 1000, 0)); score.push_back(low);
+        std::vector<LLEvent> score(count, event(0, 0, 1000, 0));
+        score.push_back(low);
         loadWithRequiredSlots(mixer, score, count + 1);
         mixer.render(1);
-        CHECK(ll_mixer_active_voices(mixer.value) == 63 && ll_mixer_steals(mixer.value) == count - 63);
+        CHECK(ll_mixer_active_voices(mixer.value) == 63 &&
+              ll_mixer_steals(mixer.value) == count - 63);
     }
     std::vector<LLEvent> oneFrame(64, event(0, 0, 1, 0));
-    loadWithRequiredSlots(mixer, oneFrame, 64); mixer.render(1);
-    CHECK(ll_mixer_active_voices(mixer.value) == 0 && ll_mixer_required_voice_slots(mixer.value) == 64);
+    loadWithRequiredSlots(mixer, oneFrame, 64);
+    mixer.render(1);
+    CHECK(ll_mixer_active_voices(mixer.value) == 0 &&
+          ll_mixer_required_voice_slots(mixer.value) == 64);
     oneFrame.push_back(event(0, 1, 1, 0));
-    loadWithRequiredSlots(mixer, oneFrame, 64); // A block-end active snapshot would miss this peak completely.
-    const auto expected = mixer.render(3); mixer.reset(); mixer.render(1);
-    auto invalid = event(); invalid.sample_index = 166;
+    loadWithRequiredSlots(mixer, oneFrame,
+                          64); // A block-end active snapshot would miss this peak completely.
+    const auto expected = mixer.render(3);
+    mixer.reset();
+    mixer.render(1);
+    auto invalid = event();
+    invalid.sample_index = 166;
     CHECK(!ll_mixer_load_events(mixer.value, &invalid, 1));
     CHECK(ll_mixer_required_voice_slots(mixer.value) == 64 && ll_mixer_position(mixer.value) == 1);
     CHECK(std::vector<float>(expected.begin() + 2, expected.end()) == mixer.render(2));
@@ -897,11 +1345,28 @@ static void requiredVoiceCapacityAndReload() {
 }
 
 int main() {
-    timingAndPartitioning(); envelopesAndStereo(); stealing(); bassSoundAndBounds(); bassReservationAndOverlap();
-    percussionSoundAndBounds(); percussionStealingAndProtection(); busFiltersAndRouting(); busStateAndValidation();
-    kickDuckingAndProtection(); rackFadeValidation(); rackFadeArithmeticAndViews(); rackHandoffAndTails();
-    rackFadeFloatingBounds(); invalidInputsAndOwnership(); sampleRegistryPlaybackAndEventLimit(); highSampleVoiceLimits();
-    originTranslation(); originSetupAndReload(); originTimelineLimit();
-    requiredVoiceLifetimes(); requiredVoiceCapacityAndReload();
-    std::puts("Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
+    timingAndPartitioning();
+    envelopesAndStereo();
+    stealing();
+    bassSoundAndBounds();
+    bassReservationAndOverlap();
+    percussionSoundAndBounds();
+    percussionStealingAndProtection();
+    busFiltersAndRouting();
+    busStateAndValidation();
+    kickDuckingAndProtection();
+    rackFadeValidation();
+    rackFadeArithmeticAndViews();
+    rackHandoffAndTails();
+    rackFadeFloatingBounds();
+    invalidInputsAndOwnership();
+    sampleRegistryPlaybackAndEventLimit();
+    highSampleVoiceLimits();
+    originTranslation();
+    originSetupAndReload();
+    originTimelineLimit();
+    requiredVoiceLifetimes();
+    requiredVoiceCapacityAndReload();
+    std::puts(
+        "Voice mixer timing, instrument gains/envelopes, stealing, bounds, and allocation audit passed");
 }

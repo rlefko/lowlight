@@ -9,3 +9,6 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 }
 xcrun swift --version | grep -F "Apple Swift version $SWIFT_VERSION " >/dev/null
 [[ "$(xcrun swift format --version)" == "$SWIFT_FORMAT_VERSION" ]]
+[[ "$(xcrun clang-format --version)" == "$CLANG_FORMAT_VERSION" ]] || {
+  echo "Use the clang-format bundled with Xcode $XCODE_VERSION ($XCODE_BUILD)." >&2; exit 1;
+}

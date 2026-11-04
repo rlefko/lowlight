@@ -12,10 +12,17 @@ namespace {
 constexpr double pi = 3.14159265358979323846;
 constexpr uint64_t timelineLimit = uint64_t{1} << 52;
 constexpr uint32_t sampleFramesLimit = 215513;
-float normal(float value) { return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value; }
-void increment(uint32_t &value) { if (value != UINT32_MAX) ++value; }
+float normal(float value) {
+    return std::abs(value) < std::numeric_limits<float>::min() ? 0 : value;
+}
+void increment(uint32_t &value) {
+    if (value != UINT32_MAX)
+        ++value;
+}
 
-struct Sample { uint32_t offset = 0, frames = 0, channels = 0; };
+struct Sample {
+    uint32_t offset = 0, frames = 0, channels = 0;
+};
 struct Event {
     LLEvent note{};
     uint32_t frames = 0, attack = 0;
@@ -34,7 +41,8 @@ struct Lowpass {
     void configure(double cutoff) {
         const double tangent = std::tan(pi * cutoff / 32000);
         const double denominator = 1 + tangent / std::sqrt(.5) + tangent * tangent;
-        b0 = tangent * tangent / denominator; b1 = 2 * b0;
+        b0 = tangent * tangent / denominator;
+        b1 = 2 * b0;
         a1 = 2 * (tangent * tangent - 1) / denominator;
         a2 = (1 - tangent / std::sqrt(.5) + tangent * tangent) / denominator;
     }
@@ -54,7 +62,8 @@ struct Buses {
     lowlight::RackFades fades{};
     void reset() {
         for (auto &filter : filters)
-            for (uint32_t ch = 0; ch < 2; ++ch) filter.first[ch] = filter.second[ch] = 0;
+            for (uint32_t ch = 0; ch < 2; ++ch)
+                filter.first[ch] = filter.second[ch] = 0;
         duckAge = duckFrames;
     }
     LLBusFrame process(const float (&stems)[7][2]) {
@@ -91,26 +100,38 @@ struct LLMixer {
 
 LLMixer *ll_mixer_create() {
     auto *mixer = new (std::nothrow) LLMixer;
-    if (!mixer) return nullptr;
+    if (!mixer)
+        return nullptr;
     mixer->pcm = new (std::nothrow) float[LL_SAMPLE_BYTES / sizeof(float)];
-    if (!mixer->pcm) { delete mixer; return nullptr; }
+    if (!mixer->pcm) {
+        delete mixer;
+        return nullptr;
+    }
     return mixer;
 }
 void ll_mixer_destroy(LLMixer *mixer) {
-    if (mixer) { delete[] mixer->pcm; delete mixer; }
+    if (mixer) {
+        delete[] mixer->pcm;
+        delete mixer;
+    }
 }
 bool ll_mixer_configure_origin(LLMixer *m, uint64_t frameOrigin) {
-    if (!m || m->loaded || frameOrigin > timelineLimit) return false;
-    m->origin = frameOrigin; m->position = frameOrigin;
+    if (!m || m->loaded || frameOrigin > timelineLimit)
+        return false;
+    m->origin = frameOrigin;
+    m->position = frameOrigin;
     return true;
 }
 bool ll_mixer_configure_buses(LLMixer *m, double energy) {
     lowlight::FloatingPointMode mode;
-    if (!m || m->loaded || !lowlight::unitInterval(energy)) return false;
+    if (!m || m->loaded || !lowlight::unitInterval(energy))
+        return false;
     constexpr double cutoffs[] = {280, 1050, 1450, 1200};
-    for (uint32_t i = 0; i < 4; ++i) m->buses.filters[i].configure(cutoffs[i]);
+    for (uint32_t i = 0; i < 4; ++i)
+        m->buses.filters[i].configure(cutoffs[i]);
     for (uint32_t i = 0; i < duckFrames; ++i)
-        m->buses.duck[i] = static_cast<float>(1 - .055 * std::exp(-static_cast<double>(i) / 32000 / .105));
+        m->buses.duck[i] =
+            static_cast<float>(1 - .055 * std::exp(-static_cast<double>(i) / 32000 / .105));
     m->buses.drumGain = static_cast<float>(.85 + .45 * energy);
     m->buses.hatGain = static_cast<float>(.9 + .35 * energy);
     m->buses.bassGain = static_cast<float>(.98 + .06 * energy);
@@ -120,49 +141,64 @@ bool ll_mixer_configure_buses(LLMixer *m, double energy) {
 }
 bool ll_mixer_configure_fades(LLMixer *m, const LLRackFades *fades) {
     lowlight::FloatingPointMode mode;
-    if (!m || !fades || m->loaded || !m->buses.configured) return false;
+    if (!m || !fades || m->loaded || !m->buses.configured)
+        return false;
     return m->buses.fades.configure(*fades);
 }
 int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint32_t channels) {
     lowlight::FloatingPointMode mode;
     if (!m || !pcm || m->loaded || m->samplesUsed == LL_SAMPLE_LIMIT || !frames ||
-        frames > sampleFramesLimit || (channels != 1 && channels != 2)) return -1;
+        frames > sampleFramesLimit || (channels != 1 && channels != 2))
+        return -1;
     const uint32_t count = frames * channels;
-    if (count > LL_SAMPLE_BYTES / sizeof(float) - m->floatsUsed) return -1;
+    if (count > LL_SAMPLE_BYTES / sizeof(float) - m->floatsUsed)
+        return -1;
     for (uint32_t i = 0; i < count; ++i)
-        if (!std::isfinite(pcm[i]) || std::abs(pcm[i]) > 8) return -1;
+        if (!std::isfinite(pcm[i]) || std::abs(pcm[i]) > 8)
+            return -1;
     const uint32_t index = m->samplesUsed++;
     m->samples[index] = {m->floatsUsed, frames, channels};
-    for (uint32_t i = 0; i < count; ++i) m->pcm[m->floatsUsed + i] = normal(pcm[i]);
+    for (uint32_t i = 0; i < count; ++i)
+        m->pcm[m->floatsUsed + i] = normal(pcm[i]);
     m->floatsUsed += count;
     return static_cast<int32_t>(index);
 }
 void ll_mixer_reset(LLMixer *m) {
-    if (!m) return;
-    for (auto &voice : m->voices) voice = Voice{};
+    if (!m)
+        return;
+    for (auto &voice : m->voices)
+        voice = Voice{};
     m->buses.reset();
-    m->position = m->origin; m->next = 0; m->steals = 0; m->dropped = 0;
+    m->position = m->origin;
+    m->next = 0;
+    m->steals = 0;
+    m->dropped = 0;
 }
 bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
     lowlight::FloatingPointMode mode;
-    if (!m || count > LL_EVENT_LIMIT || (count && !events)) return false;
+    if (!m || count > LL_EVENT_LIMIT || (count && !events))
+        return false;
     bool hasBass = false;
     for (uint32_t i = 0; i < count; ++i) {
         const auto &e = events[i];
         if (e.start_frame < m->origin || e.sample_index >= m->samplesUsed ||
             (i && e.start_frame < events[i - 1].start_frame) || !e.hold_frames ||
             e.hold_frames > 16 * 32000 || e.release_frames > 5 * 32000 ||
-            !lowlight::unitInterval(e.velocity) ||
-            !std::isfinite(e.pan) || e.pan < -1 || e.pan > 1 || e.instrument > 6 ||
-            e.connected > 1 || e.priority > 2) return false;
+            !lowlight::unitInterval(e.velocity) || !std::isfinite(e.pan) || e.pan < -1 ||
+            e.pan > 1 || e.instrument > 6 || e.connected > 1 || e.priority > 2)
+            return false;
         const bool bass = e.instrument == 2;
         const bool percussion = e.instrument >= 3;
-        if (bass && (e.midi < 31 || e.midi > 57 || m->samples[e.sample_index].channels != 1)) return false;
+        if (bass && (e.midi < 31 || e.midi > 57 || m->samples[e.sample_index].channels != 1))
+            return false;
         if (percussion && (e.priority != 0 || e.midi != (e.instrument == 4 ? 1 : 0) ||
-                           m->samples[e.sample_index].channels != 1)) return false;
-        const uint32_t lifetime = bass ? e.hold_frames + e.release_frames :
-            (percussion ? m->samples[e.sample_index].frames : sampleFramesLimit);
-        if (e.start_frame > timelineLimit - lifetime) return false;
+                           m->samples[e.sample_index].channels != 1))
+            return false;
+        const uint32_t lifetime =
+            bass ? e.hold_frames + e.release_frames
+                 : (percussion ? m->samples[e.sample_index].frames : sampleFramesLimit);
+        if (e.start_frame > timelineLimit - lifetime)
+            return false;
         hasBass |= bass;
     }
     for (uint32_t i = 0; i < count; ++i) {
@@ -171,79 +207,110 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
         out.note = e;
         const bool bass = e.instrument == 2;
         const bool percussion = e.instrument >= 3;
-        out.frames = bass ? e.hold_frames + e.release_frames :
-            (percussion ? m->samples[e.sample_index].frames :
-             std::min(m->samples[e.sample_index].frames, e.hold_frames + e.release_frames));
+        out.frames = bass ? e.hold_frames + e.release_frames
+                          : (percussion ? m->samples[e.sample_index].frames
+                                        : std::min(m->samples[e.sample_index].frames,
+                                                   e.hold_frames + e.release_frames));
         out.attack = bass || percussion ? 0 : std::min(out.frames, e.instrument ? 288u : 448u);
         out.frequency = bass ? 440 * std::pow(2.0, (static_cast<int>(e.midi) - 69) / 12.0) : 0;
         out.bassGain = bass ? .24 * std::pow(static_cast<double>(e.velocity), 1.10) : 0;
         if (percussion) {
             constexpr double gains[] = {.31, .25, .27, .11};
             out.gain = normal(static_cast<float>(gains[e.instrument - 3] *
-                std::pow(static_cast<double>(e.velocity), 1.25)));
-        } else out.gain = normal(static_cast<float>(bass ? out.bassGain : (e.instrument ? .23 : .235) *
-            std::pow(static_cast<double>(e.velocity), 1.05) * (e.connected ? .9 : 1)));
+                                                 std::pow(static_cast<double>(e.velocity), 1.25)));
+        } else
+            out.gain = normal(
+                static_cast<float>(bass ? out.bassGain
+                                        : (e.instrument ? .23 : .235) *
+                                              std::pow(static_cast<double>(e.velocity), 1.05) *
+                                              (e.connected ? .9 : 1)));
         const double pan = bass ? 0 : e.pan;
-        out.left = static_cast<float>(std::cos((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
-        out.right = static_cast<float>(std::sin((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
+        out.left =
+            static_cast<float>(std::cos((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
+        out.right =
+            static_cast<float>(std::sin((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
     }
     // Setup-only half-open lifetime sweep. The fixed event cap bounds this O(E^2)
     // scan without scratch allocation; fades and silent PCM do not retire readers.
     uint32_t peak = 0;
     for (uint32_t i = 0; i < count; ++i) {
         const auto &current = m->events[i];
-        if (current.note.instrument == 2 || current.gain == 0) continue;
+        if (current.note.instrument == 2 || current.gain == 0)
+            continue;
         uint32_t active = 1;
         for (uint32_t j = 0; j < i; ++j) {
             const auto &prior = m->events[j];
             if (prior.note.instrument != 2 && prior.gain != 0 &&
-                prior.note.start_frame + prior.frames > current.note.start_frame) ++active;
+                prior.note.start_frame + prior.frames > current.note.start_frame)
+                ++active;
         }
         peak = std::max(peak, active);
     }
     m->requiredVoiceSlots = peak + (hasBass ? 1u : 0u);
     m->sharedVoices = hasBass ? LL_VOICE_LIMIT - 1 : LL_VOICE_LIMIT;
-    m->eventCount = count; m->loaded = true;
+    m->eventCount = count;
+    m->loaded = true;
     ll_mixer_reset(m);
     return true;
 }
 
 namespace {
-void start(Voice &voice, uint32_t event) { voice = Voice{event, 0, 0, -1, true}; }
+void start(Voice &voice, uint32_t event) {
+    voice = Voice{event, 0, 0, -1, true};
+}
 void replace(LLMixer &m, Voice &voice, uint32_t index) {
-    if (voice.pending >= 0) { increment(m.dropped); return; }
+    if (voice.pending >= 0) {
+        increment(m.dropped);
+        return;
+    }
     voice.pending = static_cast<int32_t>(index);
     voice.fade = LL_STEAL_FRAMES;
     increment(m.steals);
 }
 void schedule(LLMixer &m, uint32_t index) {
     const auto &incoming = m.events[index];
-    if (incoming.gain == 0) return;
+    if (incoming.gain == 0)
+        return;
     if (incoming.note.instrument == 2) {
         auto &bass = m.voices[LL_VOICE_LIMIT - 1];
-        if (bass.active) replace(m, bass, index);
-        else start(bass, index);
+        if (bass.active)
+            replace(m, bass, index);
+        else
+            start(bass, index);
         return;
     }
     for (uint32_t i = 0; i < m.sharedVoices; ++i) {
         auto &voice = m.voices[i];
-        if (!voice.active) { start(voice, index); return; }
+        if (!voice.active) {
+            start(voice, index);
+            return;
+        }
     }
     int best = -1;
     for (uint32_t i = 0; i < m.sharedVoices; ++i) {
         const auto &voice = m.voices[i];
         const auto &event = m.events[voice.event];
-        if (voice.pending >= 0 || event.note.priority > incoming.note.priority) continue;
-        if (best < 0) { best = i; continue; }
+        if (voice.pending >= 0 || event.note.priority > incoming.note.priority)
+            continue;
+        if (best < 0) {
+            best = i;
+            continue;
+        }
         const auto &prior = m.voices[best];
         const auto &priorEvent = m.events[prior.event];
         const bool releasing = event.note.instrument >= 3 || voice.age >= event.note.hold_frames;
-        const bool priorReleasing = priorEvent.note.instrument >= 3 || prior.age >= priorEvent.note.hold_frames;
+        const bool priorReleasing =
+            priorEvent.note.instrument >= 3 || prior.age >= priorEvent.note.hold_frames;
         if (event.note.priority < priorEvent.note.priority ||
             (event.note.priority == priorEvent.note.priority &&
-             ((releasing && !priorReleasing) || (releasing == priorReleasing && voice.age > prior.age)))) best = i;
+             ((releasing && !priorReleasing) ||
+              (releasing == priorReleasing && voice.age > prior.age))))
+            best = i;
     }
-    if (best < 0) { increment(m.dropped); return; }
+    if (best < 0) {
+        increment(m.dropped);
+        return;
+    }
     replace(m, m.voices[best], index);
 }
 float envelope(const Voice &v, const Event &e) {
@@ -254,43 +321,52 @@ float envelope(const Voice &v, const Event &e) {
     }
     if (v.age >= e.note.hold_frames) {
         const uint32_t release = e.frames - e.note.hold_frames;
-        const double cosine = release == 1 ? 1 : std::cos((pi / 2) * (v.age - e.note.hold_frames) / (release - 1));
+        const double cosine =
+            release == 1 ? 1 : std::cos((pi / 2) * (v.age - e.note.hold_frames) / (release - 1));
         result *= static_cast<float>(cosine * cosine);
     }
-    if (v.fade) result *= static_cast<float>(v.fade - 1) / (LL_STEAL_FRAMES - 1);
+    if (v.fade)
+        result *= static_cast<float>(v.fade - 1) / (LL_STEAL_FRAMES - 1);
     return normal(result * e.gain);
 }
 float bassSample(const Voice &v, const Event &e, const Sample &s, const float *pcm) {
     const double time = v.age / 32000.0;
     const double tone = .21 * std::sin(2 * pi * e.frequency * time) +
-        .105 * std::sin(4 * pi * e.frequency * time) + .037 * std::sin(6 * pi * e.frequency * time);
+                        .105 * std::sin(4 * pi * e.frequency * time) +
+                        .037 * std::sin(6 * pi * e.frequency * time);
     const double attackDecay = (1 - std::exp(-time / .016)) * std::exp(-time / 2.6);
     const double body = v.age < s.frames ? pcm[s.offset + v.age] : 0;
     double value = (tone * attackDecay + body) * e.bassGain;
     if (v.age >= e.note.hold_frames) {
-        const double cosine = e.note.release_frames == 1 ? 1 :
-            std::cos((pi / 2) * (v.age - e.note.hold_frames) / (e.note.release_frames - 1));
+        const double cosine =
+            e.note.release_frames == 1
+                ? 1
+                : std::cos((pi / 2) * (v.age - e.note.hold_frames) / (e.note.release_frames - 1));
         value *= cosine * cosine;
     }
-    if (v.fade) value *= static_cast<double>(v.fade - 1) / (LL_STEAL_FRAMES - 1);
+    if (v.fade)
+        value *= static_cast<double>(v.fade - 1) / (LL_STEAL_FRAMES - 1);
     return normal(static_cast<float>(value));
 }
 void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
     while (m.next < m.eventCount && m.events[m.next].note.start_frame <= m.position) {
         // Score-keyed, even when a silent/overloaded kick is never admitted to a voice.
-        if (m.events[m.next].note.instrument == 3) m.buses.duckAge = 0;
+        if (m.events[m.next].note.instrument == 3)
+            m.buses.duckAge = 0;
         schedule(m, m.next++);
     }
     float left = 0, right = 0;
     float stems[7][2]{};
     for (auto &v : m.voices) {
-        if (!v.active) continue;
+        if (!v.active)
+            continue;
         const auto &e = m.events[v.event];
         const auto &s = m.samples[e.note.sample_index];
         float voiceLeft, voiceRight;
         if (e.note.instrument == 2) {
             const float sample = bassSample(v, e, s, m.pcm);
-            voiceLeft = sample * e.left; voiceRight = sample * e.right;
+            voiceLeft = sample * e.left;
+            voiceRight = sample * e.right;
         } else if (e.note.instrument >= 3) {
             const float sample = m.pcm[s.offset + v.age];
             const float fade = v.fade ? static_cast<float>(v.fade - 1) / (LL_STEAL_FRAMES - 1) : 1;
@@ -308,62 +384,90 @@ void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
             voiceRight = (mid - side) * e.right;
         }
         // Preserve the original slot-order dry sum independently of instrument routing.
-        left += voiceLeft; right += voiceRight;
+        left += voiceLeft;
+        right += voiceRight;
         if (m.buses.configured) {
             stems[e.note.instrument][0] += voiceLeft;
             stems[e.note.instrument][1] += voiceRight;
         }
         ++v.age;
-        if (v.fade) --v.fade;
+        if (v.fade)
+            --v.fade;
         if (v.age == e.frames || (v.pending >= 0 && v.fade == 0)) {
-            if (v.pending >= 0) start(v, static_cast<uint32_t>(v.pending));
-            else v.active = false;
+            if (v.pending >= 0)
+                start(v, static_cast<uint32_t>(v.pending));
+            else
+                v.active = false;
         }
     }
-    if (output) { output[0] = normal(left); output[1] = normal(right); }
+    if (output) {
+        output[0] = normal(left);
+        output[1] = normal(right);
+    }
     if (m.buses.configured) {
         m.buses.fades.apply(stems, m.position);
         const auto frame = m.buses.process(stems);
-        if (busOutput) *busOutput = frame;
+        if (busOutput)
+            *busOutput = frame;
     }
     ++m.position;
 }
 }
 
 bool ll_mixer_render(LLMixer *m, float *output, uint32_t frames) {
-    if (frames && !output) return false;
+    if (frames && !output)
+        return false;
     if (!m || !m->loaded || frames > timelineLimit - m->position) {
-        for (uint64_t i = 0; i < uint64_t{frames} * 2; ++i) output[i] = 0;
+        for (uint64_t i = 0; i < uint64_t{frames} * 2; ++i)
+            output[i] = 0;
         return false;
     }
     lowlight::FloatingPointMode mode;
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
-        for (; offset < end; ++offset) renderFrame(*m, output + uint64_t{offset} * 2, nullptr);
+        for (; offset < end; ++offset)
+            renderFrame(*m, output + uint64_t{offset} * 2, nullptr);
     }
     return true;
 }
 bool ll_mixer_render_buses(LLMixer *m, LLBusFrame *output, uint32_t frames) {
-    if (frames && !output) return false;
+    if (frames && !output)
+        return false;
     if (!m || !m->loaded || !m->buses.configured || frames > timelineLimit - m->position) {
-        for (uint32_t i = 0; i < frames; ++i) output[i] = LLBusFrame{};
+        for (uint32_t i = 0; i < frames; ++i)
+            output[i] = LLBusFrame{};
         return false;
     }
     lowlight::FloatingPointMode mode;
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
-        for (; offset < end; ++offset) renderFrame(*m, nullptr, output + offset);
+        for (; offset < end; ++offset)
+            renderFrame(*m, nullptr, output + offset);
     }
     return true;
 }
 uint32_t ll_mixer_active_voices(const LLMixer *m) {
     uint32_t result = 0;
-    if (m) for (const auto &voice : m->voices) result += voice.active;
+    if (m)
+        for (const auto &voice : m->voices)
+            result += voice.active;
     return result;
 }
-uint32_t ll_mixer_steals(const LLMixer *m) { return m ? m->steals : 0; }
-uint32_t ll_mixer_dropped_events(const LLMixer *m) { return m ? m->dropped : 0; }
-uint64_t ll_mixer_position(const LLMixer *m) { return m ? m->position : 0; }
-uint64_t ll_mixer_origin(const LLMixer *m) { return m ? m->origin : 0; }
-uint32_t ll_mixer_sample_bytes(const LLMixer *m) { return m ? m->floatsUsed * sizeof(float) : 0; }
-uint32_t ll_mixer_required_voice_slots(const LLMixer *m) { return m ? m->requiredVoiceSlots : 0; }
+uint32_t ll_mixer_steals(const LLMixer *m) {
+    return m ? m->steals : 0;
+}
+uint32_t ll_mixer_dropped_events(const LLMixer *m) {
+    return m ? m->dropped : 0;
+}
+uint64_t ll_mixer_position(const LLMixer *m) {
+    return m ? m->position : 0;
+}
+uint64_t ll_mixer_origin(const LLMixer *m) {
+    return m ? m->origin : 0;
+}
+uint32_t ll_mixer_sample_bytes(const LLMixer *m) {
+    return m ? m->floatsUsed * sizeof(float) : 0;
+}
+uint32_t ll_mixer_required_voice_slots(const LLMixer *m) {
+    return m ? m->requiredVoiceSlots : 0;
+}
