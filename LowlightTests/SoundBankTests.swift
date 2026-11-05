@@ -20,7 +20,7 @@ private struct Inventory: Decodable {
 }
 
 struct SoundBankTests {
-    @Test func sessionSourceResumesOfflineThroughTheIOSAudioEngine() async throws {
+    @Test func sessionOwnerResumesOfflineThroughTheIOSAudioEngine() async throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
         let preparer = try TonalSamplePreparer(bankURL: bank)
         let record = Data(
@@ -65,37 +65,33 @@ struct SoundBankTests {
             worker.requestStop()
             worker.join()
         }
-        let source = try SessionAudioSource(worker: worker)
         let engine = AVAudioEngine()
         let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 32_000, channels: 2))
         try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 2048)
-        engine.attach(source.node)
-        defer {
-            engine.stop()
-            engine.disconnectNodeOutput(source.node)
-            engine.detach(source.node)
-        }
-        engine.connect(source.node, to: engine.mainMixerNode, format: format)
-        try engine.start()
+        let playback = try SessionAudioEngine(worker: worker, engine: engine)
+        defer { playback.stop() }
+        #expect(playback.state == .paused && playback.position == 0)
+        try playback.play()
         let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 2048))
         let status = try engine.renderOffline(2048, to: buffer)
         #expect(status == .success && buffer.frameLength == 2048)
         let channels = try #require(buffer.floatChannelData)
         let samples = (0..<2048).flatMap { [channels[0][$0], channels[1][$0]] }
         #expect(samples.allSatisfy(\.isFinite) && samples.contains { $0 != 0 })
-        #expect(source.position == 2048 && source.status == .rendering && !source.isFaulted)
-        engine.pause()
-        #expect(worker.suspend() && !worker.suspend())
+        #expect(playback.position == 2048 && playback.sourceStatus == .rendering)
+        playback.pause()
         let deadline = Date().addingTimeInterval(30)
-        while worker.status != .suspended {
+        while playback.preparationStatus != .suspended {
             try #require(Date() < deadline)
             try await Task.sleep(for: .milliseconds(1))
         }
-        #expect(source.position == 2048 && !engine.isRunning)
-        #expect(worker.resume() && !worker.resume())
-        try engine.start()
+        #expect(playback.position == 2048 && playback.state == .paused)
+        try playback.play()
         #expect(try engine.renderOffline(2048, to: buffer) == .success)
-        #expect(source.position == 4096 && !source.isFaulted && worker.lastError == nil)
+        #expect(playback.position == 4096 && playback.preparationError == nil)
+        playback.stop()
+        #expect(playback.state == .stopped && playback.preparationStatus == .stopped)
+        #expect(playback.position == 4096 && !engine.isRunning)
     }
 
     @Test func bodyLoudnessMeterFinishesAndResetsOnIOS() throws {
