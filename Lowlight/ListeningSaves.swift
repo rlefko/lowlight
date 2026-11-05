@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import LowlightAudio
+import LowlightPlanning
 import Observation
 
 /// One atomic write at a time and one replaceable pending checkpoint. A failed write
@@ -10,23 +11,42 @@ import Observation
 final class ListeningSaves {
     private(set) var failed = false
     private(set) var busy = false
-    private(set) var lastSaved: SessionRestartIntent?
-    @ObservationIgnored private let write: @Sendable (SessionRestartIntent) async throws -> Void
-    @ObservationIgnored private var pending: SessionRestartIntent?
+    private(set) var lastSaved: ListeningRecord?
+    private(set) var latest = ListeningRecord.initial
+    @ObservationIgnored private let write: @Sendable (ListeningRecord) async throws -> Void
+    @ObservationIgnored private var pending: ListeningRecord?
     @ObservationIgnored private var task: Task<Void, Never>?
 
-    init(write: @escaping @Sendable (SessionRestartIntent) async throws -> Void) {
+    init(write: @escaping @Sendable (ListeningRecord) async throws -> Void) {
         self.write = write
     }
 
     deinit { task?.cancel() }
 
-    func restored(_ intent: SessionRestartIntent?) {
+    func restored(_ record: ListeningRecord?) {
         precondition(task == nil && pending == nil)
-        lastSaved = intent
+        lastSaved = record
+        latest = record ?? .initial
     }
 
-    func submit(_ intent: SessionRestartIntent) {
+    func updateControls(_ controls: Controls) throws {
+        latest = try ListeningRecord(controls: controls, restart: latest.restart)
+        submit(latest)
+    }
+
+    func capture(_ restart: SessionRestartIntent) {
+        latest = latest.capturing(restart)
+        submit(latest)
+    }
+
+    /// An explicit new-session choice replaces any pending old place, preserving settings.
+    func discardRestart() {
+        latest = latest.discardingRestart()
+        failed = false
+        submit(latest)
+    }
+
+    private func submit(_ intent: ListeningRecord) {
         guard intent != lastSaved || task != nil || pending != nil else { return }
         pending = intent
         drain()

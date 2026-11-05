@@ -90,14 +90,18 @@ jobs:
           retention-days: 1
           if-no-files-found: error
   audio_debug:
-    name: Debug Audio Tests
+    name: Debug Audio Tests (${{ matrix.partition }})
     runs-on: macos-26
-    timeout-minutes: 30 # Full unoptimized DSP validation runs independently of simulator startup.
+    timeout-minutes: 30 # Complementary partitions preserve all unoptimized audio validation.
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [core, controls-transactions, controls-workers]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: scripts/test-audio
+      - run: scripts/test-audio debug "${{ matrix.partition }}"
   audio:
     name: Audio Regression
     needs: native

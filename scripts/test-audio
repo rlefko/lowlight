@@ -3,10 +3,24 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export TOOLCHAINS=com.apple.dt.toolchain.Xcode
-./scripts/toolchain
-configuration="${1:-debug}"
-case "$configuration" in
-  debug|release) ;;
-  *) echo 'Usage: scripts/test-audio [debug|release]' >&2; exit 2 ;;
+configuration="${1-debug}"
+partition="${2-all}"
+usage() {
+  echo 'Usage: scripts/test-audio [debug|release] [all|core|controls-transactions|controls-workers]' >&2
+  echo 'Named partitions are available only for debug; the default runs the entire suite.' >&2
+  exit 2
+}
+[[ $# -le 2 ]] || usage
+arguments=(swift test --configuration "$configuration" --package-path Packages/LowlightAudio --scratch-path .build/AudioTests)
+case "$configuration:$partition" in
+  debug:all|release:all) ;;
+  debug:core)
+    arguments+=(--skip '^LowlightAudioTests\.SessionControls(Transaction|Worker|CapacityFailure)Tests/') ;;
+  debug:controls-transactions)
+    arguments+=(--filter '^LowlightAudioTests\.SessionControlsTransactionTests/') ;;
+  debug:controls-workers)
+    arguments+=(--filter '^LowlightAudioTests\.SessionControls(Worker|CapacityFailure)Tests/') ;;
+  *) usage ;;
 esac
-xcrun swift test --configuration "$configuration" --package-path Packages/LowlightAudio --scratch-path .build/AudioTests
+./scripts/toolchain
+xcrun "${arguments[@]}"
