@@ -34,11 +34,88 @@ private final class IOSPlaybackProbe: @unchecked Sendable {
     }
 }
 
+private final class IOSSessionEvents: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [String] = []
+
+    func receive(_ event: PlaybackAudioSessionEvent) {
+        lock.withLock {
+            switch event {
+            case .interruptionBegan: events.append("began")
+            case .interruptionEnded(let shouldResume): events.append("ended:\(shouldResume)")
+            case .oldDeviceUnavailable: events.append("disconnected")
+            }
+        }
+    }
+
+    var description: String { lock.withLock { events.joined(separator: ",") } }
+}
+
 struct SoundBankTests {
+    @Test func systemAudioNotificationsDecodeFilterAndUnregisterOnIOS() {
+        let center = NotificationCenter()
+        let session = AVAudioSession.sharedInstance()
+        let events = IOSSessionEvents()
+        let observation = PlaybackAudioSession.system(notificationCenter: center)
+            .observe { events.receive($0) }
+        func interruption(_ info: [AnyHashable: Any], object: Any? = nil) {
+            center.post(
+                name: AVAudioSession.interruptionNotification, object: object ?? session,
+                userInfo: info)
+        }
+        let began = AVAudioSession.InterruptionType.began.rawValue
+        let ended = AVAudioSession.InterruptionType.ended.rawValue
+        interruption([:])
+        interruption([AVAudioSessionInterruptionTypeKey: "invalid"])
+        interruption([AVAudioSessionInterruptionTypeKey: UInt.max])
+        interruption([AVAudioSessionInterruptionTypeKey: began], object: NSObject())
+        center.post(
+            name: AVAudioSession.interruptionNotification, object: nil,
+            userInfo: [AVAudioSessionInterruptionTypeKey: began])
+        for reason in [AVAudioSession.RouteChangeReason.newDeviceAvailable, .override] {
+            center.post(
+                name: AVAudioSession.routeChangeNotification, object: session,
+                userInfo: [AVAudioSessionRouteChangeReasonKey: reason.rawValue])
+        }
+        #expect(events.description.isEmpty)
+        interruption([AVAudioSessionInterruptionTypeKey: NSNumber(value: began)])
+        interruption([AVAudioSessionInterruptionTypeKey: ended])
+        interruption([
+            AVAudioSessionInterruptionTypeKey: ended,
+            AVAudioSessionInterruptionOptionKey: AVAudioSession.InterruptionOptions.shouldResume
+                .rawValue,
+        ])
+        center.post(
+            name: AVAudioSession.routeChangeNotification, object: session,
+            userInfo: [
+                AVAudioSessionRouteChangeReasonKey:
+                    AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
+            ])
+        interruption([
+            AVAudioSessionInterruptionTypeKey: began,
+            AVAudioSessionInterruptionReasonKey: AVAudioSession.InterruptionReason.routeDisconnected
+                .rawValue,
+        ])
+        let expected = "began,ended:false,ended:true,disconnected,disconnected,began"
+        #expect(events.description == expected)
+        observation.cancel()
+        observation.cancel()
+        interruption([AVAudioSessionInterruptionTypeKey: began])
+        center.post(
+            name: AVAudioSession.routeChangeNotification, object: session,
+            userInfo: [
+                AVAudioSessionRouteChangeReasonKey:
+                    AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
+            ])
+        #expect(events.description == expected)
+    }
+
     @MainActor @Test func sessionPlaybackManagesTheIOSAudioSession() async throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
         let probe = IOSPlaybackProbe()
-        let playback = SessionPlayback(audioSession: .system) { token, prepareOutput in
+        let center = NotificationCenter()
+        let playback = SessionPlayback(audioSession: .system(notificationCenter: center)) {
+            token, prepareOutput in
             let preparer = try TonalSamplePreparer(bankURL: bank)
             let record = Data(
                 """
@@ -114,9 +191,48 @@ struct SoundBankTests {
         try await waitFor(.playing)
         let second = try await playback.inspect { try probe.pull($0) }
         #expect(second.0.allSatisfy(\.isFinite) && second.1 == 4096)
+        let session = AVAudioSession.sharedInstance()
+        center.post(
+            name: AVAudioSession.interruptionNotification, object: session,
+            userInfo: [
+                AVAudioSessionInterruptionTypeKey:
+                    AVAudioSession.InterruptionType.began.rawValue
+            ])
+        try await waitFor(.paused)
+        #expect(playback.isInterrupted && playback.position == 4096)
+        center.post(
+            name: AVAudioSession.interruptionNotification, object: session,
+            userInfo: [
+                AVAudioSessionInterruptionTypeKey:
+                    AVAudioSession.InterruptionType.ended.rawValue,
+                AVAudioSessionInterruptionOptionKey:
+                    AVAudioSession.InterruptionOptions.shouldResume.rawValue,
+            ])
+        try await waitFor(.playing)
+        #expect(!playback.isInterrupted)
+        let resumed = try await playback.inspect { try probe.pull($0) }
+        #expect(resumed.0.allSatisfy(\.isFinite) && resumed.1 == 6144)
+        center.post(
+            name: AVAudioSession.routeChangeNotification, object: session,
+            userInfo: [
+                AVAudioSessionRouteChangeReasonKey:
+                    AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
+            ])
+        try await waitFor(.paused)
+        center.post(
+            name: AVAudioSession.routeChangeNotification, object: session,
+            userInfo: [
+                AVAudioSessionRouteChangeReasonKey:
+                    AVAudioSession.RouteChangeReason.newDeviceAvailable.rawValue
+            ])
+        #expect(try await playback.inspect { $0?.state == .paused && $0?.position == 6144 })
+        playback.play()
+        try await waitFor(.playing)
+        let reconnected = try await playback.inspect { try probe.pull($0) }
+        #expect(reconnected.0.allSatisfy(\.isFinite) && reconnected.1 == 8192)
         playback.stop()
         try await waitFor(.stopped)
-        #expect(playback.position == 4096 && playback.preparationStatus == .stopped)
+        #expect(playback.position == 8192 && playback.preparationStatus == .stopped)
         #expect(playback.lastError == nil && playback.audioSessionError == nil)
         #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
     }

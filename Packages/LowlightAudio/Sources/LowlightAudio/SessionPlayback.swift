@@ -18,6 +18,7 @@ public enum SessionPlaybackState: Sendable {
 @MainActor @Observable
 public final class SessionPlayback {
     public private(set) var state = SessionPlaybackState.idle
+    public private(set) var isInterrupted = false
     public private(set) var lastError: (any Error)?
     /// A failed deactivation leaves cleanup unconfirmed, not proof that the session is active.
     /// Repeated Stop retries cleanup; playback/activation failures remain in lastError.
@@ -26,7 +27,6 @@ public final class SessionPlayback {
     public private(set) var sourceStatus = SessionAudioSourceStatus.ready
     public private(set) var preparationStatus = PreparationWorkerStatus.stopped
     @ObservationIgnored private let control: PlaybackControl
-    @ObservationIgnored private var revision: UInt64 = 0
 
     public convenience init(
         bankURL: URL, seed: UInt64 = 91_031, controls: Controls = Controls(), frameCount: UInt32
@@ -70,8 +70,9 @@ public final class SessionPlayback {
     ) {
         control = PlaybackControl(audioSession: audioSession, factory: factory)
         control.setReceiver { [weak self] snapshot in
-            guard let self, snapshot.revision == self.revision else { return }
+            guard let self else { return }
             self.state = snapshot.state
+            self.isInterrupted = snapshot.interrupted
             self.lastError = snapshot.error
             self.audioSessionError = snapshot.audioSessionError
             self.position = snapshot.position
@@ -82,19 +83,20 @@ public final class SessionPlayback {
 
     deinit { control.request(.stop) }
 
-    /// Explicit Play also retries a failed startup. It does not rewind an existing graph.
-    public func play() { revision = control.request(.play) }
-    public func pause() { revision = control.request(.pause) }
+    /// Explicit Play also retries a failed startup or an interruption with no end event.
+    /// Activation may still fail if the session is unavailable; a retained graph is not rewound.
+    public func play() { control.request(.play) }
+    public func pause() { control.request(.pause) }
     public func stop() {
-        revision = control.request(.stop)
+        control.request(.stop)
         if state != .stopped { state = .stopping }
     }
 
     /// On-demand snapshots only: no timer, automatic EOF stop, or converter-drain claim.
-    public func refresh() { revision = control.request(.refresh) }
+    public func refresh() { control.request(.refresh) }
 
     /// Retry a latched successor error only; never creates a session or resumes output.
-    public func retryPreparation() { revision = control.request(.retry) }
+    public func retryPreparation() { control.request(.retry) }
 
     // Manual offline pulls/inspection must share the engine's serialized control context.
     func inspect<Value: Sendable>(
@@ -107,6 +109,7 @@ public final class SessionPlayback {
 private struct PlaybackSnapshot: Sendable {
     let revision: UInt64
     let state: SessionPlaybackState
+    let interrupted: Bool
     let error: (any Error)?
     let audioSessionError: (any Error)?
     let position: UInt32
@@ -125,6 +128,8 @@ private final class PlaybackControl: @unchecked Sendable {
         var revision: UInt64 = 0
         var playRequest: UInt64 = 0
         var interruption: UInt64 = 0
+        var interrupted = false
+        var routePaused = false
         var retry = false
     }
     private let queue = DispatchQueue(
@@ -141,9 +146,10 @@ private final class PlaybackControl: @unchecked Sendable {
     private var deliveryScheduled = false
     private var pendingSnapshot: PlaybackSnapshot?
     private var engine: SessionAudioEngine?
+    private var observation: PlaybackAudioSessionObservation?
     private var failure: (any Error)?
     private var failedPlayRequest: UInt64?
-    private var appliedPlayRequest: UInt64 = 0
+    private var appliedPlayRequest: UInt64?
     private var appliedPauseRequest: UInt64 = 0
     private var position: UInt32 = 0
     private var source = SessionAudioSourceStatus.ready
@@ -175,23 +181,58 @@ private final class PlaybackControl: @unchecked Sendable {
             case .play:
                 command.intent = .play
                 command.playRequest &+= 1
+                command.interrupted = false
+                command.routePaused = false
             case .pause:
                 command.intent = .pause
                 command.interruption &+= 1
             case .stop:
                 command.intent = .stop
                 command.interruption &+= 1
+                command.interrupted = false
             case .refresh: break
             case .retry: command.retry = true
             }
-            if command.intent != .play { startup?.cancel() }
-            if !drainScheduled {
-                drainScheduled = true
-                // Pins the backend through cleanup even if the main-actor facade dies.
-                queue.async(qos: .default, flags: .enforceQoS) { self.drain() }
-            }
+            if command.intent != .play || command.interrupted { startup?.cancel() }
+            scheduleDrain()
             return command.revision
         }
+    }
+
+    // Runs synchronously on the notification's posting thread: invalidate setup before
+    // returning, but perform no engine/session work or main-actor delivery here.
+    private func receive(_ event: PlaybackAudioSessionEvent) {
+        lock.withLock {
+            guard command.intent != .stop else { return }
+            switch event {
+            case .interruptionBegan:
+                guard !command.interrupted else { return }
+                command.interrupted = true
+                // A route-disconnect begin can follow its route event synchronously.
+                // That route already invalidated setup; do not retry the same cleanup.
+                if !command.routePaused { command.interruption &+= 1 }
+            case .interruptionEnded(let shouldResume):
+                guard command.interrupted else { return }
+                command.interrupted = false
+                if !shouldResume { command.intent = .pause }
+            case .oldDeviceUnavailable:
+                guard !command.routePaused else { return }
+                command.routePaused = true
+                command.intent = .pause
+                command.interruption &+= 1
+            }
+            command.revision &+= 1
+            if command.intent != .play || command.interrupted { startup?.cancel() }
+            scheduleDrain()
+        }
+    }
+
+    // Caller holds lock. One queued drain serves both controls and notification bursts.
+    private func scheduleDrain() {
+        guard !drainScheduled else { return }
+        drainScheduled = true
+        // Pins the backend through cleanup even if the main-actor facade dies.
+        queue.async(qos: .default, flags: .enforceQoS) { self.drain() }
     }
 
     private func drain() {
@@ -211,9 +252,21 @@ private final class PlaybackControl: @unchecked Sendable {
 
     private func reconcile(_ current: Command) -> PlaybackSnapshot? {
         if current.intent == .stop {
+            observation?.cancel()
+            observation = nil
             disposeEngine()
             releaseOutput()
             return snapshot(.stopped, current.revision)
+        }
+        if observation == nil, current.intent == .play {
+            observation = audioSession.observe { [weak self] in self?.receive($0) }
+        }
+        // Quiesce every new pause generation even if begin/end or Pause/Play coalesced.
+        if appliedPauseRequest != current.interruption {
+            engine?.pause()
+            releaseOutput()
+            appliedPauseRequest = current.interruption
+            appliedPlayRequest = nil
         }
         let retry =
             current.retry
@@ -222,12 +275,7 @@ private final class PlaybackControl: @unchecked Sendable {
                 command.retry = false
                 return true
             }
-        if current.intent == .pause {
-            if appliedPauseRequest != current.interruption {
-                engine?.pause()
-                releaseOutput()
-                appliedPauseRequest = current.interruption
-            }
+        if current.intent == .pause || current.interrupted {
             let state: SessionPlaybackState =
                 engine?.state == .playing
                 ? .playing
@@ -275,10 +323,12 @@ private final class PlaybackControl: @unchecked Sendable {
         }
         // A factory may finish after Pause/Stop. Do not start that obsolete result.
         let latest = lock.withLock { command }
-        guard latest.intent == .play else { return nil }
+        guard latest.intent == .play, !latest.interrupted,
+            latest.interruption == appliedPauseRequest
+        else { return nil }
         do {
-            // Refresh/retry must not restart a graph paused by a device interruption.
-            // Only an explicit, unapplied Play is permission to start/resume output.
+            // Refresh/retry cannot authorize a start. Explicit Play or a permitted matched
+            // interruption end re-arms playback after its pause generation was quiesced.
             if appliedPlayRequest != latest.playRequest {
                 appliedPlayRequest = latest.playRequest
                 if !freshOutput, engine?.state != .playing {
@@ -308,7 +358,8 @@ private final class PlaybackControl: @unchecked Sendable {
         try token?.check()
         guard
             lock.withLock({
-                command.intent == .play && command.interruption == operation.interruption
+                command.intent == .play && !command.interrupted
+                    && command.interruption == operation.interruption
             })
         else { throw SupersededOutput() }
     }
@@ -368,6 +419,7 @@ private final class PlaybackControl: @unchecked Sendable {
     private func snapshot(_ state: SessionPlaybackState, _ revision: UInt64) -> PlaybackSnapshot {
         PlaybackSnapshot(
             revision: revision, state: state,
+            interrupted: lock.withLock { command.interrupted },
             error: failure ?? engine?.preparationError
                 ?? (engine?.sourceStatus == .failed ? PreparationWorkerError.renderFailed : nil),
             audioSessionError: audioSessionError,
@@ -386,7 +438,8 @@ private final class PlaybackControl: @unchecked Sendable {
                     let value = self.pendingSnapshot
                     self.pendingSnapshot = nil
                     self.deliveryScheduled = false
-                    return (value, self.receiver)
+                    let receiver = value?.revision == self.command.revision ? self.receiver : nil
+                    return (value, receiver)
                 }
                 if let value = delivery.0 { delivery.1?(value) }
             }
