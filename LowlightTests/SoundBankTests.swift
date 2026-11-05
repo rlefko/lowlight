@@ -19,79 +19,90 @@ private struct Inventory: Decodable {
     }
 }
 
+// All probe access is serialized through SessionPlayback's control executor.
+private final class IOSPlaybackProbe: @unchecked Sendable {
+    weak var engine: AVAudioEngine?
+
+    func pull(_ owner: SessionAudioEngine?) throws -> ([Float], UInt32) {
+        let owner = try #require(owner)
+        let engine = try #require(engine)
+        let buffer = try #require(
+            AVAudioPCMBuffer(pcmFormat: engine.manualRenderingFormat, frameCapacity: 2048))
+        try #require(engine.renderOffline(2048, to: buffer) == .success)
+        let channels = try #require(buffer.floatChannelData)
+        return ((0..<2048).flatMap { [channels[0][$0], channels[1][$0]] }, owner.position)
+    }
+}
+
 struct SoundBankTests {
-    @Test func sessionOwnerResumesOfflineThroughTheIOSAudioEngine() async throws {
+    @MainActor @Test func sessionPlaybackCoordinatesTheIOSAudioEngine() async throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
-        let preparer = try TonalSamplePreparer(bankURL: bank)
-        let record = Data(
-            """
-            [{"instrument":"guitar","note":60,"beat":0,"time":0,"local_time":0,
-              "duration":0.4,"velocity":0.5,"role":"chord","pan":-0.25,
-              "round_robin":0,"release":0.1,"articulation":"normal"}]
-            """.utf8)
-        let worker: SessionPreparationWorker = try await withCheckedThrowingContinuation {
-            continuation in
-            DispatchQueue.global(qos: .default).async(qos: .default, flags: .enforceQoS) {
-                continuation.resume(
-                    with: Result {
-                        try SessionPreparationWorker { token in
-                            var index = 0
-                            return try PreparedSession(
-                                frameCount: 20_000, preparation: .concurrent, cancellation: token,
-                                accepted: { index += 1 },
-                                prepare: { pool, cancellation in
-                                    let origin: UInt64 = index == 0 ? 0 : 6400
-                                    let song = try pool.prepare(
-                                        layout: SongRenderLayout(
-                                            frameOrigin: origin, inputFrames: 16_000,
-                                            bodyFrames: 0..<12_800),
-                                        preparer: preparer,
-                                        events: NoteEvent.importReference(
-                                            record, placingAt: Int64(origin)),
-                                        takeSeed: 1, focus: .guitar, warmth: 0.78, energy: 0.35,
-                                        space: 0.44, texture: 0,
-                                        rackFades: SongRackFades(
-                                            tonalOutStartFrame: Double(origin + 12_800),
-                                            tonalOutEndFrame: Double(origin + 16_000),
-                                            rhythmOutFrame: Double(origin + 12_800)),
-                                        cancellation: cancellation)
-                                    return (song, index == 0 ? 6400 : 20_000)
-                                })
-                        }
+        let probe = IOSPlaybackProbe()
+        let playback = SessionPlayback { token in
+            let preparer = try TonalSamplePreparer(bankURL: bank)
+            let record = Data(
+                """
+                [{"instrument":"guitar","note":60,"beat":0,"time":0,"local_time":0,
+                  "duration":0.4,"velocity":0.5,"role":"chord","pan":-0.25,
+                  "round_robin":0,"release":0.1,"articulation":"normal"}]
+                """.utf8)
+            let worker = try SessionPreparationWorker(cancellation: token) { token in
+                var index = 0
+                return try PreparedSession(
+                    frameCount: 20_000, preparation: .concurrent, cancellation: token,
+                    accepted: { index += 1 },
+                    prepare: { pool, cancellation in
+                        let origin: UInt64 = index == 0 ? 0 : 6400
+                        let song = try pool.prepare(
+                            layout: SongRenderLayout(
+                                frameOrigin: origin, inputFrames: 16_000, bodyFrames: 0..<12_800),
+                            preparer: preparer,
+                            events: NoteEvent.importReference(record, placingAt: Int64(origin)),
+                            takeSeed: 1, focus: .guitar, warmth: 0.78, energy: 0.35,
+                            space: 0.44, texture: 0,
+                            rackFades: SongRackFades(
+                                tonalOutStartFrame: Double(origin + 12_800),
+                                tonalOutEndFrame: Double(origin + 16_000),
+                                rhythmOutFrame: Double(origin + 12_800)),
+                            cancellation: cancellation)
+                        return (song, index == 0 ? 6400 : 20_000)
                     })
             }
+            let engine = AVAudioEngine()
+            let format = try #require(
+                AVAudioFormat(standardFormatWithSampleRate: 32_000, channels: 2))
+            try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 2048)
+            probe.engine = engine
+            return try SessionAudioEngine(worker: worker, engine: engine)
         }
-        defer {
-            worker.requestStop()
-            worker.join()
-        }
-        let engine = AVAudioEngine()
-        let format = try #require(AVAudioFormat(standardFormatWithSampleRate: 32_000, channels: 2))
-        try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 2048)
-        let playback = try SessionAudioEngine(worker: worker, engine: engine)
         defer { playback.stop() }
-        #expect(playback.state == .paused && playback.position == 0)
-        try playback.play()
-        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 2048))
-        let status = try engine.renderOffline(2048, to: buffer)
-        #expect(status == .success && buffer.frameLength == 2048)
-        let channels = try #require(buffer.floatChannelData)
-        let samples = (0..<2048).flatMap { [channels[0][$0], channels[1][$0]] }
-        #expect(samples.allSatisfy(\.isFinite) && samples.contains { $0 != 0 })
-        #expect(playback.position == 2048 && playback.sourceStatus == .rendering)
-        playback.pause()
-        let deadline = Date().addingTimeInterval(30)
-        while playback.preparationStatus != .suspended {
-            try #require(Date() < deadline)
-            try await Task.sleep(for: .milliseconds(1))
+        func waitFor(_ state: SessionPlaybackState) async throws {
+            let deadline = Date().addingTimeInterval(30)
+            while playback.state != state {
+                try #require(Date() < deadline)
+                try await Task.sleep(for: .milliseconds(1))
+            }
         }
-        #expect(playback.position == 2048 && playback.state == .paused)
-        try playback.play()
-        #expect(try engine.renderOffline(2048, to: buffer) == .success)
-        #expect(playback.position == 4096 && playback.preparationError == nil)
+        #expect(playback.state == .idle)
+        #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
+        playback.play()
+        try await waitFor(.playing)
+        let first = try await playback.inspect { try probe.pull($0) }
+        #expect(first.0.allSatisfy(\.isFinite) && first.0.contains { $0 != 0 })
+        #expect(first.1 == 2048)
+        playback.pause()
+        try await waitFor(.paused)
+        #expect(playback.position == 2048 && playback.lastError == nil)
+        #expect(try await playback.inspect { $0?.state == .paused })
+        playback.play()
+        try await waitFor(.playing)
+        let second = try await playback.inspect { try probe.pull($0) }
+        #expect(second.0.allSatisfy(\.isFinite) && second.1 == 4096)
         playback.stop()
-        #expect(playback.state == .stopped && playback.preparationStatus == .stopped)
-        #expect(playback.position == 4096 && !engine.isRunning)
+        try await waitFor(.stopped)
+        #expect(playback.position == 4096 && playback.preparationStatus == .stopped)
+        #expect(playback.lastError == nil)
+        #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
     }
 
     @Test func bodyLoudnessMeterFinishesAndResetsOnIOS() throws {
