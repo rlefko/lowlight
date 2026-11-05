@@ -37,6 +37,7 @@
 - [Planning checkpoint persistence](validation-checkpoint-persistence.md)
 - [Reversible preparation suspension](validation-preparation-suspension.md)
 - [Asynchronous playback intent](validation-playback-coordination.md)
+- [Playback audio-session lifecycle](validation-audio-session.md)
 - [Session audio engine ownership](validation-audio-engine.md)
 - [Session audio source](validation-audio-source.md)
 - [Note events and shared time decision](adrs/003-events-and-shared-time.md)

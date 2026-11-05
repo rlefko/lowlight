@@ -342,14 +342,18 @@ struct SessionPlaybackTests {
         let sizes = [1, 159, 160, 161, 257, 1023]
         var block = 0
         var retried = false
-        let deadline = Date().addingTimeInterval(30)
+        let clock = ContinuousClock()
+        var progressDeadline = clock.now.advanced(by: .seconds(30))
         while actual.count / 2 < 90_017 {
             try Task.checkCancellation()
-            try #require(Date() < deadline)
+            let before = UInt32(actual.count / 2)
             let count = sizes[block % sizes.count]
             let output = try await playback.inspect { try probe.pull(count, $0) }
             actual += output.pcm
             #expect(output.cleared && output.position == actual.count / 2)
+            if !output.pcm.isEmpty && output.position > before {
+                progressDeadline = clock.now.advanced(by: .seconds(30))
+            }
             block += 1
             if block == 3 || block == 12 || (output.failed && !retried) {
                 playback.pause()
@@ -368,8 +372,14 @@ struct SessionPlaybackTests {
                     retried = true
                 }
                 try await until { playback.state == .playing }
+                // Deliberate suspension is outside the consumption watchdog.
+                progressDeadline = clock.now.advanced(by: .seconds(30))
             }
-            if output.pcm.isEmpty { await Task.yield() }
+            if output.pcm.isEmpty {
+                // Detect a stall, not slow total execution under concurrent test load.
+                try #require(clock.now < progressDeadline)
+                await Task.yield()
+            }
         }
         playback.refresh()
         try await until { playback.position == 90_017 && playback.sourceStatus == .finished }

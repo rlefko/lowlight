@@ -35,10 +35,10 @@ private final class IOSPlaybackProbe: @unchecked Sendable {
 }
 
 struct SoundBankTests {
-    @MainActor @Test func sessionPlaybackCoordinatesTheIOSAudioEngine() async throws {
+    @MainActor @Test func sessionPlaybackManagesTheIOSAudioSession() async throws {
         let bank = try #require(Bundle.main.resourceURL).appendingPathComponent("SoundBank")
         let probe = IOSPlaybackProbe()
-        let playback = SessionPlayback { token in
+        let playback = SessionPlayback(audioSession: .system) { token, prepareOutput in
             let preparer = try TonalSamplePreparer(bankURL: bank)
             let record = Data(
                 """
@@ -68,12 +68,20 @@ struct SoundBankTests {
                         return (song, index == 0 ? 6400 : 20_000)
                     })
             }
-            let engine = AVAudioEngine()
-            let format = try #require(
-                AVAudioFormat(standardFormatWithSampleRate: 32_000, channels: 2))
-            try engine.enableManualRenderingMode(.offline, format: format, maximumFrameCount: 2048)
-            probe.engine = engine
-            return try SessionAudioEngine(worker: worker, engine: engine)
+            do {
+                try prepareOutput()
+                let engine = AVAudioEngine()
+                let format = try #require(
+                    AVAudioFormat(standardFormatWithSampleRate: 32_000, channels: 2))
+                try engine.enableManualRenderingMode(
+                    .offline, format: format, maximumFrameCount: 2048)
+                probe.engine = engine
+                return try SessionAudioEngine(worker: worker, engine: engine)
+            } catch {
+                worker.requestStop()
+                worker.join()
+                throw error
+            }
         }
         defer { playback.stop() }
         func waitFor(_ state: SessionPlaybackState) async throws {
@@ -87,12 +95,20 @@ struct SoundBankTests {
         #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
         playback.play()
         try await waitFor(.playing)
+        #expect(
+            try await playback.inspect { _ in
+                let session = AVAudioSession.sharedInstance()
+                return session.category == .playback && session.mode == .default
+                    && session.categoryOptions.isEmpty
+            })
         let first = try await playback.inspect { try probe.pull($0) }
         #expect(first.0.allSatisfy(\.isFinite) && first.0.contains { $0 != 0 })
         #expect(first.1 == 2048)
         playback.pause()
         try await waitFor(.paused)
-        #expect(playback.position == 2048 && playback.lastError == nil)
+        #expect(
+            playback.position == 2048 && playback.lastError == nil
+                && playback.audioSessionError == nil)
         #expect(try await playback.inspect { $0?.state == .paused })
         playback.play()
         try await waitFor(.playing)
@@ -101,7 +117,7 @@ struct SoundBankTests {
         playback.stop()
         try await waitFor(.stopped)
         #expect(playback.position == 4096 && playback.preparationStatus == .stopped)
-        #expect(playback.lastError == nil)
+        #expect(playback.lastError == nil && playback.audioSessionError == nil)
         #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
     }
 
