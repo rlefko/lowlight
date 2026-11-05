@@ -13,18 +13,26 @@ public typealias RhythmBusFrame = LLBusFrame
 /// The C kernel owns immutable PCM and score copies; no borrowed Swift array survives setup.
 public final class TonalVoiceMixer {
     private let handle: OpaquePointer
+    let originalSamples: [Key: SampleReference]
+    let warmth: Double
+    var controlChangeOwner: PreparedSongControlChange?
     // An accepted transport table is borrowed by the native mixer. Its owner outlives
     // that borrower regardless of the enclosing song's stored-property release order.
     var advanceOwner: PreparedSongAdvance?
     // Module-owned composition may borrow this handle while retaining the mixer.
     // The borrower must serialize all calls and must never destroy the mixer handle.
     var borrowedHandle: OpaquePointer { handle }
-    private struct Key: Hashable {
+    struct Key: Hashable {
         let instrument: TonalInstrument
         let note, roundRobin, layer: Int
     }
 
-    private static func key(for event: NoteEvent) throws -> Key {
+    struct SampleReference {
+        let slot: UInt32
+        let frames, completeFrames, channels: Int
+    }
+
+    static func key(for event: NoteEvent) throws -> Key {
         guard let instrument = TonalInstrument(rawValue: event.instrument.rawValue) else {
             throw VoiceMixerError.invalidScore
         }
@@ -48,12 +56,15 @@ public final class TonalVoiceMixer {
         busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0,
         cancellation: PreparationCancellation? = nil
     ) throws {
-        handle = try PreparationMode.perform {
+        let prepared = try PreparationMode.perform {
             try Self.makeHandle(
                 preparer: preparer, events: events, warmth: warmth,
                 busEnergy: busEnergy, rackFades: rackFades, frameOrigin: frameOrigin,
                 cancellation: cancellation)
         }
+        handle = prepared.handle
+        originalSamples = prepared.samples
+        self.warmth = warmth
     }
 
     // Validation, sample preparation, and event conversion share the preparation scope.
@@ -62,7 +73,7 @@ public final class TonalVoiceMixer {
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
         busEnergy: Double?, rackFades: SongRackFades?, frameOrigin: UInt64,
         cancellation: PreparationCancellation?
-    ) throws -> OpaquePointer {
+    ) throws -> (handle: OpaquePointer, samples: [Key: SampleReference]) {
         try cancellation?.check()
         guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite,
             frameOrigin <= UInt64(MusicalTime.maximumFrame)
@@ -101,6 +112,7 @@ public final class TonalVoiceMixer {
                 }
             }
             var slots: [Key: UInt32] = [:]
+            var references: [Key: SampleReference] = [:]
             var score: [LLEvent] = []
             for event in events {
                 try cancellation?.check()
@@ -130,6 +142,9 @@ public final class TonalVoiceMixer {
                     }
                     guard slot >= 0 else { throw VoiceMixerError.capacityExceeded }
                     slots[key] = UInt32(slot)
+                    references[key] = SampleReference(
+                        slot: UInt32(slot), frames: frames, completeFrames: sample.frames,
+                        channels: sample.channels)
                 }
                 guard let slot = slots[key] else { throw VoiceMixerError.invalidScore }
                 let identifier: UInt8 =
@@ -162,14 +177,14 @@ public final class TonalVoiceMixer {
             else {
                 throw VoiceMixerError.invalidScore
             }
-            return handle
+            return (handle, references)
         } catch {
             ll_mixer_destroy(handle)
             throw error
         }
     }
 
-    deinit { withExtendedLifetime(advanceOwner) { ll_mixer_destroy(handle) } }
+    deinit { withExtendedLifetime((advanceOwner, controlChangeOwner)) { ll_mixer_destroy(handle) } }
 
     /// Supplies an already allocated interleaved stereo buffer at 32 kHz.
     /// No concurrent setup/reset/render calls. Future device callbacks will call the C kernel directly.

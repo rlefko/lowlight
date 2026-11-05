@@ -190,3 +190,22 @@ void ll_song_destroy_advance(LLSongAdvance *patch) {
     ll_mixer_destroy_advance(patch->score);
     delete patch;
 }
+
+LLMixerChangeSamples *ll_song_source_begin_change(LLSongSource *source) {
+    return source ? ll_mixer_begin_change(source->mixer) : nullptr;
+}
+LLSongAdvance *ll_song_source_prepare_change(LLSongSource *source, const LLSongChangeScore &score,
+                                             const LLMixerChangeSamples *samples) {
+    if (!source || score.input_frames > source->frames)
+        return nullptr;
+    auto *patch = new (std::nothrow) LLSongAdvance;
+    if (!patch)
+        return nullptr;
+    patch->source = source;
+    patch->score = ll_mixer_prepare_change(source->mixer, score, samples, *patch);
+    if (!patch->score) {
+        ll_song_destroy_advance(patch);
+        return nullptr;
+    }
+    return patch;
+}

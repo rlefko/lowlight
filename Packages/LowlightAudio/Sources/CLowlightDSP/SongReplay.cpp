@@ -158,3 +158,11 @@ uint32_t ll_song_replay_outro_start(const LLSongReplay *replay) {
 bool ll_song_replay_advanced(const LLSongReplay *replay) {
     return replay && replay->advanced;
 }
+
+LLMixerChangeSamples *ll_song_replay_begin_change(LLSongReplay *replay) {
+    return replay ? ll_song_source_begin_change(replay->source) : nullptr;
+}
+LLSongAdvance *ll_song_replay_prepare_change(LLSongReplay *replay, const LLSongChangeScore &score,
+                                             const LLMixerChangeSamples *samples) {
+    return replay ? ll_song_source_prepare_change(replay->source, score, samples) : nullptr;
+}

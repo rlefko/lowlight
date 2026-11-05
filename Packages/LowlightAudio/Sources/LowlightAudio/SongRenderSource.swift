@@ -11,7 +11,7 @@ public enum SongRenderSourceError: Error { case invalidConfiguration, preparatio
 /// analysis, fixed song gain, and peak protection; no concurrent calls are allowed.
 public final class SongRenderSource {
     public let layout: SongRenderLayout
-    private let mixer: TonalVoiceMixer
+    let mixer: TonalVoiceMixer
     private let handle: OpaquePointer
 
     /// Events and fades use the layout's absolute clock. Every onset must fall
