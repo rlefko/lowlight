@@ -44,6 +44,8 @@ private final class IOSSessionEvents: @unchecked Sendable {
             case .interruptionBegan: events.append("began")
             case .interruptionEnded(let shouldResume): events.append("ended:\(shouldResume)")
             case .oldDeviceUnavailable: events.append("disconnected")
+            case .mediaServicesLost: events.append("lost")
+            case .mediaServicesReset: events.append("reset")
             }
         }
     }
@@ -96,7 +98,11 @@ struct SoundBankTests {
             AVAudioSessionInterruptionReasonKey: AVAudioSession.InterruptionReason.routeDisconnected
                 .rawValue,
         ])
-        let expected = "began,ended:false,ended:true,disconnected,disconnected,began"
+        center.post(name: AVAudioSession.mediaServicesWereLostNotification, object: NSObject())
+        center.post(name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+        center.post(name: AVAudioSession.mediaServicesWereLostNotification, object: session)
+        center.post(name: AVAudioSession.mediaServicesWereResetNotification, object: session)
+        let expected = "began,ended:false,ended:true,disconnected,disconnected,began,lost,reset"
         #expect(events.description == expected)
         observation.cancel()
         observation.cancel()
@@ -107,6 +113,8 @@ struct SoundBankTests {
                 AVAudioSessionRouteChangeReasonKey:
                     AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
             ])
+        center.post(name: AVAudioSession.mediaServicesWereLostNotification, object: session)
+        center.post(name: AVAudioSession.mediaServicesWereResetNotification, object: session)
         #expect(events.description == expected)
     }
 

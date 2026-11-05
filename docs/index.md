@@ -40,6 +40,7 @@
 - [Playback audio-session lifecycle](validation-audio-session.md)
 - [Playback interruptions and output disconnection](validation-playback-interruptions.md)
 - [Engine configuration recovery](validation-engine-configuration.md)
+- [Media-services recovery](validation-media-services.md)
 - [Session audio engine ownership](validation-audio-engine.md)
 - [Session audio source](validation-audio-source.md)
 - [Note events and shared time decision](adrs/003-events-and-shared-time.md)

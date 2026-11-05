@@ -19,6 +19,8 @@ public enum SessionPlaybackState: Sendable {
 public final class SessionPlayback {
     public private(set) var state = SessionPlaybackState.idle
     public private(set) var isInterrupted = false
+    /// False between media-services loss and reset. Reset never grants playback permission.
+    public private(set) var mediaServicesAvailable = true
     public private(set) var lastError: (any Error)?
     /// A failed deactivation leaves cleanup unconfirmed, not proof that the session is active.
     /// Repeated Stop retries cleanup; playback/activation failures remain in lastError.
@@ -73,6 +75,7 @@ public final class SessionPlayback {
             guard let self else { return }
             self.state = snapshot.state
             self.isInterrupted = snapshot.interrupted
+            self.mediaServicesAvailable = snapshot.mediaServicesAvailable
             self.lastError = snapshot.error
             self.audioSessionError = snapshot.audioSessionError
             self.position = snapshot.position
@@ -84,6 +87,8 @@ public final class SessionPlayback {
     deinit { control.request(.stop) }
 
     /// Explicit Play also retries a failed startup or an interruption with no end event.
+    /// After media reset, a fresh Play rebuilds audio objects from the factory. The last
+    /// canonical position remains diagnostic; exact-position restoration is a separate contract.
     /// Activation may still fail if the session is unavailable; a retained graph is not rewound.
     public func play() { control.request(.play) }
     public func pause() { control.request(.pause) }
@@ -110,6 +115,7 @@ private struct PlaybackSnapshot: Sendable {
     let revision: UInt64
     let state: SessionPlaybackState
     let interrupted: Bool
+    let mediaServicesAvailable: Bool
     let error: (any Error)?
     let audioSessionError: (any Error)?
     let position: UInt32
@@ -129,6 +135,8 @@ private final class PlaybackControl: @unchecked Sendable {
         var playRequest: UInt64 = 0
         var interruption: UInt64 = 0
         var configuration: UInt64 = 0
+        var mediaGeneration: UInt64 = 0
+        var mediaServicesAvailable = true
         var interrupted = false
         var routePaused = false
         var retry = false
@@ -147,12 +155,14 @@ private final class PlaybackControl: @unchecked Sendable {
     private var deliveryScheduled = false
     private var pendingSnapshot: PlaybackSnapshot?
     private var observedEngine: UInt64?
+    private var completedStopRevision: UInt64?
     private var engine: SessionAudioEngine?
     private var observation: PlaybackAudioSessionObservation?
     private var configurationObservation: PlaybackAudioSessionObservation?
     private var nextEngine: UInt64 = 0
     private var quiescedConfiguration: UInt64?
     private var preparedConfiguration: UInt64?
+    private var appliedMediaGeneration: UInt64 = 0
     private var failure: (any Error)?
     private var failedPlayRequest: UInt64?
     private var appliedPlayRequest: UInt64?
@@ -160,7 +170,7 @@ private final class PlaybackControl: @unchecked Sendable {
     private var position: UInt32 = 0
     private var source = SessionAudioSourceStatus.ready
     // This records an outstanding cleanup obligation, not the system's current activity.
-    private var outputCleanupPending = false
+    private var outputCleanupGeneration: UInt64?
     private var cleanupAttempt: UInt64?
     private var audioSessionError: (any Error)?
 
@@ -199,7 +209,9 @@ private final class PlaybackControl: @unchecked Sendable {
             case .refresh: break
             case .retry: command.retry = true
             }
-            if command.intent != .play || command.interrupted { startup?.cancel() }
+            if command.intent != .play || command.interrupted || !command.mediaServicesAvailable {
+                startup?.cancel()
+            }
             scheduleDrain()
             return command.revision
         }
@@ -209,26 +221,49 @@ private final class PlaybackControl: @unchecked Sendable {
     // returning, but perform no engine/session work or main-actor delivery here.
     private func receive(_ event: PlaybackAudioSessionEvent) {
         lock.withLock {
-            guard command.intent != .stop else { return }
+            guard command.intent != .stop || completedStopRevision != command.revision else {
+                return
+            }
             switch event {
+            case .mediaServicesLost, .mediaServicesReset:
+                let available: Bool
+                if case .mediaServicesReset = event { available = true } else { available = false }
+                guard available || command.mediaServicesAvailable else { return }
+                command.mediaGeneration &+= 1
+                command.mediaServicesAvailable = available
+                startup?.cancel()
+                observedEngine = nil
+                // A notification racing terminal cleanup still invalidates old activation;
+                // it cannot enqueue new work or resurrect the terminal owner.
+                guard command.intent != .stop else { return }
+                command.intent = .pause
+                command.interrupted = false
+                command.routePaused = false
+                command.retry = false
+                command.interruption &+= 1
             case .interruptionBegan:
+                guard command.intent != .stop else { return }
                 guard !command.interrupted else { return }
                 command.interrupted = true
                 // A route-disconnect begin can follow its route event synchronously.
                 // That route already invalidated setup; do not retry the same cleanup.
                 if !command.routePaused { command.interruption &+= 1 }
             case .interruptionEnded(let shouldResume):
+                guard command.intent != .stop else { return }
                 guard command.interrupted else { return }
                 command.interrupted = false
                 if !shouldResume { command.intent = .pause }
             case .oldDeviceUnavailable:
+                guard command.intent != .stop else { return }
                 guard !command.routePaused else { return }
                 command.routePaused = true
                 command.intent = .pause
                 command.interruption &+= 1
             }
             command.revision &+= 1
-            if command.intent != .play || command.interrupted { startup?.cancel() }
+            if command.intent != .play || command.interrupted || !command.mediaServicesAvailable {
+                startup?.cancel()
+            }
             scheduleDrain()
         }
     }
@@ -266,11 +301,24 @@ private final class PlaybackControl: @unchecked Sendable {
     }
 
     private func reconcile(_ current: Command) -> PlaybackSnapshot? {
+        if appliedMediaGeneration != current.mediaGeneration {
+            disposeEngine()
+            discardOutputObligation()
+            appliedMediaGeneration = current.mediaGeneration
+            appliedPlayRequest = nil
+        }
         if current.intent == .stop {
             observation?.cancel()
             observation = nil
             disposeEngine()
             releaseOutput()
+            lock.withLock {
+                // Close the gap between deactivation's result check and terminal acknowledgment.
+                if let generation = outputCleanupGeneration, generation != command.mediaGeneration {
+                    discardOutputObligation()
+                }
+                completedStopRevision = current.revision
+            }
             return snapshot(.stopped, current.revision)
         }
         if observation == nil, current.intent == .play {
@@ -294,7 +342,7 @@ private final class PlaybackControl: @unchecked Sendable {
                 command.retry = false
                 return true
             }
-        if current.intent == .pause || current.interrupted {
+        if current.intent == .pause || current.interrupted || !current.mediaServicesAvailable {
             let state: SessionPlaybackState =
                 engine?.state == .playing
                 ? .playing
@@ -354,7 +402,8 @@ private final class PlaybackControl: @unchecked Sendable {
         }
         // A factory may finish after Pause/Stop. Do not start that obsolete result.
         let latest = lock.withLock { command }
-        guard latest.intent == .play, !latest.interrupted,
+        guard latest.intent == .play, !latest.interrupted, latest.mediaServicesAvailable,
+            latest.mediaGeneration == appliedMediaGeneration,
             latest.interruption == appliedPauseRequest,
             latest.configuration == quiescedConfiguration
         else { return nil }
@@ -403,7 +452,8 @@ private final class PlaybackControl: @unchecked Sendable {
         try token?.check()
         guard
             lock.withLock({
-                command.intent == .play && !command.interrupted
+                command.intent == .play && !command.interrupted && command.mediaServicesAvailable
+                    && command.mediaGeneration == operation.mediaGeneration
                     && command.interruption == operation.interruption
                     && command.configuration == operation.configuration
             })
@@ -419,27 +469,46 @@ private final class PlaybackControl: @unchecked Sendable {
         try checkOutputIntent(operation, token: token)
         // Activation can fail after changing system state. Always attempt cleanup after
         // an activation attempt; a configure-only failure creates no new obligation.
-        outputCleanupPending = true
+        outputCleanupGeneration = operation.mediaGeneration
         try audioSession.activate()
         audioSessionError = nil
         try checkOutputIntent(operation, token: token)
     }
 
     private func releaseOutput() {
-        let request = lock.withLock { command.interruption }
-        guard outputCleanupPending, cleanupAttempt != request else { return }
-        cleanupAttempt = request
-        do {
-            try audioSession.deactivate()
-            outputCleanupPending = false
-            audioSessionError = nil
-        } catch {
-            audioSessionError = error
+        let current = lock.withLock { command }
+        guard let generation = outputCleanupGeneration else { return }
+        guard generation == current.mediaGeneration else {
+            discardOutputObligation()
+            return
         }
+        guard cleanupAttempt != current.interruption else { return }
+        cleanupAttempt = current.interruption
+        var deactivationError: (any Error)?
+        do { try audioSession.deactivate() } catch { deactivationError = error }
+        // A reset may arrive inside an already-admitted deactivation, including during Stop.
+        guard generation == lock.withLock({ command.mediaGeneration }) else {
+            discardOutputObligation()
+            return
+        }
+        if let deactivationError {
+            audioSessionError = deactivationError
+        } else {
+            outputCleanupGeneration = nil
+            audioSessionError = nil
+        }
+    }
+
+    private func discardOutputObligation() {
+        // The old media server's activation is obsolete, not successfully deactivated.
+        outputCleanupGeneration = nil
+        cleanupAttempt = nil
+        audioSessionError = nil
     }
 
     private func record(_ error: any Error, for operation: Command) {
         let latest = lock.withLock { command }
+        guard latest.mediaGeneration == operation.mediaGeneration else { return }
         // Duplicate Play while an operation is pending is not an automatic retry. A
         // Pause→Play generation, however, must not inherit an obsolete startup failure.
         guard
@@ -471,6 +540,7 @@ private final class PlaybackControl: @unchecked Sendable {
         PlaybackSnapshot(
             revision: revision, state: state,
             interrupted: lock.withLock { command.interrupted },
+            mediaServicesAvailable: lock.withLock { command.mediaServicesAvailable },
             error: failure ?? engine?.preparationError
                 ?? (engine?.sourceStatus == .failed ? PreparationWorkerError.renderFailed : nil),
             audioSessionError: audioSessionError,
