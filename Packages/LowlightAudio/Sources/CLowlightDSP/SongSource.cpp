@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "SongAdvance.h"
 #include "RackFades.h"
 #include <algorithm>
 #include <new>
@@ -148,4 +149,44 @@ uint32_t ll_song_source_required_voice_slots(const LLSongSource *source) {
 }
 bool ll_song_source_faulted(const LLSongSource *source) {
     return !source || source->faulted;
+}
+
+LLSongAdvance *ll_song_source_prepare_advance(LLSongSource *source, uint32_t boundary,
+                                              uint16_t pivot) {
+    if (!source)
+        return nullptr;
+    auto *patch = new (std::nothrow) LLSongAdvance;
+    if (!patch)
+        return nullptr;
+    patch->source = source;
+    patch->score = ll_mixer_prepare_advance(source->mixer, boundary, pivot, *patch);
+    if (!patch->score || patch->delta >= source->frames) {
+        ll_song_destroy_advance(patch);
+        return nullptr;
+    }
+    patch->frames = source->frames - patch->delta;
+    return patch;
+}
+bool ll_song_source_can_advance(const LLSongSource *source, const LLSongAdvance *patch) {
+    return source && patch && patch->source == source && !source->faulted &&
+           patch->frames > source->input && ll_glue_can_shorten(source->glue, patch->frames) &&
+           ll_mixer_can_advance(source->mixer, patch->score);
+}
+void ll_song_source_apply_advance(LLSongSource *source, const LLSongAdvance *patch) {
+    ll_mixer_apply_advance(source->mixer, patch->score);
+    ll_glue_shorten(source->glue, patch->frames);
+    ll_song_mix_replace_fades(source->mix, patch->fades);
+    source->frames = patch->frames;
+}
+uint32_t ll_song_source_physical_position(const LLSongSource *source) {
+    return source ? ll_mixer_local_position(source->mixer) : 0;
+}
+uint32_t ll_song_source_outro_start(const LLSongSource *source) {
+    return source ? ll_mixer_outro_start(source->mixer) : 0;
+}
+void ll_song_destroy_advance(LLSongAdvance *patch) {
+    if (!patch)
+        return;
+    ll_mixer_destroy_advance(patch->score);
+    delete patch;
 }

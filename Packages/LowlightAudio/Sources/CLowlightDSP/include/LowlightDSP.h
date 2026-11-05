@@ -403,6 +403,55 @@ uint32_t ll_song_pair_position(const LLSongPair *pair); // Zero for null.
 uint32_t ll_song_pair_frames(const LLSongPair *pair);   // Zero for null.
 bool ll_song_pair_faulted(const LLSongPair *pair);      // True for null.
 
+// Streaming transport places canonical children independently of their source origins.
+// A zero frame_count explicitly selects continuous output (no finite exit fade/drain).
+// A finite endpoint must strictly follow second_origin.
+// Other frame coordinates are absolute transport frames, bounded by 2^52. Child lengths
+// and render capacities remain UInt32. The _at variant begins a fresh, faded-in epoch at
+// first_origin; it does not restore prior signal history. All ownership rules above apply.
+LLSongPair *ll_song_pair_create_transport(LLSongReplay *first, LLSongReplay *second,
+                                          uint64_t second_origin, uint64_t frame_count,
+                                          uint64_t next_origin);
+LLSongPair *ll_song_pair_create_transport_at(LLSongReplay *first, LLSongReplay *second,
+                                             uint64_t first_origin, uint64_t second_origin,
+                                             uint64_t frame_count, uint64_t next_origin);
+bool ll_song_pair_publish_transport(LLSongPair *pair, LLSongReplay *next, uint64_t origin,
+                                    uint64_t next_origin);
+uint64_t ll_song_pair_position64(const LLSongPair *pair);
+// Generated sub-block progress, published before retirement. May lead the last completed
+// render call; use for worker listening selection, not a device/returned-output playhead.
+uint64_t ll_song_pair_listening_position64(const LLSongPair *pair);
+uint64_t ll_song_pair_frames64(const LLSongPair *pair); // Zero means continuous, or null.
+bool ll_song_pair_finished(const LLSongPair *pair);     // False for continuous or null.
+// Quiescent-only after off-thread restoration warmup; fades the next 0.4 seconds of
+// returned output without resetting or advancing any DSP state.
+void ll_song_pair_restart_fade(LLSongPair *pair);
+
+typedef struct LLSongNext LLSongNext;
+typedef struct {
+    LLSongReplay *first, *second; // Borrowed immutable preparation inputs, pinned by worker owners.
+    uint64_t generation, target_origin;
+    uint32_t source_input_frames, outro_start_frames;
+} LLSongNextOffer;
+typedef struct {
+    uint32_t status; // 1 accepted, 2 late/rejected, 3 natural transition already satisfies Next.
+    uint64_t target_origin, following_origin;
+    uint32_t boundary_frames, advanced_frames;
+} LLSongNextResult;
+// Single worker requests/claims/builds/publishes; single consumer adopts. Preparation and
+// descriptor destruction are off-callback. Accepted descriptors remain pinned through
+// destruction of their first child, even after the acknowledgment is consumed. A claimed
+// offer pins both child owners until its result/abandonment; service this before retirement.
+bool ll_song_pair_request_next(LLSongPair *, uint64_t target_origin);
+bool ll_song_pair_claim_next(LLSongPair *, LLSongNextOffer *);
+LLSongNext *ll_song_pair_prepare_next(const LLSongNextOffer *, uint32_t boundary_frames,
+                                      uint16_t pivot_pitch_classes);
+uint32_t ll_song_next_required_voice_slots(const LLSongNext *);
+void ll_song_next_destroy(LLSongNext *);
+bool ll_song_pair_publish_next(LLSongPair *, LLSongNext *);
+bool ll_song_pair_abandon_next(LLSongPair *); // Only a claimed, unpublished offer.
+bool ll_song_pair_next_result(LLSongPair *, LLSongNextResult *); // Consumes one acknowledgment.
+
 #ifdef __cplusplus
 }
 #endif

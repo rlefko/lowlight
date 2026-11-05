@@ -66,7 +66,7 @@ struct PreparedSessionTests {
             #expect(odd == [0, 0, 0] && value.position == 0)
             var output: [Float] = []
             var block = 0
-            var boundaries: [UInt32] = []
+            var boundaries: [UInt64] = []
             let sizes = [1, 159, 160, 161, 257, 1023, frames]
             while value.position < frames {
                 var buffer = [Float](repeating: .nan, count: 2 * sizes[block % sizes.count])

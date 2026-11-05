@@ -32,6 +32,7 @@ public final class SessionAudioSource {
         let state = RenderState(worker: worker, endpoint: try worker.makeRenderEndpoint())
         self.state = state
         self.format = format
+        worker.setRenderFailureProbe { [weak state] in state?.status == .failed }
         node = AVAudioSourceNode(format: format) { isSilence, _, frameCount, outputData in
             state.render(isSilence: isSilence, frameCount: frameCount, outputData: outputData)
         }
@@ -39,8 +40,10 @@ public final class SessionAudioSource {
 
     /// Independent atomic snapshots; these are not one transactional device-clock reading.
     public var status: SessionAudioSourceStatus { state.status }
-    public var position: UInt32 { state.endpoint.position }
-    public var frameCount: UInt32 { state.endpoint.frameCount }
+    public var position: UInt64 { state.endpoint.position }
+    public var frameCount: UInt64 { state.endpoint.frameCount }
+    public var finiteFrameCount: UInt64? { state.endpoint.finiteFrameCount }
+    public var isFinished: Bool { state.endpoint.isFinished }
     public var isFaulted: Bool { state.status == .failed || state.endpoint.isFaulted }
 
     // Direct callback seam: never invoke while the node has another render consumer.
@@ -94,7 +97,7 @@ public final class SessionAudioSource {
             // capacity and freezes musical time; the device may consume that silence.
             isSilence.pointee = ObjCBool(written == 0)
             let next: SessionAudioSourceStatus =
-                endpoint.position == endpoint.frameCount
+                endpoint.isFinished
                 ? .finished : (written < Int(frameCount) ? .waitingForPreparation : .rendering)
             value.store(next.rawValue, ordering: .relaxed)
             return noErr

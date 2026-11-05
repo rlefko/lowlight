@@ -81,6 +81,9 @@ public final class SongRenderSource {
     // Internal borrowers must retain this source, serialize access, and never destroy its handle.
     var borrowedHandle: OpaquePointer { handle }
 
+    // Worker-only, before publication or after a rejected acknowledgment.
+    func retainAdvance(_ advance: PreparedSongAdvance?) { mixer.advanceOwner = advance }
+
     /// Writes logical stereo frames, removing glue startup and recovering its drain.
     /// Returns frames written, zero at EOF or for empty capacity, or nil on failure.
     /// Unused capacity is zeroed. Invalid dimensions leave progress unchanged;

@@ -128,7 +128,7 @@ private final class ConfigurationProbe: @unchecked Sendable {
         else { throw Injected.graph }
         let before = owner.position
         guard try graph.renderOffline(AVAudioFrameCount(count), to: buffer) == .success,
-            owner.position == before + UInt32(count), buffer.frameLength == count,
+            owner.position == before + UInt64(count), buffer.frameLength == count,
             let channels = buffer.floatChannelData
         else { throw Injected.graph }
         return (0..<count).flatMap { [channels[0][$0], channels[1][$0]] }

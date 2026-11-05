@@ -13,6 +13,9 @@ public typealias RhythmBusFrame = LLBusFrame
 /// The C kernel owns immutable PCM and score copies; no borrowed Swift array survives setup.
 public final class TonalVoiceMixer {
     private let handle: OpaquePointer
+    // An accepted transport table is borrowed by the native mixer. Its owner outlives
+    // that borrower regardless of the enclosing song's stored-property release order.
+    var advanceOwner: PreparedSongAdvance?
     // Module-owned composition may borrow this handle while retaining the mixer.
     // The borrower must serialize all calls and must never destroy the mixer handle.
     var borrowedHandle: OpaquePointer { handle }
@@ -166,7 +169,7 @@ public final class TonalVoiceMixer {
         }
     }
 
-    deinit { ll_mixer_destroy(handle) }
+    deinit { withExtendedLifetime(advanceOwner) { ll_mixer_destroy(handle) } }
 
     /// Supplies an already allocated interleaved stereo buffer at 32 kHz.
     /// No concurrent setup/reset/render calls. Future device callbacks will call the C kernel directly.

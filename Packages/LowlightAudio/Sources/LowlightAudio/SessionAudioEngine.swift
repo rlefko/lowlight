@@ -18,11 +18,13 @@ public final class SessionAudioEngine {
     private let outputFormat: (AVAudioEngine) -> AVAudioFormat?
     private var worker: SessionPreparationWorker?
     private var source: SessionAudioSource?
-    private var finalPosition: UInt32 = 0
+    private var finalPosition: UInt64 = 0
     private var finalSourceStatus = SessionAudioSourceStatus.ready
     private var finalPreparationError: (any Error)?
+    private var finalListeningSnapshot: SessionListeningSnapshot?
 
-    public let frameCount: UInt32
+    public let frameCount: UInt64
+    public var finiteFrameCount: UInt64? { frameCount == 0 ? nil : frameCount }
     public private(set) var playbackError: (any Error)?
 
     public convenience init(worker: SessionPreparationWorker) throws {
@@ -35,12 +37,14 @@ public final class SessionAudioEngine {
         worker: SessionPreparationWorker, engine: AVAudioEngine,
         start: @escaping (AVAudioEngine) throws -> Void = { try $0.start() },
         notificationCenter: NotificationCenter = .default,
-        outputFormat: ((AVAudioEngine) -> AVAudioFormat?)? = nil
+        outputFormat: ((AVAudioEngine) -> AVAudioFormat?)? = nil,
+        makeSource: (SessionPreparationWorker) throws -> SessionAudioSource = SessionAudioSource
+            .init
     ) throws {
         do {
             let readOutput = outputFormat ?? Self.currentOutputFormat
             let connection = try Self.connectionFormat(readOutput(engine))
-            let source = try SessionAudioSource(worker: worker)
+            let source = try makeSource(worker)
             self.engine = engine
             self.start = start
             self.notificationCenter = notificationCenter
@@ -120,10 +124,25 @@ public final class SessionAudioEngine {
     }
 
     /// Generated canonical frames, not the audible device playhead. Snapshots survive stop.
-    public var position: UInt32 { source?.position ?? finalPosition }
+    public var position: UInt64 { source?.position ?? finalPosition }
     public var sourceStatus: SessionAudioSourceStatus { source?.status ?? finalSourceStatus }
     public var preparationStatus: PreparationWorkerStatus { worker?.status ?? .stopped }
     public var preparationError: (any Error)? { worker?.lastError ?? finalPreparationError }
+
+    public var listeningSnapshot: SessionListeningSnapshot? {
+        worker?.listeningSnapshot ?? finalListeningSnapshot
+    }
+
+    public func requestCapture() { worker?.requestCapture() }
+
+    @discardableResult
+    public func requestNext() -> Bool { worker?.requestNext() ?? false }
+
+    func observeListeningChanges(_ receive: @escaping @Sendable () -> Void)
+        -> PlaybackAudioSessionObservation
+    {
+        worker?.observeChanges(receive) ?? PlaybackAudioSessionObservation()
+    }
 
     /// Explicitly start/resume the same source and converter state. A start failure is
     /// terminal and rethrown after cleanup; callbacks may have advanced before failure.
@@ -146,6 +165,7 @@ public final class SessionAudioEngine {
         guard let worker else { return }
         engine.pause()
         worker.suspend()
+        worker.requestCapture()
     }
 
     /// Preserve explicit error recovery; suspended/stopped preparation rejects retry.
@@ -159,9 +179,11 @@ public final class SessionAudioEngine {
         engine.stop()
         worker.requestStop()
         worker.join()
+        worker.captureAfterRenderStopped()
         finalPosition = source.position
         finalSourceStatus = source.status
         finalPreparationError = worker.lastError
+        finalListeningSnapshot = worker.listeningSnapshot
         engine.disconnectNodeOutput(source.node)
         engine.detach(source.node)
         self.source = nil

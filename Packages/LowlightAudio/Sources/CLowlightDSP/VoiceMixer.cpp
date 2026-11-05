@@ -3,6 +3,8 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "RackFades.h"
+#include "SongAdvance.h"
+#include <atomic>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -28,6 +30,7 @@ struct Event {
     uint32_t frames = 0, attack = 0;
     float gain = 0, left = 0, right = 0;
     double frequency = 0, bassGain = 0;
+    bool cut = false;
 };
 struct Voice {
     uint32_t event = 0, age = 0, fade = 0;
@@ -85,15 +88,26 @@ struct Buses {
 };
 }
 
+struct LLMixerAdvance {
+    Event events[LL_EVENT_LIMIT]{};
+    uint32_t count = 0, slots = 0, prefix = 0;
+    uint64_t deadline = 0, boundary = 0;
+    lowlight::RackFades fades{};
+    float damping[3520]{};
+};
+
 struct LLMixer {
     float *pcm = nullptr;
     Sample samples[LL_SAMPLE_LIMIT]{};
-    Event events[LL_EVENT_LIMIT]{};
+    Event storage[LL_EVENT_LIMIT]{};
+    const Event *events = storage;
+    const LLMixerAdvance *advance = nullptr;
     Voice voices[LL_VOICE_LIMIT]{};
     Buses buses{};
     uint32_t samplesUsed = 0, floatsUsed = 0, eventCount = 0, next = 0;
     uint32_t steals = 0, dropped = 0;
-    uint32_t sharedVoices = LL_VOICE_LIMIT, requiredVoiceSlots = 0;
+    uint32_t sharedVoices = LL_VOICE_LIMIT;
+    std::atomic<uint32_t> requiredVoiceSlots{0};
     uint64_t origin = 0, position = 0;
     bool loaded = false;
 };
@@ -178,6 +192,8 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
     lowlight::FloatingPointMode mode;
     if (!m || count > LL_EVENT_LIMIT || (count && !events))
         return false;
+    if (m->advance)
+        return false;
     bool hasBass = false;
     for (uint32_t i = 0; i < count; ++i) {
         const auto &e = events[i];
@@ -203,7 +219,7 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
     }
     for (uint32_t i = 0; i < count; ++i) {
         const auto &e = events[i];
-        auto &out = m->events[i];
+        auto &out = m->storage[i];
         out.note = e;
         const bool bass = e.instrument == 2;
         const bool percussion = e.instrument >= 3;
@@ -375,7 +391,11 @@ void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
             voiceRight = ((sample * e.right) * e.gain) * fade;
         } else {
             const uint32_t offset = s.offset + v.age * s.channels;
-            const float gain = envelope(v, e);
+            float gain = envelope(v, e);
+            if (e.cut && m.position >= m.advance->deadline) {
+                const auto offset = std::min(uint64_t{3519}, m.position - m.advance->deadline);
+                gain = normal(gain * m.advance->damping[offset]);
+            }
             const float l = m.pcm[offset] * gain;
             const float r = m.pcm[offset + s.channels - 1] * gain;
             const float mid = (l + r) * .5f;
@@ -393,7 +413,8 @@ void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
         ++v.age;
         if (v.fade)
             --v.fade;
-        if (v.age == e.frames || (v.pending >= 0 && v.fade == 0)) {
+        if (v.age == e.frames || (e.cut && m.position + 1 >= m.advance->boundary) ||
+            (v.pending >= 0 && v.fade == 0)) {
             if (v.pending >= 0)
                 start(v, static_cast<uint32_t>(v.pending));
             else
@@ -469,5 +490,94 @@ uint32_t ll_mixer_sample_bytes(const LLMixer *m) {
     return m ? m->floatsUsed * sizeof(float) : 0;
 }
 uint32_t ll_mixer_required_voice_slots(const LLMixer *m) {
-    return m ? m->requiredVoiceSlots : 0;
+    return m ? m->requiredVoiceSlots.load(std::memory_order_relaxed) : 0;
+}
+
+uint32_t ll_mixer_local_position(const LLMixer *m) {
+    return m ? static_cast<uint32_t>(m->position - m->origin) : 0;
+}
+uint32_t ll_mixer_outro_start(const LLMixer *m) {
+    if (!m || !m->buses.fades.configured)
+        return 0;
+    const double start = m->buses.fades.points.tonal_out_start_frame;
+    return start >= m->origin && start - m->origin <= UINT32_MAX && std::floor(start) == start
+               ? static_cast<uint32_t>(start - m->origin)
+               : 0;
+}
+LLMixerAdvance *ll_mixer_prepare_advance(const LLMixer *m, uint32_t boundary, uint16_t pivot,
+                                         LLSongAdvance &result) {
+    lowlight::FloatingPointMode mode;
+    if (!m || !m->loaded || m->advance || boundary < 3520 || !pivot || pivot > 0xfff)
+        return nullptr;
+    const uint32_t outro = ll_mixer_outro_start(m);
+    if (boundary >= outro)
+        return nullptr;
+    auto *patch = new (std::nothrow) LLMixerAdvance;
+    if (!patch)
+        return nullptr;
+    patch->boundary = m->origin + boundary;
+    patch->deadline = patch->boundary - 3520;
+    const auto delta = outro - boundary;
+    auto fades = m->buses.fades.points;
+    fades.tonal_out_start_frame -= delta;
+    fades.tonal_out_end_frame -= delta;
+    fades.rhythm_out_frame -= delta;
+    if (fades.tonal_out_start_frame < fades.tonal_in_end_frame || !patch->fades.configure(fades)) {
+        delete patch;
+        return nullptr;
+    }
+    for (uint32_t i = 0; i < 3520; ++i) {
+        const double cosine = std::cos((pi / 2) * i / 3519);
+        patch->damping[i] = i == 3519 ? 0.f : static_cast<float>(cosine * cosine);
+    }
+    // The loaded rack keeps its reserved bass slot even if the edited future has no bass.
+    bool bass = m->sharedVoices < LL_VOICE_LIMIT;
+    for (uint32_t i = 0; i < m->eventCount; ++i) {
+        auto event = m->events[i];
+        if (event.note.start_frame < patch->deadline) {
+            event.cut = event.note.instrument < 2 && !(pivot & (1u << (event.note.midi % 12)));
+            ++patch->prefix;
+        } else if (event.note.start_frame >= m->origin + outro) {
+            event.note.start_frame -= delta;
+        } else
+            continue;
+        patch->events[patch->count++] = event;
+        bass |= event.note.instrument == 2;
+    }
+    uint32_t peak = 0;
+    for (uint32_t i = 0; i < patch->count; ++i) {
+        const auto &current = patch->events[i];
+        if (current.note.instrument == 2 || current.gain == 0)
+            continue;
+        uint32_t active = 1;
+        for (uint32_t j = 0; j < i; ++j) {
+            const auto &prior = patch->events[j];
+            const auto end = prior.cut
+                                 ? std::min(prior.note.start_frame + prior.frames, patch->boundary)
+                                 : prior.note.start_frame + prior.frames;
+            if (prior.note.instrument != 2 && prior.gain != 0 && end > current.note.start_frame)
+                ++active;
+        }
+        peak = std::max(peak, active);
+    }
+    patch->slots = peak + (bass ? 1u : 0u);
+    result.fades = fades;
+    result.deadline = boundary - 3520;
+    result.boundary = boundary;
+    result.delta = delta;
+    result.voiceSlots = patch->slots;
+    return patch;
+}
+void ll_mixer_destroy_advance(LLMixerAdvance *patch) {
+    delete patch;
+}
+bool ll_mixer_can_advance(const LLMixer *m, const LLMixerAdvance *patch) {
+    return m && patch && !m->advance && m->position <= patch->deadline && m->next <= patch->prefix;
+}
+void ll_mixer_apply_advance(LLMixer *m, const LLMixerAdvance *patch) {
+    m->events = patch->events;
+    m->eventCount = patch->count;
+    m->advance = patch;
+    m->buses.fades = patch->fades;
+    m->requiredVoiceSlots.store(patch->slots, std::memory_order_relaxed);
 }

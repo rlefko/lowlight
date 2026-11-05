@@ -23,7 +23,7 @@ private struct Inventory: Decodable {
 private final class IOSPlaybackProbe: @unchecked Sendable {
     weak var engine: AVAudioEngine?
 
-    func pull(_ owner: SessionAudioEngine?) throws -> ([Float], UInt32) {
+    func pull(_ owner: SessionAudioEngine?) throws -> ([Float], UInt64) {
         let owner = try #require(owner)
         let engine = try #require(engine)
         let buffer = try #require(

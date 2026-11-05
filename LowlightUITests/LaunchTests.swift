@@ -12,6 +12,18 @@ final class LaunchTests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Lowlight"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["listeningStatus"].exists)
+        let transport = app.buttons["playPauseButton"]
+        XCTAssertTrue(transport.waitForExistence(timeout: 5))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: transport)
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(transport.label, "Play")
+        XCTAssertTrue(app.buttons["nextButton"].exists)
+        transport.tap()
+        expectation(for: NSPredicate(format: "label == %@", "Pause"), evaluatedWith: transport)
+        waitForExpectations(timeout: 10)
+        transport.tap()
+        expectation(for: NSPredicate(format: "label == %@", "Play"), evaluatedWith: transport)
+        waitForExpectations(timeout: 10)
         app.buttons["aboutButton"].tap()
         XCTAssertTrue(app.navigationBars["About Lowlight"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Development accelerated with Codex"].exists)
@@ -34,5 +46,6 @@ final class LaunchTests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.staticTexts["listeningStatus"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars["About Lowlight"].exists)
+        XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
     }
 }

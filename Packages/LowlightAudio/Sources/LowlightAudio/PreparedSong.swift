@@ -16,6 +16,8 @@ public final class PreparedSong {
     private let source: SongRenderSource
     private let handle: OpaquePointer
     private let reservation: SongPreparationPool.Reservation?
+    private let originalVoiceSlots: Int
+    private var nextAdvance: PreparedSongAdvance?
     private typealias Prepared = (
         source: SongRenderSource, handle: OpaquePointer,
         measurement: SongLoudnessMeasurement, gain: LLSongGainValues
@@ -77,6 +79,7 @@ public final class PreparedSong {
         source = prepared.source
         handle = prepared.handle
         self.reservation = reservation
+        originalVoiceSlots = prepared.source.requiredVoiceSlots
         measurement = prepared.measurement
         gainDecibels = prepared.gain.gain_db
         linearMultiplier = prepared.gain.linear_multiplier
@@ -145,7 +148,58 @@ public final class PreparedSong {
     }
 
     // Destroy the native borrower before releasing its privately retained source.
-    deinit { withExtendedLifetime(reservation) { ll_song_replay_destroy(handle) } }
+    deinit { withExtendedLifetime((reservation, nextAdvance)) { ll_song_replay_destroy(handle) } }
+
+    // Only the preparation worker uses this seam. The offer pins its two original owners;
+    // native preparation reads immutable score/sample descriptors, never live voice state.
+    func makeAdvance(
+        offer: LLSongNextOffer, boundaryFrames: UInt32, pivotPitchClasses: UInt16,
+        cancellation: PreparationCancellation? = nil
+    ) throws -> PreparedSongAdvance {
+        try PreparationMode.perform {
+            try cancellation?.check()
+            guard offer.first == handle, nextAdvance == nil else {
+                throw PreparedSessionError.preparationFailed
+            }
+            var offer = offer
+            guard let patch = ll_song_pair_prepare_next(&offer, boundaryFrames, pivotPitchClasses)
+            else { throw PreparedSessionError.preparationFailed }
+            let advance = PreparedSongAdvance(handle: patch)
+            try cancellation?.check()
+            return advance
+        }
+    }
+
+    // Retain the immutable table and claim its complete voice bound before ready-release.
+    func publishAdvance(
+        _ advance: PreparedSongAdvance, to pair: OpaquePointer,
+        cancellation: PreparationCancellation? = nil
+    ) throws {
+        precondition(nextAdvance == nil)
+        try cancellation?.check()
+        try reservation?.replaceVoiceSlots(advance.requiredVoiceSlots)
+        nextAdvance = advance
+        source.retainAdvance(advance)
+        do {
+            try cancellation?.check()
+            guard ll_song_pair_publish_next(pair, advance.handle) else {
+                throw PreparedSessionError.preparationFailed
+            }
+        } catch {
+            discardRejectedAdvance()
+            throw error
+        }
+    }
+
+    // Call only after a rejected acknowledgment (or publication failure); an accepted table
+    // stays retained until this song's native borrower/source have both been destroyed.
+    func discardRejectedAdvance() {
+        guard nextAdvance != nil else { return }
+        // The original pair was admitted; restoring its bound cannot exceed capacity.
+        reservation?.restoreVoiceSlots(originalVoiceSlots)
+        source.retainAdvance(nil)
+        nextAdvance = nil
+    }
 
     /// Returns logical frames written, zero at EOF/empty capacity, or nil on failure.
     /// Both processor delays are removed; unused capacity is zeroed. Invalid
@@ -170,4 +224,16 @@ public final class PreparedSong {
     public var stolenVoices: Int { source.stolenVoices }
     public var droppedEvents: Int { source.droppedEvents }
     var borrowedHandle: OpaquePointer { handle }
+}
+
+final class PreparedSongAdvance {
+    let handle: OpaquePointer
+    let requiredVoiceSlots: Int
+
+    fileprivate init(handle: OpaquePointer) {
+        self.handle = handle
+        requiredVoiceSlots = Int(ll_song_next_required_voice_slots(handle))
+    }
+
+    deinit { ll_song_next_destroy(handle) }
 }

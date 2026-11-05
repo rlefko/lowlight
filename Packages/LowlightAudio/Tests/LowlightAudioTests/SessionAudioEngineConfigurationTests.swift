@@ -108,7 +108,7 @@ struct SessionAudioEngineConfigurationTests {
         let position = owner.position
         var suffix: [Float] = []
         while owner.position < score.frames {
-            suffix += try graph.pull(min(4096, Int(score.frames - owner.position)))
+            suffix += try graph.pull(min(4096, Int(UInt64(score.frames) - owner.position)))
         }
         let expectedSuffix = expected[(Int(position) * 2)...].map(\.bitPattern)
         #expect(suffix.map(\.bitPattern) == expectedSuffix)
