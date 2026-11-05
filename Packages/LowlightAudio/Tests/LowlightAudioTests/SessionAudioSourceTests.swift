@@ -99,7 +99,7 @@ private final class OfflineSourceGraph {
 }
 
 struct SessionAudioSourceTests {
-    @Test func offline32kMatchesIndependentAudioAcrossIrregularPullsAndEOF() throws {
+    @Test func offline32kMatchesIndependentAudioAcrossPausesIrregularPullsAndEOF() async throws {
         let score = try SourceTestScore()
         let expected = try ConcurrentSessionTests().independent(
             score.preparer, origins: score.origins, count: Int(score.frames))
@@ -122,6 +122,18 @@ struct SessionAudioSourceTests {
             actual += try graph.pull(count)
             #expect(source.position == actual.count / 2)
             block += 1
+            if block == 3 || block == 12 {
+                graph.engine.pause()
+                #expect(worker.suspend())
+                let deadline = Date().addingTimeInterval(30)
+                while worker.status != .suspended {
+                    try #require(Date() < deadline)
+                    try await Task.sleep(for: .milliseconds(1))
+                }
+                #expect(source.position == actual.count / 2 && !graph.engine.isRunning)
+                #expect(worker.resume())
+                try graph.engine.start()
+            }
         }
         #expect(actual.map(\.bitPattern) == expected.map(\.bitPattern))
         #expect(graph.engine.manualRenderingSampleTime == Int64(score.frames))

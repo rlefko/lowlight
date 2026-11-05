@@ -4,7 +4,9 @@
 import Foundation
 import LowlightPlanning
 
-public enum PreparationWorkerStatus: Sendable { case running, preparing, waitingForRetry, stopped }
+public enum PreparationWorkerStatus: Sendable {
+    case running, preparing, waitingForRetry, suspended, stopped
+}
 public enum PreparationWorkerError: Error, Equatable {
     case threadUnavailable(Int32)
     case renderEndpointUnavailable, renderFailed
@@ -22,6 +24,7 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         var error: (any Error)?
         var initialFinished = false
         var stop = false
+        var suspend = false
         var retry = false
         var joining = false
         var issued = false
@@ -131,9 +134,39 @@ public final class SessionPreparationWorker: @unchecked Sendable {
     public func retry() -> Bool {
         shared.condition.lock()
         defer { shared.condition.unlock() }
-        guard !shared.stop, shared.status == .waitingForRetry, !shared.retry else { return false }
+        guard !shared.stop, !shared.suspend, shared.error != nil, !shared.retry else {
+            return false
+        }
         shared.retry = true
         shared.condition.signal()
+        return true
+    }
+
+    /// Cooperatively suspend preparation, preserving the session and any latched error.
+    /// Returns whether a new request was accepted. `.suspended` acknowledges that the active
+    /// attempt has unwound; a candidate past its final cancellation check may still succeed.
+    /// This does not pause rendering. The host must separately quiesce its audio consumer.
+    @discardableResult
+    public func suspend() -> Bool {
+        shared.condition.lock()
+        defer { shared.condition.unlock() }
+        guard !shared.stop, !shared.suspend else { return false }
+        shared.suspend = true
+        shared.token?.cancel()
+        shared.condition.broadcast()
+        return true
+    }
+
+    /// Resume preparation of the same pending schedule with a fresh token after cancellation.
+    /// A genuine preparation failure still requires explicit retry. Stop remains terminal.
+    @discardableResult
+    public func resume() -> Bool {
+        shared.condition.lock()
+        defer { shared.condition.unlock() }
+        guard !shared.stop, shared.suspend else { return false }
+        shared.suspend = false
+        // Concurrent join callers wait on this condition too; wake the worker as well.
+        shared.condition.broadcast()
         return true
     }
 
@@ -211,12 +244,19 @@ public final class SessionPreparationWorker: @unchecked Sendable {
                 state.condition.unlock()
                 return
             }
-            if state.status == .waitingForRetry && state.retry {
+            if state.suspend {
+                state.status = .suspended
+                // No polling while suspended. Resume and terminal stop wake this wait.
+                state.condition.wait()
+                state.condition.unlock()
+                continue
+            }
+            if state.error != nil && state.retry {
                 state.retry = false
                 state.error = nil
-                state.status = .running
             }
-            if state.status == .waitingForRetry || !session.needsPreparation {
+            state.status = state.error == nil ? .running : .waitingForRetry
+            if state.error != nil || !session.needsPreparation {
                 _ = state.condition.wait(until: Date(timeIntervalSinceNow: 0.1))
                 state.condition.unlock()
                 continue
@@ -235,7 +275,9 @@ public final class SessionPreparationWorker: @unchecked Sendable {
             } catch {
                 state.condition.lock()
                 state.token = nil
-                if !state.stop {
+                // Resume can race cancellation acknowledgement. Classify this attempt's
+                // token, not the latest suspension intent; unrelated failures stay latched.
+                if !state.stop, !(error is CancellationError && token.isCancelled) {
                     state.error = error
                     state.status = .waitingForRetry
                 }
