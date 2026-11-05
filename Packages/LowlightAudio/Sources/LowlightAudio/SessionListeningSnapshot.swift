@@ -10,10 +10,13 @@ public enum SessionRestartError: Error, Equatable { case invalidIntent, unsuppor
 /// with fresh effects; predecessor tails and the original session protector are not restored.
 /// Decoding never starts playback. File location and autoplay policy belong to the host.
 public struct SessionRestartIntent: Equatable, Sendable {
-    public static let formatVersion = 1
-    public static let maximumEncodedByteCount = 262_144
+    public static let formatVersion = 2
+    public static let maximumEncodedByteCount = 524_288
     public let checkpoint: Data
     public let canonicalFrame: UInt64
+    /// State immediately before planning the current song and its successor. Legacy
+    /// captures lack this basis and retain their original transition after restoration.
+    public let planningAnchor: Data?
     let schedule: SongSchedule
 
     public var currentSong: SongPlan { schedule.song }
@@ -21,11 +24,12 @@ public struct SessionRestartIntent: Equatable, Sendable {
     private struct Envelope: Codable {
         let formatVersion: Int
         let checkpoint: Data
+        let planningAnchor: Data?
     }
 
     /// The checkpoint must belong to the rendered selection, not the preparation cursor.
     /// Its existing v1 position field is updated through the validated planning owner.
-    public init(checkpoint: Data, canonicalFrame: UInt64) throws {
+    public init(checkpoint: Data, canonicalFrame: UInt64, planningAnchor: Data? = nil) throws {
         guard canonicalFrame <= UInt64(MusicalTime.maximumFrame) else {
             throw SessionRestartError.invalidIntent
         }
@@ -36,8 +40,17 @@ public struct SessionRestartIntent: Equatable, Sendable {
         guard captured.count <= SessionTimeline.maximumCheckpointByteCount else {
             throw SessionRestartError.invalidIntent
         }
+        if let planningAnchor {
+            let reproduced = try SessionPlanning.restore(planningAnchor)
+            _ = try reproduced.next()
+            try reproduced.setPosition(frame: Int64(canonicalFrame))
+            guard try reproduced.checkpoint() == captured else {
+                throw SessionRestartError.invalidIntent
+            }
+        }
         self.checkpoint = captured
         self.canonicalFrame = canonicalFrame
+        self.planningAnchor = planningAnchor
         self.schedule = schedule
     }
 
@@ -45,7 +58,9 @@ public struct SessionRestartIntent: Equatable, Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(
-            Envelope(formatVersion: Self.formatVersion, checkpoint: checkpoint))
+            Envelope(
+                formatVersion: Self.formatVersion, checkpoint: checkpoint,
+                planningAnchor: planningAnchor))
         guard data.count <= Self.maximumEncodedByteCount else {
             throw SessionRestartError.invalidIntent
         }
@@ -58,14 +73,19 @@ public struct SessionRestartIntent: Equatable, Sendable {
         do { envelope = try JSONDecoder().decode(Envelope.self, from: data) } catch {
             throw SessionRestartError.invalidIntent
         }
-        guard envelope.formatVersion == formatVersion else {
+        guard envelope.formatVersion == 1 || envelope.formatVersion == formatVersion else {
             throw SessionRestartError.unsupportedVersion
+        }
+        guard envelope.formatVersion != 1 || envelope.planningAnchor == nil else {
+            throw SessionRestartError.invalidIntent
         }
         let planning = try SessionPlanning.restore(envelope.checkpoint)
         guard let frame = planning.positionFrame, frame >= 0, planning.current != nil else {
             throw SessionRestartError.invalidIntent
         }
-        return try Self(checkpoint: envelope.checkpoint, canonicalFrame: UInt64(frame))
+        return try Self(
+            checkpoint: envelope.checkpoint, canonicalFrame: UInt64(frame),
+            planningAnchor: envelope.planningAnchor)
     }
 }
 
