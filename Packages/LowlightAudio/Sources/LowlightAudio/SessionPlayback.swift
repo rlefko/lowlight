@@ -11,13 +11,17 @@ public enum SessionPlaybackState: Sendable {
 
 /// Main-actor intent for one finite session. Construction is silent and lazy. Commands
 /// coalesce; state acknowledges completed control work, not an audible device playhead.
-/// Stop is terminal. Device/session policy remains the host's responsibility.
+/// Stop is terminal. On iOS, one host-owned device coordinator manages the shared playback
+/// audio session; other app components must not independently change that session's policy.
 /// Pause/Stop cannot interrupt a start already executing; it is reconciled before their
 /// acknowledgment. Position/errors refresh on commands or explicit refresh, without polling.
 @MainActor @Observable
 public final class SessionPlayback {
     public private(set) var state = SessionPlaybackState.idle
     public private(set) var lastError: (any Error)?
+    /// A failed deactivation leaves cleanup unconfirmed, not proof that the session is active.
+    /// Repeated Stop retries cleanup; playback/activation failures remain in lastError.
+    public private(set) var audioSessionError: (any Error)?
     public private(set) var position: UInt32 = 0
     public private(set) var sourceStatus = SessionAudioSourceStatus.ready
     public private(set) var preparationStatus = PreparationWorkerStatus.stopped
@@ -27,24 +31,49 @@ public final class SessionPlayback {
     public convenience init(
         bankURL: URL, seed: UInt64 = 91_031, controls: Controls = Controls(), frameCount: UInt32
     ) {
-        self.init { token in
+        self.init(audioSession: .system) { token, prepareOutput in
             try token.check()
             let preparer = try TonalSamplePreparer(bankURL: bankURL)
             try token.check()
             let worker = try SessionPreparationWorker(
                 seed: seed, controls: controls, frameCount: frameCount,
                 preparer: preparer, cancellation: token)
-            return try SessionAudioEngine(worker: worker)
+            do {
+                try prepareOutput()
+                try token.check()
+                return try SessionAudioEngine(worker: worker)
+            } catch {
+                worker.requestStop()
+                worker.join()
+                throw error
+            }
         }
     }
 
     // Tests supply a fresh, paused real owner/offline graph; no alternate playback protocol.
-    init(factory: @escaping @Sendable (PreparationCancellation) throws -> SessionAudioEngine) {
-        control = PlaybackControl(factory: factory)
+    convenience init(
+        factory: @escaping @Sendable (PreparationCancellation) throws -> SessionAudioEngine
+    ) {
+        self.init(audioSession: .unmanaged) { token, prepareOutput in
+            try prepareOutput()
+            return try factory(token)
+        }
+    }
+
+    // The synchronous factory calls prepareOutput exactly once, after preparing its worker
+    // and before constructing the graph. If it throws, the factory stops/joins that worker.
+    init(
+        audioSession: PlaybackAudioSession,
+        factory:
+            @escaping @Sendable (PreparationCancellation, () throws -> Void) throws
+            -> SessionAudioEngine
+    ) {
+        control = PlaybackControl(audioSession: audioSession, factory: factory)
         control.setReceiver { [weak self] snapshot in
             guard let self, snapshot.revision == self.revision else { return }
             self.state = snapshot.state
             self.lastError = snapshot.error
+            self.audioSessionError = snapshot.audioSessionError
             self.position = snapshot.position
             self.sourceStatus = snapshot.source
             self.preparationStatus = snapshot.preparation
@@ -79,6 +108,7 @@ private struct PlaybackSnapshot: Sendable {
     let revision: UInt64
     let state: SessionPlaybackState
     let error: (any Error)?
+    let audioSessionError: (any Error)?
     let position: UInt32
     let source: SessionAudioSourceStatus
     let preparation: PreparationWorkerStatus
@@ -89,6 +119,7 @@ private struct PlaybackSnapshot: Sendable {
 private final class PlaybackControl: @unchecked Sendable {
     enum Action { case play, pause, stop, refresh, retry }
     private enum Intent { case play, pause, stop }
+    private struct SupersededOutput: Error {}
     private struct Command {
         var intent = Intent.pause
         var revision: UInt64 = 0
@@ -98,7 +129,10 @@ private final class PlaybackControl: @unchecked Sendable {
     }
     private let queue = DispatchQueue(
         label: "Lowlight.SessionPlayback", qos: .default, autoreleaseFrequency: .workItem)
-    private let factory: @Sendable (PreparationCancellation) throws -> SessionAudioEngine
+    private let factory:
+        @Sendable (PreparationCancellation, () throws -> Void) throws
+            -> SessionAudioEngine
+    private let audioSession: PlaybackAudioSession
     private let lock = NSLock()
     private var command = Command()
     private var drainScheduled = false
@@ -113,8 +147,18 @@ private final class PlaybackControl: @unchecked Sendable {
     private var appliedPauseRequest: UInt64 = 0
     private var position: UInt32 = 0
     private var source = SessionAudioSourceStatus.ready
+    // This records an outstanding cleanup obligation, not the system's current activity.
+    private var outputCleanupPending = false
+    private var cleanupAttempt: UInt64?
+    private var audioSessionError: (any Error)?
 
-    init(factory: @escaping @Sendable (PreparationCancellation) throws -> SessionAudioEngine) {
+    init(
+        audioSession: PlaybackAudioSession,
+        factory:
+            @escaping @Sendable (PreparationCancellation, () throws -> Void) throws
+            -> SessionAudioEngine
+    ) {
+        self.audioSession = audioSession
         self.factory = factory
     }
 
@@ -125,7 +169,7 @@ private final class PlaybackControl: @unchecked Sendable {
     @discardableResult
     func request(_ action: Action) -> UInt64 {
         lock.withLock {
-            guard command.intent != .stop else { return command.revision }
+            guard command.intent != .stop || action == .stop else { return command.revision }
             command.revision &+= 1
             switch action {
             case .play:
@@ -168,6 +212,7 @@ private final class PlaybackControl: @unchecked Sendable {
     private func reconcile(_ current: Command) -> PlaybackSnapshot? {
         if current.intent == .stop {
             disposeEngine()
+            releaseOutput()
             return snapshot(.stopped, current.revision)
         }
         let retry =
@@ -180,6 +225,7 @@ private final class PlaybackControl: @unchecked Sendable {
         if current.intent == .pause {
             if appliedPauseRequest != current.interruption {
                 engine?.pause()
+                releaseOutput()
                 appliedPauseRequest = current.interruption
             }
             let state: SessionPlaybackState =
@@ -188,6 +234,7 @@ private final class PlaybackControl: @unchecked Sendable {
                 : (current.playRequest == 0 && current.interruption == 0 ? .idle : .paused)
             return snapshot(state, current.revision)
         }
+        var freshOutput = false
         if engine == nil {
             if failedPlayRequest == current.playRequest {
                 return snapshot(.failed, current.revision)
@@ -202,19 +249,26 @@ private final class PlaybackControl: @unchecked Sendable {
             failure = nil
             publish(snapshot(.preparing, current.revision))
             do {
-                let candidate = try factory(token)
+                let candidate = try factory(token) {
+                    try self.prepareOutput(for: current, token: token)
+                }
                 let cancelled = lock.withLock {
                     startup = nil
                     return token.isCancelled
                 }
                 if cancelled {
                     candidate.stop()
+                    releaseOutput()
                     return nil
                 }
                 engine = candidate
+                freshOutput = true
             } catch {
                 lock.withLock { startup = nil }
-                if error is CancellationError, token.isCancelled { return nil }
+                releaseOutput()
+                if error is SupersededOutput || (error is CancellationError && token.isCancelled) {
+                    return nil
+                }
                 record(error, for: current)
                 return snapshot(.failed, current.revision)
             }
@@ -227,14 +281,63 @@ private final class PlaybackControl: @unchecked Sendable {
             // Only an explicit, unapplied Play is permission to start/resume output.
             if appliedPlayRequest != latest.playRequest {
                 appliedPlayRequest = latest.playRequest
+                if !freshOutput, engine?.state != .playing {
+                    try prepareOutput(for: latest)
+                }
+                try checkOutputIntent(latest)
                 try engine?.play()
             }
             if retry { engine?.retryPreparation() }
             return snapshot(engine?.state == .playing ? .playing : .paused, latest.revision)
         } catch {
+            if error is SupersededOutput {
+                engine?.pause()
+                releaseOutput()
+                return nil
+            }
             record(error, for: latest)
             disposeEngine()
+            releaseOutput()
             return snapshot(.failed, latest.revision)
+        }
+    }
+
+    private func checkOutputIntent(
+        _ operation: Command, token: PreparationCancellation? = nil
+    ) throws {
+        try token?.check()
+        guard
+            lock.withLock({
+                command.intent == .play && command.interruption == operation.interruption
+            })
+        else { throw SupersededOutput() }
+    }
+
+    private func prepareOutput(
+        for operation: Command, token: PreparationCancellation? = nil
+    ) throws {
+        try checkOutputIntent(operation, token: token)
+        cleanupAttempt = nil
+        try audioSession.configure()
+        try checkOutputIntent(operation, token: token)
+        // Activation can fail after changing system state. Always attempt cleanup after
+        // an activation attempt; a configure-only failure creates no new obligation.
+        outputCleanupPending = true
+        try audioSession.activate()
+        audioSessionError = nil
+        try checkOutputIntent(operation, token: token)
+    }
+
+    private func releaseOutput() {
+        let request = lock.withLock { command.interruption }
+        guard outputCleanupPending, cleanupAttempt != request else { return }
+        cleanupAttempt = request
+        do {
+            try audioSession.deactivate()
+            outputCleanupPending = false
+            audioSessionError = nil
+        } catch {
+            audioSessionError = error
         }
     }
 
@@ -267,6 +370,7 @@ private final class PlaybackControl: @unchecked Sendable {
             revision: revision, state: state,
             error: failure ?? engine?.preparationError
                 ?? (engine?.sourceStatus == .failed ? PreparationWorkerError.renderFailed : nil),
+            audioSessionError: audioSessionError,
             position: engine?.position ?? position, source: engine?.sourceStatus ?? source,
             preparation: state == .preparing ? .preparing : (engine?.preparationStatus ?? .stopped))
     }
