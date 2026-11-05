@@ -153,7 +153,8 @@ struct SoundBankTests {
                 try engine.enableManualRenderingMode(
                     .offline, format: format, maximumFrameCount: 2048)
                 probe.engine = engine
-                return try SessionAudioEngine(worker: worker, engine: engine)
+                return try SessionAudioEngine(
+                    worker: worker, engine: engine, notificationCenter: center)
             } catch {
                 worker.requestStop()
                 worker.join()
@@ -230,9 +231,17 @@ struct SoundBankTests {
         try await waitFor(.playing)
         let reconnected = try await playback.inspect { try probe.pull($0) }
         #expect(reconnected.0.allSatisfy(\.isFinite) && reconnected.1 == 8192)
+        try await playback.inspect { _ in
+            let engine = try #require(probe.engine)
+            engine.stop()
+            center.post(name: .AVAudioEngineConfigurationChange, object: engine)
+        }
+        #expect(try await playback.inspect { $0?.state == .playing && $0?.position == 8192 })
+        let reconfigured = try await playback.inspect { try probe.pull($0) }
+        #expect(reconfigured.0.allSatisfy(\.isFinite) && reconfigured.1 == 10240)
         playback.stop()
         try await waitFor(.stopped)
-        #expect(playback.position == 8192 && playback.preparationStatus == .stopped)
+        #expect(playback.position == 10240 && playback.preparationStatus == .stopped)
         #expect(playback.lastError == nil && playback.audioSessionError == nil)
         #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
     }

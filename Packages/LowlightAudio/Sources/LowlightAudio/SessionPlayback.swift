@@ -128,6 +128,7 @@ private final class PlaybackControl: @unchecked Sendable {
         var revision: UInt64 = 0
         var playRequest: UInt64 = 0
         var interruption: UInt64 = 0
+        var configuration: UInt64 = 0
         var interrupted = false
         var routePaused = false
         var retry = false
@@ -145,8 +146,13 @@ private final class PlaybackControl: @unchecked Sendable {
     private var receiver: (@MainActor @Sendable (PlaybackSnapshot) -> Void)?
     private var deliveryScheduled = false
     private var pendingSnapshot: PlaybackSnapshot?
+    private var observedEngine: UInt64?
     private var engine: SessionAudioEngine?
     private var observation: PlaybackAudioSessionObservation?
+    private var configurationObservation: PlaybackAudioSessionObservation?
+    private var nextEngine: UInt64 = 0
+    private var quiescedConfiguration: UInt64?
+    private var preparedConfiguration: UInt64?
     private var failure: (any Error)?
     private var failedPlayRequest: UInt64?
     private var appliedPlayRequest: UInt64?
@@ -227,6 +233,15 @@ private final class PlaybackControl: @unchecked Sendable {
         }
     }
 
+    private func receiveConfiguration(from generation: UInt64) {
+        lock.withLock {
+            guard command.intent != .stop, observedEngine == generation else { return }
+            command.configuration &+= 1
+            command.revision &+= 1
+            scheduleDrain()
+        }
+    }
+
     // Caller holds lock. One queued drain serves both controls and notification bursts.
     private func scheduleDrain() {
         guard !drainScheduled else { return }
@@ -268,6 +283,10 @@ private final class PlaybackControl: @unchecked Sendable {
             appliedPauseRequest = current.interruption
             appliedPlayRequest = nil
         }
+        if engine != nil, quiescedConfiguration != current.configuration {
+            engine?.pause()
+            quiescedConfiguration = current.configuration
+        }
         let retry =
             current.retry
             && lock.withLock {
@@ -282,11 +301,13 @@ private final class PlaybackControl: @unchecked Sendable {
                 : (current.playRequest == 0 && current.interruption == 0 ? .idle : .paused)
             return snapshot(state, current.revision)
         }
+        // Configuration notifications and matched interruption ends do not retry errors.
+        // A retained owner with unavailable output can recover on a new explicit Play.
+        if failedPlayRequest == current.playRequest {
+            return snapshot(.failed, current.revision)
+        }
         var freshOutput = false
         if engine == nil {
-            if failedPlayRequest == current.playRequest {
-                return snapshot(.failed, current.revision)
-            }
             let token = PreparationCancellation()
             let accepted = lock.withLock {
                 guard command.revision == current.revision else { return false }
@@ -310,6 +331,16 @@ private final class PlaybackControl: @unchecked Sendable {
                     return nil
                 }
                 engine = candidate
+                nextEngine &+= 1
+                let generation = nextEngine
+                lock.withLock { observedEngine = generation }
+                quiescedConfiguration = current.configuration
+                configurationObservation = candidate.observeConfigurationChanges { [weak self] in
+                    self?.receiveConfiguration(from: generation)
+                }
+                // Re-read the current output after registration, covering changes between
+                // graph construction and installation of its engine-specific observer.
+                preparedConfiguration = nil
                 freshOutput = true
             } catch {
                 lock.withLock { startup = nil }
@@ -324,15 +355,29 @@ private final class PlaybackControl: @unchecked Sendable {
         // A factory may finish after Pause/Stop. Do not start that obsolete result.
         let latest = lock.withLock { command }
         guard latest.intent == .play, !latest.interrupted,
-            latest.interruption == appliedPauseRequest
+            latest.interruption == appliedPauseRequest,
+            latest.configuration == quiescedConfiguration
         else { return nil }
         do {
-            // Refresh/retry cannot authorize a start. Explicit Play or a permitted matched
-            // interruption end re-arms playback after its pause generation was quiesced.
-            if appliedPlayRequest != latest.playRequest {
+            // Refresh/retry alone cannot authorize a start. An eligible configuration
+            // recovery preserves the same user intent and never advances playRequest.
+            let reconfigure = preparedConfiguration != latest.configuration
+            if appliedPlayRequest != latest.playRequest || reconfigure {
                 appliedPlayRequest = latest.playRequest
+                failure = nil
                 if !freshOutput, engine?.state != .playing {
                     try prepareOutput(for: latest)
+                }
+                try checkOutputIntent(latest)
+                if reconfigure {
+                    do {
+                        try engine?.reconfigureOutput()
+                        preparedConfiguration = latest.configuration
+                    } catch SessionAudioEngineError.outputUnavailable {
+                        record(SessionAudioEngineError.outputUnavailable, for: latest)
+                        releaseOutput()
+                        return snapshot(.failed, latest.revision)
+                    }
                 }
                 try checkOutputIntent(latest)
                 try engine?.play()
@@ -360,6 +405,7 @@ private final class PlaybackControl: @unchecked Sendable {
             lock.withLock({
                 command.intent == .play && !command.interrupted
                     && command.interruption == operation.interruption
+                    && command.configuration == operation.configuration
             })
         else { throw SupersededOutput() }
     }
@@ -405,6 +451,11 @@ private final class PlaybackControl: @unchecked Sendable {
     }
 
     private func disposeEngine() {
+        lock.withLock { observedEngine = nil }
+        configurationObservation?.cancel()
+        configurationObservation = nil
+        quiescedConfiguration = nil
+        preparedConfiguration = nil
         if let engine {
             engine.stop()
             position = engine.position
