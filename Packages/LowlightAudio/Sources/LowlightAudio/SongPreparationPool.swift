@@ -82,6 +82,26 @@ public final class SongPreparationPool {
             pool.preparedPCMBytes += pcmBytes
         }
 
+        // Worker-only: reserve an edited score's proven bound before callback publication.
+        // PCM and rack ownership do not change. Rejection restores the previous bound.
+        func replaceVoiceSlots(_ count: Int) throws {
+            precondition(claimed && count >= 0)
+            let other = pool.reservedVoiceSlots - voiceSlots
+            guard count <= SongPreparationPool.maximumVoiceSlots - other else {
+                throw SongPreparationPoolError.voiceCapacityExceeded
+            }
+            pool.reservedVoiceSlots = other + count
+            voiceSlots = count
+        }
+
+        func restoreVoiceSlots(_ count: Int) {
+            let other = pool.reservedVoiceSlots - voiceSlots
+            precondition(
+                claimed && count >= 0 && count <= SongPreparationPool.maximumVoiceSlots - other)
+            pool.reservedVoiceSlots = other + count
+            voiceSlots = count
+        }
+
         deinit {
             pool.reservedVoiceSlots -= voiceSlots
             pool.preparedPCMBytes -= pcmBytes

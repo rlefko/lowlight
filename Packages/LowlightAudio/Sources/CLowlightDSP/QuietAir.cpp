@@ -5,6 +5,7 @@
 // Full upstream notice: Lowlight/ThirdParty/NumPy-Random-Notices.txt.
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "SongAdvance.h"
 #include "NumpyRandom.h"
 #include "RackFades.h"
 #include <algorithm>
@@ -194,4 +195,8 @@ bool ll_air_add(LLAir *air, float *stereo, uint32_t frames) {
         }
     }
     return true;
+}
+
+void ll_air_replace_fades(LLAir *air, const LLRackFades &fades) {
+    air->fades.configure(fades); // Already validated during worker preparation.
 }

@@ -8,6 +8,7 @@ enum PlaybackAudioSessionEvent: Sendable {
     case interruptionBegan
     case interruptionEnded(shouldResume: Bool)
     case oldDeviceUnavailable
+    case mediaServicesLost, mediaServicesReset
 }
 
 /// Removes observers once, without invoking the cancellation closure under its lock.
@@ -80,7 +81,16 @@ final class PlaybackAudioSessionObservation: @unchecked Sendable {
                 else { return }
                 receive(.oldDeviceUnavailable)
             }
-            let registrations = Registrations(notificationCenter, [interruption, route])
+            let lost = notificationCenter.addObserver(
+                forName: AVAudioSession.mediaServicesWereLostNotification, object: session,
+                queue: nil
+            ) { _ in receive(.mediaServicesLost) }
+            let reset = notificationCenter.addObserver(
+                forName: AVAudioSession.mediaServicesWereResetNotification, object: session,
+                queue: nil
+            ) { _ in receive(.mediaServicesReset) }
+            let registrations = Registrations(
+                notificationCenter, [interruption, route, lost, reset])
             return PlaybackAudioSessionObservation { registrations.remove() }
         }
     #endif

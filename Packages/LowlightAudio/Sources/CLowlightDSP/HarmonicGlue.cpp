@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "SongAdvance.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -174,4 +175,11 @@ bool ll_glue_drain(LLGlue *glue, LLGlueFrame *output, uint32_t capacity, uint32_
     }
     *written = frames;
     return true;
+}
+
+bool ll_glue_can_shorten(const LLGlue *glue, uint32_t frames) {
+    return glue && !glue->drained && frames >= glue->consumed && frames <= glue->total;
+}
+void ll_glue_shorten(LLGlue *glue, uint32_t frames) {
+    glue->total = frames;
 }

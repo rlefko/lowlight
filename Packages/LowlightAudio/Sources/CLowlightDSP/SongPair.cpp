@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "SongAdvance.h"
 #include <algorithm>
 #include <atomic>
 #include <new>
@@ -9,6 +10,8 @@
 namespace {
 constexpr uint32_t blockFrames = 256;
 static_assert(std::atomic<uint32_t>::is_always_lock_free);
+static_assert(std::atomic<uint64_t>::is_always_lock_free);
+constexpr uint64_t frameLimit = uint64_t{1} << 52;
 void clear(float *output, uint32_t frames) {
     if (output)
         for (uint64_t i = 0; i < uint64_t{frames} * 2; ++i)
@@ -22,33 +25,62 @@ bool overlaps(float *output, uint32_t capacity, uint32_t *written) {
 }
 }
 
+struct LLSongNext {
+    LLSongNextOffer offer{};
+    LLSongAdvance *advance = nullptr;
+};
+
 struct LLSongPair {
     LLSongReplay *songs[2]{};
     LLPeakProtector *peak = nullptr;
-    uint32_t origins[2]{}, lengths[2]{}, frames = 0, input = 0, position = 0,
-                                         startup = LL_PEAK_LATENCY;
-    uint32_t nextOrigin = 0;
-    bool faulted = false, rolling = false, streaming = false;
+    uint64_t origins[2]{}, frames = 0, input = 0, position = 0, entryOrigin = 0;
+    uint32_t lengths[2]{}, startup = LL_PEAK_LATENCY, restartFade = 12800;
+    uint64_t nextOrigin = 0;
+    bool faulted = false, rolling = false, streaming = false, placed = false;
     enum Phase : uint32_t { active, requested, preparing, ready };
-    std::atomic<uint32_t> phase{active}, visiblePosition{0}, visibleFault{0};
+    std::atomic<uint32_t> phase{active}, visibleFault{0};
+    std::atomic<uint64_t> visiblePosition{0}, listeningPosition{0};
     // Written before requested; immutable until the worker publishes ready.
     struct Request {
         LLSongReplay *retired = nullptr, *survivor = nullptr;
         uint64_t survivorEnd = 0;
-        uint32_t origin = 0, voiceSlots = 0;
+        uint64_t origin = 0;
+        uint32_t voiceSlots = 0;
     } request;
     // Written by the worker before ready; read only after consumer acquire.
     LLSongReplay *replacement = nullptr;
-    uint32_t followingOrigin = 0;
+    uint64_t followingOrigin = 0;
+    enum NextPhase : uint32_t {
+        nextIdle,
+        nextRequested,
+        nextOffered,
+        nextPreparing,
+        nextReady,
+        nextAccepted,
+        nextRejected,
+        nextSatisfied
+    };
+    std::atomic<uint32_t> nextPhase{nextIdle};
+    uint64_t nextTarget = 0, nextGeneration = 0;
+    LLSongNextOffer nextOffer{};
+    LLSongNextResult nextResult{};
+    LLSongNext *nextPatch = nullptr;
+    void advanceNext();
     float piece[2 * blockFrames]{}, sum[2 * blockFrames]{}, delayed[2 * blockFrames]{};
 
+    bool hasNext() const {
+        return !frames || nextOrigin < frames;
+    }
     bool needsPreparation() const {
         if (streaming) {
+            const auto edit = nextPhase.load(std::memory_order_acquire);
+            if (edit == nextPreparing || edit == nextReady || edit == nextAccepted)
+                return false;
             const auto value = phase.load(std::memory_order_acquire);
             return !visibleFault.load(std::memory_order_acquire) &&
                    (value == requested || value == preparing);
         }
-        return rolling && !faulted && nextOrigin < frames &&
+        return rolling && !faulted && hasNext() &&
                (!songs[1] || uint64_t{input} >= uint64_t{origins[0]} + lengths[0]);
     }
     void handoff() {
@@ -59,8 +91,7 @@ struct LLSongPair {
             nextOrigin = followingOrigin;
             phase.store(active, std::memory_order_release);
         }
-        if (songs[1] && nextOrigin < frames &&
-            uint64_t{input} >= uint64_t{origins[0]} + lengths[0]) {
+        if (songs[1] && hasNext() && uint64_t{input} >= uint64_t{origins[0]} + lengths[0]) {
             request = {songs[0], songs[1], uint64_t{origins[1]} + lengths[1], nextOrigin,
                        ll_song_replay_required_voice_slots(songs[1])};
             songs[0] = songs[1];
@@ -88,8 +119,9 @@ struct LLSongPair {
         }
         for (uint32_t i = 0; i < count; ++i) {
             const double frame = double(input) + i;
-            const double entry = std::min(1.0, frame / (.4 * 32000));
-            const double exit = std::clamp((double(frames) - frame) / (2.8 * 32000), 0.0, 1.0);
+            const double entry = std::min(1.0, (frame - double(entryOrigin)) / (.4 * 32000));
+            const double exit =
+                frames ? std::clamp((double(frames) - frame) / (2.8 * 32000), 0.0, 1.0) : 1;
             for (uint32_t ch = 0; ch < 2; ++ch) {
                 sum[2 * i + ch] = float(double(sum[2 * i + ch]) * entry);
                 sum[2 * i + ch] = float(double(sum[2 * i + ch]) * exit);
@@ -99,20 +131,24 @@ struct LLSongPair {
     }
 };
 
-static LLSongPair *create(LLSongReplay *first, LLSongReplay *second, uint32_t frameCount,
-                          uint32_t nextOrigin, bool rolling) {
+static LLSongPair *create(LLSongReplay *first, LLSongReplay *second, uint64_t frameCount,
+                          uint64_t nextOrigin, bool rolling, bool placed = false,
+                          uint64_t firstOrigin = 0, uint64_t secondOrigin = 0) {
     lowlight::FloatingPointMode mode;
     if (!first || !second || first == second || ll_song_replay_faulted(first) ||
         ll_song_replay_faulted(second) || ll_song_replay_position(first) ||
-        ll_song_replay_position(second) || ll_song_replay_origin(first))
+        ll_song_replay_position(second) || (!placed && ll_song_replay_origin(first)))
         return nullptr;
-    const auto origin = ll_song_replay_origin(second);
+    const auto origin = placed ? secondOrigin : ll_song_replay_origin(second);
     const auto firstFrames = ll_song_replay_frames(first),
                secondFrames = ll_song_replay_frames(second);
-    if (!origin || origin >= firstFrames || nextOrigin <= origin || nextOrigin > frameCount ||
-        uint64_t{nextOrigin} > origin + secondFrames ||
-        (nextOrigin < frameCount &&
-         (firstFrames > nextOrigin || uint64_t{nextOrigin} == origin + secondFrames)) ||
+    const bool more = !frameCount || nextOrigin < frameCount;
+    if (firstOrigin > frameLimit - firstFrames || origin <= firstOrigin ||
+        (frameCount && frameCount <= origin) || origin - firstOrigin >= firstFrames ||
+        origin > frameLimit - secondFrames || nextOrigin <= origin || nextOrigin > frameLimit ||
+        frameCount > frameLimit || (!placed && frameCount && nextOrigin > frameCount) ||
+        nextOrigin > origin + secondFrames ||
+        (more && (firstOrigin + firstFrames > nextOrigin || nextOrigin == origin + secondFrames)) ||
         uint64_t{ll_song_replay_required_voice_slots(first)} +
                 ll_song_replay_required_voice_slots(second) >
             LL_VOICE_LIMIT)
@@ -122,12 +158,17 @@ static LLSongPair *create(LLSongReplay *first, LLSongReplay *second, uint32_t fr
         return nullptr;
     pair->songs[0] = first;
     pair->songs[1] = second;
-    pair->origins[1] = static_cast<uint32_t>(origin);
+    pair->origins[0] = firstOrigin;
+    pair->origins[1] = origin;
+    pair->input = pair->position = pair->entryOrigin = firstOrigin;
+    pair->visiblePosition.store(firstOrigin, std::memory_order_relaxed);
+    pair->listeningPosition.store(firstOrigin, std::memory_order_relaxed);
     pair->lengths[0] = firstFrames;
     pair->lengths[1] = secondFrames;
     pair->frames = frameCount;
     pair->nextOrigin = nextOrigin;
     pair->rolling = rolling;
+    pair->placed = placed;
     pair->peak = ll_peak_create(LL_PEAK_SESSION);
     if (!pair->peak) {
         delete pair;
@@ -149,6 +190,20 @@ LLSongPair *ll_song_pair_create_streaming(LLSongReplay *first, LLSongReplay *sec
         pair->streaming = true;
     return pair;
 }
+LLSongPair *ll_song_pair_create_transport_at(LLSongReplay *first, LLSongReplay *second,
+                                             uint64_t firstOrigin, uint64_t secondOrigin,
+                                             uint64_t frameCount, uint64_t nextOrigin) {
+    auto *pair =
+        create(first, second, frameCount, nextOrigin, true, true, firstOrigin, secondOrigin);
+    if (pair)
+        pair->streaming = true;
+    return pair;
+}
+LLSongPair *ll_song_pair_create_transport(LLSongReplay *first, LLSongReplay *second,
+                                          uint64_t secondOrigin, uint64_t frameCount,
+                                          uint64_t nextOrigin) {
+    return ll_song_pair_create_transport_at(first, second, 0, secondOrigin, frameCount, nextOrigin);
+}
 bool ll_song_pair_claim_retired(LLSongPair *pair, LLSongReplay **retired) {
     if (retired)
         *retired = nullptr;
@@ -158,21 +213,36 @@ bool ll_song_pair_claim_retired(LLSongPair *pair, LLSongReplay **retired) {
     if (!pair->phase.compare_exchange_strong(expected, LLSongPair::preparing,
                                              std::memory_order_acquire))
         return false;
+    // Once retirement is claimed, the consumer cannot create a new offer against its
+    // old pair. Resolve an unclaimed offer before releasing that owner; claimed/ready
+    // edits must instead be acknowledged or abandoned by this same worker first.
+    const auto edit = pair->nextPhase.load(std::memory_order_acquire);
+    if (edit == LLSongPair::nextPreparing || edit == LLSongPair::nextReady ||
+        edit == LLSongPair::nextAccepted) {
+        pair->phase.store(LLSongPair::requested, std::memory_order_release);
+        return false;
+    }
+    if (edit == LLSongPair::nextOffered) {
+        pair->nextResult = {2, pair->nextOffer.target_origin, 0, 0, 0};
+        pair->nextPhase.store(LLSongPair::nextRejected, std::memory_order_release);
+    }
     *retired = pair->request.retired;
     return true;
 }
-bool ll_song_pair_publish(LLSongPair *pair, LLSongReplay *next, uint32_t nextOrigin) {
+static bool publish(LLSongPair *pair, LLSongReplay *next, uint64_t origin, uint64_t nextOrigin) {
     if (!pair || !pair->streaming ||
         pair->phase.load(std::memory_order_acquire) != LLSongPair::preparing ||
         pair->visibleFault.load(std::memory_order_acquire) || !next ||
         next == pair->request.survivor)
         return false;
     // Never inspect the concurrently rendered survivor or live input clock.
-    const auto origin = ll_song_replay_origin(next), end = origin + ll_song_replay_frames(next);
+    const auto end = origin + ll_song_replay_frames(next);
     if (ll_song_replay_position(next) || ll_song_replay_faulted(next) ||
         origin != pair->request.origin || origin >= pair->request.survivorEnd ||
-        nextOrigin <= origin || nextOrigin > pair->frames || nextOrigin > end ||
-        (nextOrigin < pair->frames &&
+        origin > frameLimit - ll_song_replay_frames(next) || nextOrigin <= origin ||
+        nextOrigin > frameLimit || (!pair->placed && pair->frames && nextOrigin > pair->frames) ||
+        nextOrigin > end ||
+        ((!pair->frames || nextOrigin < pair->frames) &&
          (pair->request.survivorEnd > nextOrigin || nextOrigin == end)) ||
         uint64_t{pair->request.voiceSlots} + ll_song_replay_required_voice_slots(next) >
             LL_VOICE_LIMIT)
@@ -181,6 +251,13 @@ bool ll_song_pair_publish(LLSongPair *pair, LLSongReplay *next, uint32_t nextOri
     pair->followingOrigin = nextOrigin;
     pair->phase.store(LLSongPair::ready, std::memory_order_release);
     return true;
+}
+bool ll_song_pair_publish(LLSongPair *pair, LLSongReplay *next, uint32_t nextOrigin) {
+    return pair && !pair->placed && publish(pair, next, ll_song_replay_origin(next), nextOrigin);
+}
+bool ll_song_pair_publish_transport(LLSongPair *pair, LLSongReplay *next, uint64_t origin,
+                                    uint64_t nextOrigin) {
+    return pair && pair->placed && publish(pair, next, origin, nextOrigin);
 }
 bool ll_song_pair_needs_preparation(const LLSongPair *pair) {
     return pair && pair->needsPreparation();
@@ -246,11 +323,18 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
     clear(output, capacity);
     if (!pair || !written || (capacity && !output) || pair->faulted)
         return false;
-    const uint32_t requested = std::min(capacity, pair->frames - pair->position);
+    if (!pair->frames && capacity && pair->position == frameLimit) {
+        pair->faulted = true;
+        pair->visibleFault.store(1, std::memory_order_release);
+        return false;
+    }
+    const uint32_t requested = static_cast<uint32_t>(
+        std::min(uint64_t{capacity}, (pair->frames ? pair->frames : frameLimit) - pair->position));
     uint32_t produced = 0;
     while (produced < requested) {
         if (pair->streaming) {
             pair->handoff();
+            pair->advanceNext();
             if (!pair->songs[1] && pair->input == pair->nextOrigin)
                 break;
         } else if (pair->needsPreparation())
@@ -258,9 +342,10 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
         uint32_t physical = static_cast<uint32_t>(
             std::min(uint64_t{blockFrames}, uint64_t{requested - produced} + pair->startup));
         bool success;
-        if (pair->input < pair->frames) {
-            physical = std::min(physical, pair->frames - pair->input);
-            if (pair->rolling && pair->nextOrigin < pair->frames) {
+        if (!pair->frames || pair->input < pair->frames) {
+            physical = static_cast<uint32_t>(std::min(
+                uint64_t{physical}, (pair->frames ? pair->frames : frameLimit) - pair->input));
+            if (pair->rolling && pair->hasNext()) {
                 const uint64_t stop = pair->songs[1] ? uint64_t{pair->origins[0]} + pair->lengths[0]
                                                      : pair->nextOrigin;
                 physical = static_cast<uint32_t>(std::min(uint64_t{physical}, stop - pair->input));
@@ -285,7 +370,20 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
         pair->startup -= skipped;
         const uint32_t count = physical - skipped;
         std::copy_n(pair->delayed + 2 * skipped, 2 * count, output + uint64_t{produced} * 2);
+        if (pair->restartFade < 12800) {
+            for (uint32_t i = 0; i < count && pair->restartFade < 12800; ++i, ++pair->restartFade) {
+                const double gain = double(pair->restartFade) / 12800;
+                for (uint32_t ch = 0; ch < 2; ++ch)
+                    output[2 * (uint64_t{produced} + i) + ch] =
+                        float(double(output[2 * (uint64_t{produced} + i) + ch]) * gain);
+            }
+        }
         produced += count;
+        // Publish generated musical progress before releasing a retirement request. A
+        // worker must not select the survivor using the preceding call's stale cursor.
+        // Keep the existing returned-output/fault position contract separate.
+        if (pair->placed)
+            pair->listeningPosition.store(pair->position + produced, std::memory_order_release);
         if (pair->streaming)
             pair->handoff();
     }
@@ -296,14 +394,166 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
     return true;
 }
 uint32_t ll_song_pair_position(const LLSongPair *pair) {
-    return pair ? (pair->streaming ? pair->visiblePosition.load(std::memory_order_acquire)
-                                   : pair->position)
-                : 0;
+    return static_cast<uint32_t>(ll_song_pair_position64(pair));
 }
 uint32_t ll_song_pair_frames(const LLSongPair *pair) {
-    return pair ? pair->frames : 0;
+    return static_cast<uint32_t>(ll_song_pair_frames64(pair));
 }
 bool ll_song_pair_faulted(const LLSongPair *pair) {
     return !pair || (pair->streaming ? pair->visibleFault.load(std::memory_order_acquire) != 0
                                      : pair->faulted);
+}
+
+uint64_t ll_song_pair_position64(const LLSongPair *pair) {
+    return pair ? (pair->streaming ? pair->visiblePosition.load(std::memory_order_acquire)
+                                   : pair->position)
+                : 0;
+}
+uint64_t ll_song_pair_frames64(const LLSongPair *pair) {
+    return pair ? pair->frames : 0;
+}
+uint64_t ll_song_pair_listening_position64(const LLSongPair *pair) {
+    return pair && pair->placed ? pair->listeningPosition.load(std::memory_order_acquire)
+                                : ll_song_pair_position64(pair);
+}
+bool ll_song_pair_finished(const LLSongPair *pair) {
+    return pair && pair->frames && ll_song_pair_position64(pair) == pair->frames;
+}
+
+void LLSongPair::advanceNext() {
+    const auto state = nextPhase.load(std::memory_order_acquire);
+    if (state == nextRequested) {
+        nextResult = {0, nextTarget, nextOrigin, 0, 0};
+        if (nextTarget < origins[0] ||
+            (nextTarget == origins[0] && (ll_song_replay_advanced(songs[0]) ||
+                                          (songs[1] && ll_song_replay_position(songs[1]))))) {
+            nextResult.status = 3;
+            nextPhase.store(nextSatisfied, std::memory_order_release);
+        } else if (songs[1] && phase.load(std::memory_order_acquire) == active &&
+                   nextTarget == origins[0]) {
+            const auto outro = ll_song_replay_outro_start(songs[0]);
+            if (!outro || origins[0] + outro != origins[1]) {
+                nextResult.status = 2;
+                nextPhase.store(nextRejected, std::memory_order_release);
+                return;
+            }
+            nextOffer = {songs[0],
+                         songs[1],
+                         nextGeneration,
+                         nextTarget,
+                         ll_song_replay_physical_position(songs[0]),
+                         outro};
+            nextPhase.store(nextOffered, std::memory_order_release);
+        } else if (songs[1] && nextTarget != origins[0] && nextTarget != origins[1]) {
+            nextResult.status = 2;
+            nextPhase.store(nextRejected, std::memory_order_release);
+        }
+    } else if (state == nextReady) {
+        const auto &patch = *nextPatch;
+        const auto &change = *patch.advance;
+        const bool valid =
+            songs[0] == patch.offer.first && songs[1] == patch.offer.second &&
+            origins[0] == patch.offer.target_origin && !ll_song_replay_position(songs[1]) &&
+            phase.load(std::memory_order_acquire) == active && origins[1] >= change.delta &&
+            nextOrigin >= change.delta &&
+            uint64_t{change.voiceSlots} + ll_song_replay_required_voice_slots(songs[1]) <=
+                LL_VOICE_LIMIT &&
+            ll_song_replay_can_advance(songs[0], &change);
+        nextResult = {valid ? 1u : 2u, patch.offer.target_origin, nextOrigin, change.boundary,
+                      valid ? change.delta : 0u};
+        if (valid) {
+            ll_song_replay_apply_advance(songs[0], &change);
+            lengths[0] = change.frames;
+            origins[1] -= change.delta;
+            nextOrigin -= change.delta;
+            nextResult.following_origin = nextOrigin;
+        }
+        nextPatch = nullptr; // The source borrows accepted score storage; worker retains it.
+        nextPhase.store(valid ? nextAccepted : nextRejected, std::memory_order_release);
+    }
+}
+bool ll_song_pair_request_next(LLSongPair *pair, uint64_t targetOrigin) {
+    if (!pair || !pair->placed || !pair->streaming || targetOrigin > frameLimit ||
+        ll_song_pair_faulted(pair) || ll_song_pair_finished(pair) ||
+        pair->nextPhase.load(std::memory_order_acquire) != LLSongPair::nextIdle)
+        return false;
+    pair->nextTarget = targetOrigin;
+    ++pair->nextGeneration;
+    pair->nextPhase.store(LLSongPair::nextRequested, std::memory_order_release);
+    return true;
+}
+bool ll_song_pair_claim_next(LLSongPair *pair, LLSongNextOffer *offer) {
+    if (offer)
+        *offer = {};
+    if (!pair || !offer)
+        return false;
+    uint32_t expected = LLSongPair::nextOffered;
+    if (!pair->nextPhase.compare_exchange_strong(expected, LLSongPair::nextPreparing,
+                                                 std::memory_order_acquire))
+        return false;
+    *offer = pair->nextOffer;
+    return true;
+}
+LLSongNext *ll_song_pair_prepare_next(const LLSongNextOffer *offer, uint32_t boundary,
+                                      uint16_t pivot) {
+    lowlight::FloatingPointMode mode;
+    if (!offer || !offer->first || !offer->second || offer->first == offer->second ||
+        boundary < 3520 || boundary - 3520 < offer->source_input_frames ||
+        boundary >= offer->outro_start_frames)
+        return nullptr;
+    auto *patch = new (std::nothrow) LLSongNext;
+    if (!patch)
+        return nullptr;
+    patch->offer = *offer;
+    patch->advance = ll_song_replay_prepare_advance(offer->first, boundary, pivot);
+    if (!patch->advance ||
+        uint64_t{patch->advance->voiceSlots} + ll_song_replay_required_voice_slots(offer->second) >
+            LL_VOICE_LIMIT) {
+        ll_song_next_destroy(patch);
+        return nullptr;
+    }
+    return patch;
+}
+uint32_t ll_song_next_required_voice_slots(const LLSongNext *patch) {
+    return patch && patch->advance ? patch->advance->voiceSlots : 0;
+}
+void ll_song_next_destroy(LLSongNext *patch) {
+    if (!patch)
+        return;
+    ll_song_destroy_advance(patch->advance);
+    delete patch;
+}
+bool ll_song_pair_publish_next(LLSongPair *pair, LLSongNext *patch) {
+    if (!pair || !patch || !patch->advance || ll_song_pair_faulted(pair) ||
+        pair->nextPhase.load(std::memory_order_acquire) != LLSongPair::nextPreparing ||
+        patch->offer.generation != pair->nextOffer.generation ||
+        patch->offer.first != pair->nextOffer.first ||
+        patch->offer.second != pair->nextOffer.second)
+        return false;
+    pair->nextPatch = patch;
+    pair->nextPhase.store(LLSongPair::nextReady, std::memory_order_release);
+    return true;
+}
+bool ll_song_pair_abandon_next(LLSongPair *pair) {
+    if (!pair || pair->nextPhase.load(std::memory_order_acquire) != LLSongPair::nextPreparing)
+        return false;
+    pair->nextPhase.store(LLSongPair::nextIdle, std::memory_order_release);
+    return true;
+}
+bool ll_song_pair_next_result(LLSongPair *pair, LLSongNextResult *result) {
+    if (result)
+        *result = {};
+    if (!pair || !result)
+        return false;
+    const auto state = pair->nextPhase.load(std::memory_order_acquire);
+    if (state != LLSongPair::nextAccepted && state != LLSongPair::nextRejected &&
+        state != LLSongPair::nextSatisfied)
+        return false;
+    *result = pair->nextResult;
+    pair->nextPhase.store(LLSongPair::nextIdle, std::memory_order_release);
+    return true;
+}
+void ll_song_pair_restart_fade(LLSongPair *pair) {
+    if (pair)
+        pair->restartFade = 0;
 }

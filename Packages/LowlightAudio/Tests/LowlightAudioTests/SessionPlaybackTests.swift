@@ -138,7 +138,7 @@ private final class PlaybackProbe: @unchecked Sendable {
     }
 
     func pull(_ count: Int, _ owner: SessionAudioEngine?) throws
-        -> (pcm: [Float], position: UInt32, cleared: Bool, failed: Bool)
+        -> (pcm: [Float], position: UInt64, cleared: Bool, failed: Bool)
     {
         guard !Thread.isMainThread, let owner, let graph,
             let buffer = AVAudioPCMBuffer(

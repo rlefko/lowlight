@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "SongAdvance.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -115,4 +116,8 @@ bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output
     }
     mix->position += frames;
     return true;
+}
+
+void ll_song_mix_replace_fades(LLSongMix *mix, const LLRackFades &fades) {
+    ll_air_replace_fades(mix->air, fades);
 }

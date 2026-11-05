@@ -23,7 +23,7 @@ private struct Inventory: Decodable {
 private final class IOSPlaybackProbe: @unchecked Sendable {
     weak var engine: AVAudioEngine?
 
-    func pull(_ owner: SessionAudioEngine?) throws -> ([Float], UInt32) {
+    func pull(_ owner: SessionAudioEngine?) throws -> ([Float], UInt64) {
         let owner = try #require(owner)
         let engine = try #require(engine)
         let buffer = try #require(
@@ -44,6 +44,8 @@ private final class IOSSessionEvents: @unchecked Sendable {
             case .interruptionBegan: events.append("began")
             case .interruptionEnded(let shouldResume): events.append("ended:\(shouldResume)")
             case .oldDeviceUnavailable: events.append("disconnected")
+            case .mediaServicesLost: events.append("lost")
+            case .mediaServicesReset: events.append("reset")
             }
         }
     }
@@ -96,7 +98,11 @@ struct SoundBankTests {
             AVAudioSessionInterruptionReasonKey: AVAudioSession.InterruptionReason.routeDisconnected
                 .rawValue,
         ])
-        let expected = "began,ended:false,ended:true,disconnected,disconnected,began"
+        center.post(name: AVAudioSession.mediaServicesWereLostNotification, object: NSObject())
+        center.post(name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
+        center.post(name: AVAudioSession.mediaServicesWereLostNotification, object: session)
+        center.post(name: AVAudioSession.mediaServicesWereResetNotification, object: session)
+        let expected = "began,ended:false,ended:true,disconnected,disconnected,began,lost,reset"
         #expect(events.description == expected)
         observation.cancel()
         observation.cancel()
@@ -107,6 +113,8 @@ struct SoundBankTests {
                 AVAudioSessionRouteChangeReasonKey:
                     AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
             ])
+        center.post(name: AVAudioSession.mediaServicesWereLostNotification, object: session)
+        center.post(name: AVAudioSession.mediaServicesWereResetNotification, object: session)
         #expect(events.description == expected)
     }
 
@@ -153,7 +161,8 @@ struct SoundBankTests {
                 try engine.enableManualRenderingMode(
                     .offline, format: format, maximumFrameCount: 2048)
                 probe.engine = engine
-                return try SessionAudioEngine(worker: worker, engine: engine)
+                return try SessionAudioEngine(
+                    worker: worker, engine: engine, notificationCenter: center)
             } catch {
                 worker.requestStop()
                 worker.join()
@@ -230,9 +239,17 @@ struct SoundBankTests {
         try await waitFor(.playing)
         let reconnected = try await playback.inspect { try probe.pull($0) }
         #expect(reconnected.0.allSatisfy(\.isFinite) && reconnected.1 == 8192)
+        try await playback.inspect { _ in
+            let engine = try #require(probe.engine)
+            engine.stop()
+            center.post(name: .AVAudioEngineConfigurationChange, object: engine)
+        }
+        #expect(try await playback.inspect { $0?.state == .playing && $0?.position == 8192 })
+        let reconfigured = try await playback.inspect { try probe.pull($0) }
+        #expect(reconfigured.0.allSatisfy(\.isFinite) && reconfigured.1 == 10240)
         playback.stop()
         try await waitFor(.stopped)
-        #expect(playback.position == 8192 && playback.preparationStatus == .stopped)
+        #expect(playback.position == 10240 && playback.preparationStatus == .stopped)
         #expect(playback.lastError == nil && playback.audioSessionError == nil)
         #expect(try await playback.inspect { $0 == nil && probe.engine == nil })
     }

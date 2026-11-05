@@ -9,7 +9,7 @@ export TOOLCHAINS=com.apple.dt.toolchain.Xcode
 mkdir -p .build/DSPTests
 flags=(-std=c++17 -ffp-contract=off -Wall -Wextra -Wpedantic -Werror
   -I Packages/LowlightAudio/Sources/CLowlightDSP/include)
-for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain SongSource SongReplay SongPair FloatingPoint; do
+for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix Loudness SongGain SongSource SongReplay SongPair SongTransport SongNext FloatingPoint; do
   sources=("Packages/LowlightAudio/Sources/CLowlightDSP/$suite.cpp" "tests/dsp/${suite}Tests.cpp")
   if [[ "$suite" == FloatingPoint ]]; then
     sources=(Packages/LowlightAudio/Sources/CLowlightDSP/*.cpp tests/dsp/FloatingPointTests.cpp)
@@ -32,8 +32,18 @@ for suite in VoiceMixer HarmonicGlue StereoRoom PeakProtector QuietAir SongMix L
     sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{VoiceMixer,HarmonicGlue,StereoRoom,SongMix,QuietAir,NumpyRandom,SongSource,SongGain,PeakProtector,SongReplay}.cpp
       tests/dsp/SongPairTests.cpp)
   fi
+  if [[ "$suite" == SongTransport ]]; then
+    # Deterministic canonical children isolate placement; the session protector is real.
+    sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{SongPair,PeakProtector}.cpp
+      tests/dsp/SongTransportTests.cpp)
+  fi
+  if [[ "$suite" == SongNext ]]; then
+    # Actual prepared racks exercise in-flight Next; no redirected DSP stage.
+    sources=(Packages/LowlightAudio/Sources/CLowlightDSP/{VoiceMixer,HarmonicGlue,StereoRoom,SongMix,QuietAir,NumpyRandom,SongSource,SongGain,PeakProtector,SongReplay,SongPair}.cpp
+      tests/dsp/SongNextTests.cpp)
+  fi
   modes=(optimized sanitized)
-  [[ "$suite" != SongPair ]] || modes+=(thread-sanitized)
+  [[ "$suite" != SongPair && "$suite" != SongTransport && "$suite" != SongNext ]] || modes+=(thread-sanitized)
   for mode in "${modes[@]}"; do
     build_flags=(-O2)
     if [[ "$mode" == sanitized ]]; then

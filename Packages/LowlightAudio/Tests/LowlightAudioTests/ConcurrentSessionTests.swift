@@ -202,7 +202,8 @@ struct ConcurrentSessionTests {
                 let sizes = [1, 159, 160, 161, 257, 1023]
                 func pull(to end: UInt32) throws {
                     while endpoint.position < end {
-                        let size = min(sizes[block % sizes.count], Int(end - endpoint.position))
+                        let size = min(
+                            sizes[block % sizes.count], Int(UInt64(end) - endpoint.position))
                         var output = [Float](repeating: .nan, count: 2 * size)
                         let count = try #require(
                             output.withUnsafeMutableBufferPointer { endpoint.render(into: $0) })

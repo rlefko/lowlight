@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "SongAdvance.h"
 #include <algorithm>
 #include <new>
 
@@ -25,7 +26,7 @@ struct LLSongReplay {
     LLSongGain *gain = nullptr;
     LLPeakProtector *peak = nullptr;
     uint32_t frames = 0, input = 0, position = 0, startup = LL_PEAK_LATENCY;
-    bool faulted = false;
+    bool faulted = false, advanced = false;
     float dry[2 * blockFrames]{}, gained[2 * blockFrames]{}, delayed[2 * blockFrames]{};
 };
 
@@ -133,4 +134,27 @@ uint32_t ll_song_replay_required_voice_slots(const LLSongReplay *replay) {
 }
 bool ll_song_replay_faulted(const LLSongReplay *replay) {
     return !replay || replay->faulted;
+}
+
+LLSongAdvance *ll_song_replay_prepare_advance(LLSongReplay *replay, uint32_t boundary,
+                                              uint16_t pivot) {
+    return replay ? ll_song_source_prepare_advance(replay->source, boundary, pivot) : nullptr;
+}
+bool ll_song_replay_can_advance(const LLSongReplay *replay, const LLSongAdvance *patch) {
+    return replay && !replay->faulted && !replay->advanced && patch &&
+           patch->frames > replay->input && ll_song_source_can_advance(replay->source, patch);
+}
+void ll_song_replay_apply_advance(LLSongReplay *replay, const LLSongAdvance *patch) {
+    ll_song_source_apply_advance(replay->source, patch);
+    replay->frames = patch->frames;
+    replay->advanced = true;
+}
+uint32_t ll_song_replay_physical_position(const LLSongReplay *replay) {
+    return replay ? ll_song_source_physical_position(replay->source) : 0;
+}
+uint32_t ll_song_replay_outro_start(const LLSongReplay *replay) {
+    return replay ? ll_song_source_outro_start(replay->source) : 0;
+}
+bool ll_song_replay_advanced(const LLSongReplay *replay) {
+    return replay && replay->advanced;
 }
