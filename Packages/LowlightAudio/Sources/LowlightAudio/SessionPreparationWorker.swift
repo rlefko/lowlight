@@ -29,6 +29,8 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         var joining = false
         var issued = false
         var token: PreparationCancellation?
+        var cancelOnControls = false
+        var controls: SessionControlsMailbox?
         var renderFailed: (@Sendable () -> Bool)?
         var captureRequested = false
         var nextSelection: UInt64?
@@ -54,25 +56,29 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         let shared: Shared
         let prepare: @Sendable (PreparationCancellation) throws -> PreparedSession
         let makeCancellation: @Sendable () -> PreparationCancellation
+        let initialControls: Controls?
 
         init(
             shared: Shared, makeCancellation: @escaping @Sendable () -> PreparationCancellation,
+            initialControls: Controls?,
             prepare: @escaping @Sendable (PreparationCancellation) throws -> PreparedSession
         ) {
             self.shared = shared
             self.makeCancellation = makeCancellation
+            self.initialControls = initialControls
             self.prepare = prepare
         }
     }
 
     private let shared: Shared
+    private let initialControls: Controls?
     private var thread: pthread_t?
 
     public convenience init(
         seed: UInt64 = 91_031, controls: Controls = Controls(), frameCount: UInt32,
         preparer: TonalSamplePreparer, cancellation: PreparationCancellation? = nil
     ) throws {
-        try self.init(cancellation: cancellation) { token in
+        try self.init(initialControls: controls, cancellation: cancellation) { token in
             try PreparedSession(
                 seed: seed, controls: controls, frameCount: frameCount,
                 preparation: .concurrent, preparer: preparer, cancellation: token)
@@ -80,13 +86,14 @@ public final class SessionPreparationWorker: @unchecked Sendable {
     }
 
     public convenience init(
-        seed: UInt64 = 91_031, controls: Controls = Controls(),
+        seed: UInt64 = 91_031, controls: Controls? = nil,
         restart: SessionRestartIntent? = nil, preparer: TonalSamplePreparer,
         cancellation: PreparationCancellation? = nil
     ) throws {
-        try self.init(cancellation: cancellation) { token in
+        let desired = try (controls ?? restart?.currentSong.controls ?? Controls()).normalized()
+        try self.init(initialControls: desired, cancellation: cancellation) { token in
             try PreparedSession(
-                seed: seed, controls: controls, restart: restart,
+                seed: seed, controls: desired, restart: restart,
                 preparer: preparer, cancellation: token)
         }
     }
@@ -94,6 +101,7 @@ public final class SessionPreparationWorker: @unchecked Sendable {
     // Short-source/token-observer seams. Factories run only on the worker; token creation
     // must not block or call controls because it occurs inside the control lock.
     init(
+        initialControls: Controls? = nil,
         cancellation: PreparationCancellation? = nil,
         makeCancellation: @escaping @Sendable () -> PreparationCancellation = {
             PreparationCancellation()
@@ -103,8 +111,12 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         let token = cancellation ?? PreparationCancellation()
         shared = Shared(token: token)
         try token.check()
+        let controls = try initialControls?.normalized()
+        self.initialControls = controls
         let invocation = Unmanaged.passRetained(
-            Invocation(shared: shared, makeCancellation: makeCancellation, prepare: prepare))
+            Invocation(
+                shared: shared, makeCancellation: makeCancellation, initialControls: controls,
+                prepare: prepare))
         let result = pthread_create(
             &thread, nil,
             { pointer in
@@ -172,6 +184,41 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         defer { shared.condition.unlock() }
         return shared.listening
     }
+
+    /// Retaining this capability never retains the worker or grants playback permission.
+    public var controlsInput: SessionControlsInput {
+        shared.condition.lock()
+        let controls = shared.controls
+        shared.condition.unlock()
+        return SessionControlsInput(
+            submit: { [weak controls] in controls?.send($0) ?? false },
+            retry: { [weak controls] in controls?.retry() ?? false })
+    }
+
+    /// Revision zero identifies a finite source without live controls. Its known initial
+    /// settings remain accurate; input submission and retry return false for that source.
+    public var controlsSnapshot: SessionControlsSnapshot {
+        shared.condition.lock()
+        let controls = shared.controls
+        shared.condition.unlock()
+        return controls?.snapshot
+            ?? SessionControlsSnapshot(
+                requested: initialControls ?? Controls(), applied: initialControls ?? Controls(),
+                revision: 0, appliedRevision: 0,
+                state: .none)
+    }
+
+    public var controlsError: (any Error)? {
+        shared.condition.lock()
+        let controls = shared.controls
+        shared.condition.unlock()
+        return controls?.lastError
+    }
+
+    @discardableResult public func setControls(_ request: SessionControlsRequest) -> Bool {
+        controlsInput.send(request)
+    }
+    @discardableResult public func retryControls() -> Bool { controlsInput.retry() }
 
     // Engine-only final capture. Joining preparation alone does not establish this proof:
     // the caller has already stopped the graph and now owns the quiescent session state.
@@ -279,8 +326,10 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         shared.stop = true
         shared.captureRequested = true
         shared.token?.cancel()
+        let controls = shared.controls
         shared.condition.broadcast()
         shared.condition.unlock()
+        controls?.close()
     }
 
     /// Waits for this preparation thread, not the render consumer. Request stop first unless
@@ -314,12 +363,35 @@ public final class SessionPreparationWorker: @unchecked Sendable {
             try token.check()
             let endpoint = try session.makeRenderEndpoint()
             let initialSnapshot = try session.captureListeningSnapshot()
+            let controls: SessionControlsMailbox?
+            if let initialSnapshot {
+                controls = try SessionControlsMailbox(
+                    desired: work.initialControls ?? initialSnapshot.currentSong.controls,
+                    applied: initialSnapshot.currentSong.controls
+                ) { [weak state] invalidates in
+                    guard let state else { return }
+                    state.condition.lock()
+                    guard !state.stop else {
+                        state.condition.unlock()
+                        return
+                    }
+                    if invalidates && state.cancelOnControls { state.token?.cancel() }
+                    state.change &+= 1
+                    state.condition.broadcast()
+                    state.condition.unlock()
+                    notify(state)
+                }
+                if let controls { session.installControls(controls) }
+            } else {
+                controls = nil
+            }
             state.condition.lock()
             let cancelled = state.stop || token.isCancelled
             if !cancelled {
                 state.endpoint = endpoint
                 state.token = nil
                 state.listening = initialSnapshot
+                state.controls = controls
                 state.setStatus(.running)
                 state.initialFinished = true
                 state.condition.broadcast()
@@ -343,6 +415,7 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         state.initialFinished = true
         state.condition.broadcast()
         state.condition.unlock()
+        state.controls?.close()
         notify(state)
     }
 
@@ -382,7 +455,10 @@ public final class SessionPreparationWorker: @unchecked Sendable {
     private static func service(_ session: PreparedSession, work: Invocation) {
         let state = work.shared
         while true {
-            do { try session.receiveNextResult() } catch {
+            do {
+                try session.receiveControlsResult()
+                try session.receiveNextResult()
+            } catch {
                 state.condition.lock()
                 state.error = error
                 state.change &+= 1
@@ -428,7 +504,9 @@ public final class SessionPreparationWorker: @unchecked Sendable {
             }
             state.setStatus(state.error == nil ? .running : .waitingForRetry)
             let shouldPrepare = session.needsPreparation && session.canPrepareSuccessor
-            if state.error != nil || (!shouldPrepare && !session.hasNextWork) {
+            if state.error != nil
+                || (!shouldPrepare && !session.hasNextWork && !session.hasControlsWork)
+            {
                 state.condition.unlock()
                 notify(state)
                 state.condition.lock()
@@ -443,12 +521,14 @@ public final class SessionPreparationWorker: @unchecked Sendable {
             // Installing the token and observing stop are one control transaction.
             let token = work.makeCancellation()
             state.token = token
+            state.cancelOnControls = !session.isRestoringControls
             if shouldPrepare { state.setStatus(.preparing) }
             state.condition.unlock()
             notify(state)
             do {
                 let changed = try autoreleasepool {
-                    var changed = try session.prepareAdvance(cancellation: token)
+                    var changed = try session.prepareControls(cancellation: token)
+                    changed = try session.prepareAdvance(cancellation: token) || changed
                     if session.needsPreparation && session.canPrepareSuccessor {
                         try session.prepareNext(cancellation: token)
                         changed = true
@@ -457,12 +537,14 @@ public final class SessionPreparationWorker: @unchecked Sendable {
                 }
                 state.condition.lock()
                 state.token = nil
+                state.cancelOnControls = false
                 state.setStatus(.running)
                 state.condition.unlock()
                 capture(session, state: state, force: changed)
             } catch {
                 state.condition.lock()
                 state.token = nil
+                state.cancelOnControls = false
                 // Classify this attempt's token, not a newer suspension/resume intent.
                 if !state.stop, !(error is CancellationError && token.isCancelled) {
                     state.error = error

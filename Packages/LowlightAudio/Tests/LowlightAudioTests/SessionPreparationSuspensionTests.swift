@@ -57,9 +57,9 @@ struct SessionPreparationSuspensionTests {
     }
 
     private func until(_ condition: () -> Bool) throws {
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         while !condition() {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             _ = sched_yield()  // Controller-only; no timed assertion about worker idleness.
         }
     }
@@ -74,12 +74,12 @@ struct SessionPreparationSuspensionTests {
 
     private func finish(_ endpoint: PreparedSession.RenderEndpoint) throws -> SessionConsumer {
         try SessionConsumer {
-            let deadline = Date().addingTimeInterval(30)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
             var output: [Float] = []
             let sizes = [1, 159, 160, 161, 257, 1023]
             var block = 0
             while endpoint.position < endpoint.frameCount {
-                try #require(Date() < deadline)
+                try #require(ContinuousClock.now < deadline)
                 let next = try self.pull(endpoint, sizes[block % sizes.count])
                 output += next
                 if next.isEmpty { _ = sched_yield() }

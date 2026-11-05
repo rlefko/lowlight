@@ -20,6 +20,7 @@ private final class TransportPlaybackProbe: @unchecked Sendable {
     private var factories = 0
     private var starts = 0
     private var suppliedRestart: SessionRestartIntent?
+    private var suppliedControls: Controls?
     // The real owner is the sole strong graph owner. All access here is on its control queue.
     private weak var graph: AVAudioEngine?
     private weak var source: SessionAudioSource?
@@ -32,6 +33,7 @@ private final class TransportPlaybackProbe: @unchecked Sendable {
 
     var counts: (factories: Int, starts: Int) { lock.withLock { (factories, starts) } }
     var factoryRestart: SessionRestartIntent? { lock.withLock { suppliedRestart } }
+    var factoryControls: Controls? { lock.withLock { suppliedControls } }
     func onActivation(_ action: @escaping @Sendable () -> Void) {
         lock.withLock { activationAction = action }
     }
@@ -61,14 +63,22 @@ private final class TransportPlaybackProbe: @unchecked Sendable {
         _ token: PreparationCancellation, _ prepareOutput: () throws -> Void,
         _ restart: SessionRestartIntent?
     ) throws -> SessionAudioEngine {
+        try make(token, prepareOutput, restart, controls)
+    }
+
+    func make(
+        _ token: PreparationCancellation, _ prepareOutput: () throws -> Void,
+        _ restart: SessionRestartIntent?, _ requested: Controls
+    ) throws -> SessionAudioEngine {
         lock.withLock {
             factories += 1
             suppliedRestart = restart
+            suppliedControls = requested
         }
         let worker: SessionPreparationWorker
         if continuous {
             worker = try SessionPreparationWorker(
-                controls: controls, restart: restart, preparer: preparer, cancellation: token)
+                controls: requested, restart: restart, preparer: preparer, cancellation: token)
         } else {
             let score = try SourceTestScore()
             self.score = score
@@ -137,6 +147,64 @@ struct PlaybackTransportTests {
         }
     }
 
+    @Test func committedControlsSurvivePauseAndResetWithoutGrantingPlayback() async throws {
+        let probe = try TransportPlaybackProbe(continuous: true)
+        let playback = SessionPlayback(
+            audioSession: probe.policy, controls: probe.controls, restart: nil,
+            factory: { try probe.make($0, $1, $2, $3) })
+        defer { playback.stop() }
+        let relax = try Controls.preset(.relax)
+        let reflective = try Controls.preset(.reflective)
+        let workout = try Controls.preset(.workout)
+        try playback.setControls(relax)
+        playback.retryControls()
+        _ = try await playback.inspect { $0 == nil }
+        #expect(playback.desiredControls == relax && !playback.requestedPlayback)
+        #expect(playback.state == .idle && probe.counts.factories == 0)
+        #expect(throws: PlanningError.invalidControls) {
+            try playback.setControls(Controls(tempo: .nan))
+        }
+        #expect(playback.desiredControls == relax)
+        playback.play()
+        _ = try await playback.inspect { $0?.position }
+        try await until { playback.state == .playing && playback.listeningSnapshot != nil }
+        #expect(probe.factoryControls == relax && playback.appliedControls == relax)
+        playback.pause()
+        _ = try await playback.inspect { $0?.position }
+        try await until { playback.state == .paused && playback.preparationStatus == .suspended }
+        let starts = probe.counts.starts
+        try playback.setControls(reflective)
+        playback.retryControls()
+        playback.refresh()
+        _ = try await playback.inspect { $0?.position }
+        #expect(playback.desiredControls == reflective && playback.appliedControls == relax)
+        #expect(playback.controlChangeState == .queued && !playback.requestedPlayback)
+        #expect(probe.counts.starts == starts && playback.preparationStatus == .suspended)
+        probe.emit(.mediaServicesLost)
+        try playback.setControls(workout)
+        _ = try await playback.inspect { $0 == nil }
+        try await until { !playback.mediaServicesAvailable }
+        playback.play()
+        playback.retryControls()
+        probe.emit(.mediaServicesReset)
+        _ = try await playback.inspect { $0 == nil }
+        try await until { playback.mediaServicesAvailable && playback.state == .paused }
+        #expect(playback.desiredControls == workout && !playback.requestedPlayback)
+        #expect(probe.counts.factories == 1 && probe.counts.starts == starts)
+        playback.play()
+        _ = try await playback.inspect { $0?.position }
+        try await until { playback.state == .playing }
+        #expect(
+            probe.factoryControls == workout && probe.factoryRestart?.currentSong.controls == relax)
+        #expect(playback.desiredControls == workout && playback.appliedControls == relax)
+        #expect(probe.counts.factories == 2 && probe.counts.starts == starts + 1)
+        playback.stop()
+        _ = try await playback.inspect { $0 == nil }
+        try await until { playback.state == .stopped }
+        #expect(throws: SessionAudioEngineError.self) { try playback.setControls(reflective) }
+        #expect(playback.desiredControls == workout)
+    }
+
     @Test func directCommandsCoalesceAndCannotTurnPreResetPlayIntoFreshPermission() async throws {
         let probe = try TransportPlaybackProbe(continuous: false)
         let playback = SessionPlayback(
@@ -197,7 +265,10 @@ struct PlaybackTransportTests {
     {
         let probe = try TransportPlaybackProbe(continuous: true)
         let playback = SessionPlayback(
-            audioSession: probe.policy, restart: nil, factory: probe.make)
+            audioSession: probe.policy, controls: probe.controls, restart: nil
+        ) { token, prepareOutput, restart, controls in
+            try probe.make(token, prepareOutput, restart, controls)
+        }
         defer { playback.stop() }
         #expect(probe.counts.factories == 0 && playback.state == .idle)
         playback.play()

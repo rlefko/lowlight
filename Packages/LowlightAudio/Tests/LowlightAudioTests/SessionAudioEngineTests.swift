@@ -35,9 +35,9 @@ struct SessionAudioEngineTests {
     private enum Injected: Error, Equatable { case start }
 
     private func until(_ condition: () -> Bool) throws {
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         while !condition() {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             _ = sched_yield()
         }
     }
@@ -215,9 +215,9 @@ struct SessionAudioEngineTests {
                 owner.stop()
             }
             var actual: [Float] = []
-            let deadline = Date().addingTimeInterval(30)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
             func pullLogical() throws {
-                try #require(Date() < deadline)
+                try #require(ContinuousClock.now < deadline)
                 let before = owner.position
                 let output = try graph.pull(1023)
                 let written = Int(owner.position - before)

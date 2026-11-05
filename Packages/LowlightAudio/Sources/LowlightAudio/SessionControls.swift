@@ -3,10 +3,12 @@
 
 import LowlightPlanning
 
-public enum SessionControlsError: Error, Equatable { case invalidRevision, stalePlan }
+public enum SessionControlsError: Error, Equatable {
+    case invalidRevision, stalePlan, unsupportedSource
+}
 
 /// One complete desired setting, rather than a queue of individual slider samples.
-/// Revisions are monotonic within one playback owner; zero denotes its initial state.
+/// Revisions are monotonic within one playback owner; zero is reserved and cannot be submitted.
 public struct SessionControlsRequest: Equatable, Sendable {
     public let revision: UInt64
     public let controls: Controls

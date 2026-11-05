@@ -173,10 +173,10 @@ private final class SessionPolicyProbe: @unchecked Sendable {
 @MainActor
 struct PlaybackAudioSessionTests {
     private func until(_ condition: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         while !condition() {
             try Task.checkCancellation()
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             try await Task.sleep(for: .milliseconds(1))
         }
     }

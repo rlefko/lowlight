@@ -23,7 +23,7 @@ final class SessionListeningSequence {
     }
 
     private var planning: SessionPlanning
-    private let preparer: TonalSamplePreparer
+    let preparer: TonalSamplePreparer
     private var pending: Record?
     private(set) var records: [Record] = []
     private var offset: Int64

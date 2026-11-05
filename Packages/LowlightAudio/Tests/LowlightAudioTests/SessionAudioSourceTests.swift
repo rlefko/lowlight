@@ -125,9 +125,9 @@ struct SessionAudioSourceTests {
             if block == 3 || block == 12 {
                 graph.engine.pause()
                 #expect(worker.suspend())
-                let deadline = Date().addingTimeInterval(30)
+                let deadline = ContinuousClock.now.advanced(by: .seconds(30))
                 while worker.status != .suspended {
-                    try #require(Date() < deadline)
+                    try #require(ContinuousClock.now < deadline)
                     try await Task.sleep(for: .milliseconds(1))
                 }
                 #expect(source.position == actual.count / 2 && !graph.engine.isRunning)
@@ -197,10 +197,10 @@ struct SessionAudioSourceTests {
         let source = try SessionAudioSource(worker: worker)
         let graph = try OfflineSourceGraph(source)
         defer { graph.stop() }
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         var logical: [Float] = []
         while source.status != .waitingForPreparation {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             let before = source.position
             let output = try graph.pull(1023)
             let written = Int(source.position - before)
@@ -216,12 +216,12 @@ struct SessionAudioSourceTests {
             source.position == before && graph.engine.manualRenderingSampleTime == deviceTime + 257)
         score.successorResume.signal()
         while worker.status == .preparing {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             _ = sched_yield()
         }
         #expect(worker.lastError == nil)
         while source.position < source.frameCount {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             let before = source.position
             let output = try graph.pull(161)
             let written = Int(source.position - before)
