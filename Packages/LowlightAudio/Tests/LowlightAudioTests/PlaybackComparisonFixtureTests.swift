@@ -1,0 +1,53 @@
+// Copyright (C) 2026 Ryan Lefkowitz
+// SPDX-License-Identifier: GPL-3.0-only
+
+import Foundation
+import LowlightAudio
+import LowlightPlanning
+import Testing
+
+/// Opt-in host export through the continuous production transport. Service its preparation
+/// requests on this thread so accelerated rendering never inserts a scheduling gap.
+struct PlaybackComparisonFixtureTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["LOWLIGHT_COMPARISON_OUTPUT"] != nil))
+    func exportFocus() throws {
+        let environment = ProcessInfo.processInfo.environment
+        let directory = URL(
+            fileURLWithPath: try #require(environment["LOWLIGHT_COMPARISON_OUTPUT"]),
+            isDirectory: true
+        ).resolvingSymlinksInPath()
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let build = root.appendingPathComponent(".build").resolvingSymlinksInPath()
+        try #require(directory.path.hasPrefix(build.path + "/"))
+        let seconds = try #require(Int(environment["LOWLIGHT_COMPARISON_SECONDS"] ?? ""))
+        try #require((1...3600).contains(seconds))
+        let preparer = try TonalSamplePreparer(
+            bankURL: root.appendingPathComponent("Lowlight/SoundBank"))
+        let session = try PreparedSession(
+            seed: 91_031, controls: .preset(.focus), preparer: preparer)
+        let endpoint = try session.makeRenderEndpoint()
+        let frames = UInt64(seconds) * 32_000
+        let destination = directory.appendingPathComponent("source.f32")
+        try Data().write(to: destination, options: .withoutOverwriting)
+        let file = try FileHandle(forWritingTo: destination)
+        defer { try? file.close() }
+        var samples = [Float](repeating: 0, count: 8192)
+        while endpoint.position < frames {
+            if session.needsPreparation { try session.prepareNext() }
+            let start = endpoint.position
+            let count = min(samples.count / 2, Int(frames - start))
+            let written = try #require(
+                samples.withUnsafeMutableBufferPointer {
+                    endpoint.render(into: UnsafeMutableBufferPointer(rebasing: $0[..<(count * 2)]))
+                })
+            try #require(written > 0 && endpoint.position == start + UInt64(written))
+            try #require(!endpoint.isFaulted)
+            try samples.withUnsafeBytes {
+                try file.write(contentsOf: $0.prefix(written * 2 * MemoryLayout<Float>.size))
+            }
+        }
+        try #require(endpoint.position == frames)
+    }
+}
