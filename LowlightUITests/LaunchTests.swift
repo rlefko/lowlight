@@ -8,8 +8,10 @@ final class LaunchTests: XCTestCase {
     func testLaunchAndAboutRoundTrip() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
+        app.launchEnvironment["LOWLIGHT_COMPARISON_MODE"] = "generator"
         app.launch()
 
+        XCTAssertFalse(app.buttons["comparisonStart"].exists)
         XCTAssertTrue(app.navigationBars["Lowlight"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["listeningStatus"].exists)
         let transport = app.buttons["playPauseButton"]

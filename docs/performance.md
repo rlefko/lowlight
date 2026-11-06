@@ -15,6 +15,8 @@ These targets are unverified until measured on physical iPhones. No battery, lat
 
 Run two-hour locked-screen and foreground/control soaks without underruns. Compare generator, local AAC in the same app/session, and idle under matched device/OS/route/volume/thermal conditions. Use at least three alternating trials of at least 30 minutes per playback condition on an older and a current supported phone. Report absolute readings, incremental cost above idle, variability, and limitations. Measure visuals separately.
 
+The [playback comparison guide](validation-playback-comparisons.md) covers the matched AAC fixture, isolated profiling build, three-block trial order, and interpretation of the readings.
+
 For the foreground cost of the dusk horizon, see the [paired Release simulator measurements](validation-native-listening.md#foreground-cost). They include process CPU, physical memory, and separate observations of scheduled and drawn frames.
 
 In native arm64 host trials, the calibrated voices raised mean callback CPU over PR 49 by 11.94% on a seeded session and 45.91% under a sustained 64-voice overlap. Repeated live edits added 7.34% and 4.55% over the same ongoing renderer with effects disabled. With edits, the worst observed p99.9 wall times were 120.3 and 232.8 µs per 8,000 µs pull. See the [measurements and reproduction steps](validation-live-effects.md#host-callback-measurements).

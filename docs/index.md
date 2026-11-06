@@ -32,6 +32,7 @@
 - [Shared song preparation limits](validation-shared-preparation.md)
 - [Third-party code and notices](third-party-code.md)
 - [Performance and size](performance.md)
+- [Run the on-device playback comparison](validation-playback-comparisons.md)
 - [Testing and contributing](contributing.md)
 - [Toolchain decision](adrs/001-foundation.md)
 - [Native planning decision](adrs/002-native-planning.md)
