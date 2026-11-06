@@ -13,6 +13,7 @@
         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="100000000000000000000002" BuildableName="LowlightUITests.xctest" BlueprintName="LowlightUITests" ReferencedContainer="container:Lowlight.xcodeproj"/>
         <SelectedTests>
           <Test Identifier="ComparisonFailureTests"/>
+          <Test Identifier="ComparisonTests"/>
         </SelectedTests>
       </TestableReference>
     </Testables>
