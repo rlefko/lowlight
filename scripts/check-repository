@@ -14,6 +14,7 @@ Dir.glob('{README.md,docs/**/*.md}').each do |path|
   end
 end
 abort 'Sound-bank validation failed' unless system('./scripts/verify-bank')
+abort 'Warmth calibration validation failed' unless system('python3', '-B', 'tools/calibration/verify.py')
 notices = JSON.parse(File.read('config/third-party-notices.json')).fetch('files')
 notices.each do |path, expected|
   abort "Changed or missing third-party notice: #{path}" unless File.file?(path) && Digest::SHA256.file(path).hexdigest == expected

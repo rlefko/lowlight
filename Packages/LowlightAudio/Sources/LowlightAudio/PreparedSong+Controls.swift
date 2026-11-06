@@ -139,10 +139,10 @@ extension TonalVoiceMixer {
                         original_sample: Int32(original.slot), pcm: nil, frames: 0, channels: 0)
                     slot = ll_song_change_add_sample(change, &sample)
                 } else {
-                    // Complete-note calibration precedes trimming, exactly as at initial setup.
-                    let sample = try preparer.prepare(
-                        instrument: key.instrument, note: key.note, roundRobin: key.roundRobin,
-                        warmth: warmth, velocity: event.velocity)
+                    // Use the original rack encoding and shared calibration row for new keys.
+                    let sample = try key.sample(
+                        preparer: preparer, warmth: warmth, velocity: event.velocity,
+                        live: useLiveTonalSamples)
                     guard (1...2).contains(sample.channels),
                         sample.samples.count.isMultiple(of: sample.channels),
                         (1...215_513).contains(sample.frames),
@@ -154,6 +154,9 @@ extension TonalVoiceMixer {
                         var prepared = LLSongChangeSample(
                             original_sample: -1, pcm: buffer.baseAddress,
                             frames: UInt32(frames), channels: UInt32(sample.channels))
+                        if useLiveTonalSamples, let row = key.calibrationKey {
+                            return ll_song_change_add_tonal_sample(change, &prepared, row)
+                        }
                         return ll_song_change_add_sample(change, &prepared)
                     }
                 }

@@ -25,8 +25,10 @@ public struct TonalSamplePreparer: Sendable {
         let rootMidi: Int?
         let instrument: String?
         let roundRobin: Int?
+        let assetSha256: String?
     }
     private struct GuitarManifest: Decodable { let entries: [Entry] }
+    let calibrationBank: TonalCalibrationBank
     private let bankURL: URL
     private let guitar, piano, bass, percussion: [Entry]
 
@@ -44,6 +46,9 @@ public struct TonalSamplePreparer: Sendable {
         piano = samples.filter {
             $0.instrument == "piano" && $0.asset.contains("_v1_")
         }
+        calibrationBank = TonalCalibrationBank(
+            bank: self.bankURL, guitarManifest: guitarData, sampleManifest: sampleData,
+            assets: (guitar + piano).map { ($0.asset, $0.assetSha256 ?? "") })
         bass = samples.filter { $0.instrument == "bass" && $0.asset.contains("_v1_") }
         percussion = samples.filter {
             $0.instrument == "kick" || $0.instrument == "shaker"
@@ -130,6 +135,36 @@ public struct TonalSamplePreparer: Sendable {
             return try preparePercussion(
                 instrument: instrument, note: note, roundRobin: roundRobin, velocity: velocity)
         }
+        let source = try tonalSource(instrument: instrument, note: note, roundRobin: roundRobin)
+        let warm = Self.quantizedWarmth(warmth)
+        var samples = source.samples
+        SampleProcessing.filter(
+            &samples, channels: source.channels,
+            cutoff: instrument == .guitar ? 1300 - 600 * warm : 1200 - 500 * warm, highpass: false)
+        guard samples.count >= 28800 * source.channels else {
+            throw SamplePreparationError.invalidAudio
+        }
+        let gain = Self.calibrationGain(samples, channels: source.channels, instrument: instrument)
+        for index in samples.indices {
+            samples[index] *= gain
+            if instrument == .piano {
+                let time = Double(index / source.channels) / 32_000
+                samples[index] = Float(
+                    Double(samples[index]) * (0.60 + 0.40 * (1 - exp(-time / 0.060))))
+            }
+        }
+        guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
+        return PreparedTonalSample(samples: samples, channels: source.channels)
+    }
+
+    // Caller owns the existing synchronous preparation numeric scope. This signal is
+    // shared by every Warmth setting and is trimmed only after complete transposition.
+    func tonalSource(instrument: TonalInstrument, note: Int, roundRobin: Int) throws
+        -> PreparedTonalSample
+    {
+        guard instrument == .guitar || instrument == .piano, (0...10).contains(roundRobin) else {
+            throw SamplePreparationError.invalidRequest
+        }
         guard (50...69).contains(note) else { throw SamplePreparationError.invalidRequest }
         let pool = instrument == .guitar ? guitar : piano
         // Manifest order is significant for piano ties (58 selects 60, not 56).
@@ -146,33 +181,25 @@ public struct TonalSamplePreparer: Sendable {
         var samples = try decode(entry)
         samples = SampleProcessing.transpose(
             samples, channels: entry.channels, semitones: note - root)
-        let warm = Self.quantizedWarmth(warmth)
         SampleProcessing.filter(
             &samples, channels: entry.channels, cutoff: instrument == .guitar ? 100 : 90,
             highpass: true)
-        SampleProcessing.filter(
-            &samples, channels: entry.channels,
-            cutoff: instrument == .guitar ? 1300 - 600 * warm : 1200 - 500 * warm, highpass: false)
         guard samples.count >= 28800 * entry.channels else {
             throw SamplePreparationError.invalidAudio
         }
-        let body = samples[(3840 * entry.channels)..<(28800 * entry.channels)]
+        return PreparedTonalSample(samples: samples, channels: entry.channels)
+    }
+
+    static func calibrationGain(_ samples: [Float], channels: Int, instrument: TonalInstrument)
+        -> Float
+    {
+        let body = samples[(3840 * channels)..<(28800 * channels)]
         let rms = sqrt(body.reduce(0.0) { $0 + Double($1) * Double($1) } / Double(body.count))
         let target = instrument == .guitar ? 0.13 : 0.14
-        let gain = Float(
+        return Float(
             min(
                 instrument == .guitar ? 3.2 : 4,
                 max(instrument == .guitar ? 0.45 : 0.35, target / max(rms, 1e-8))))
-        for index in samples.indices {
-            samples[index] *= gain
-            if instrument == .piano {
-                let time = Double(index / entry.channels) / 32_000
-                samples[index] = Float(
-                    Double(samples[index]) * (0.60 + 0.40 * (1 - exp(-time / 0.060))))
-            }
-        }
-        guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
-        return PreparedTonalSample(samples: samples, channels: entry.channels)
     }
 
     private func preparePercussion(

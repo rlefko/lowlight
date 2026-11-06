@@ -81,7 +81,7 @@ LLMixerChangeSamples *ll_song_replay_begin_change(LLSongReplay *) {
 void ll_mixer_destroy_change_samples(LLMixerChangeSamples *) {
     std::abort();
 }
-int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *, const LLSongChangeSample &) {
+int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *, const LLSongChangeSample &, uint32_t) {
     std::abort();
 }
 LLSongAdvance *ll_song_replay_prepare_change(LLSongReplay *, const LLSongChangeScore &,

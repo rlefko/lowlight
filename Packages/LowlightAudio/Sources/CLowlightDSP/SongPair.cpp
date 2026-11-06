@@ -758,6 +758,12 @@ int32_t ll_song_change_add_sample(LLSongChange *patch, const LLSongChangeSample 
     return patch && !patch->advance && sample ? ll_mixer_change_add_sample(patch->samples, *sample)
                                               : -1;
 }
+int32_t ll_song_change_add_tonal_sample(LLSongChange *patch, const LLSongChangeSample *sample,
+                                        uint32_t key) {
+    return patch && !patch->advance && sample && sample->original_sample == -1 && key < 100
+               ? ll_mixer_change_add_sample(patch->samples, *sample, key)
+               : -1;
+}
 bool ll_song_change_finish(LLSongChange *patch, const LLSongChangeScore *score) {
     if (!patch || patch->advance || !score || score->samples || score->sample_count ||
         ll_song_revision_get(patch->offer.intent) != patch->offer.revision ||

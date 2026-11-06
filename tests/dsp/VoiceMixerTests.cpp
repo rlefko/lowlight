@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
 #include "LowlightDSP.h"
+#include "../../Packages/LowlightAudio/Sources/CLowlightDSP/TonalRendering.h"
+#include "../../Packages/LowlightAudio/Sources/CLowlightDSP/TonalVoice.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -1344,7 +1346,94 @@ static void requiredVoiceCapacityAndReload() {
     loadWithRequiredSlots(mixer, {}, 0);
 }
 
+static void calibratedUnderflowAndPianoCutoff() {
+    const double minimum = std::numeric_limits<float>::min();
+    for (const auto value : {minimum, minimum - 0x1p-150, minimum - 0x1.0001p-150, minimum * .5,
+                             minimum * .75, minimum * 2, -minimum * .5}) {
+        for (const float gain : {.35f, .45f, 1.f, 2.f, 3.2f, 4.f}) {
+            float expected;
+            {
+                lowlight::FloatingPointMode mode(lowlight::UnderflowMode::gradual);
+                const float shaped = static_cast<float>(value) * gain;
+                expected = std::abs(shaped) < minimum ? 0 : shaped;
+            }
+            lowlight::FloatingPointMode mode;
+            CHECK(lowlight::calibratedTonal(value, gain) == expected);
+        }
+    }
+    lowlight::FloatingPointMode mode(lowlight::UnderflowMode::gradual);
+    // At the first omitted age, check both sides of every normal Float binade. The
+    // factor is monotonic thereafter, approaching one from below.
+    const double shape = .60 + .40 * (1 - std::exp(-1. / .060));
+    CHECK(1 - shape < 0x1p-25);
+    for (uint32_t exponent = 1; exponent < 255; ++exponent)
+        for (auto fraction : {0u, 1u, 0x7ffffeu, 0x7fffffu}) {
+            uint32_t bits = (exponent << 23) | fraction;
+            float sample;
+            std::memcpy(&sample, &bits, sizeof(bits));
+            CHECK(static_cast<float>(sample * shape) == sample);
+            CHECK(static_cast<float>(-sample * shape) == -sample);
+        }
+}
+
+static void liveTonalBoundsAndRetargeting() {
+    std::vector<float> gains(10100, 1);
+    CHECK(!ll_tonal_calibration_create(gains.data(), 10099));
+    gains[101] = std::numeric_limits<float>::quiet_NaN();
+    CHECK(!ll_tonal_calibration_create(gains.data(), 10100));
+    gains[101] = 1;
+    auto *table = ll_tonal_calibration_create(gains.data(), 10100);
+    CHECK(table);
+    {
+        Mixer mixer;
+        CHECK(!ll_mixer_configure_tonal(mixer.value, table, 101));
+        CHECK(ll_mixer_configure_tonal(mixer.value, table, 78));
+        CHECK(!ll_mixer_configure_tonal(mixer.value, table, 0));
+        CHECK(ll_mixer_configure_buses(mixer.value, .35));
+        std::vector<float> raw(1024);
+        for (uint32_t i = 0; i < raw.size(); ++i)
+            raw[i] = static_cast<float>((int(i % 7) - 3) * .125);
+        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 512, 2, 0) < 0);
+        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 1024, 1, 100) < 0);
+        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 1024, 1, 0) == 0);
+        auto note = event(0, 0, 900, 124);
+        note.midi = 50;
+        CHECK(!ll_mixer_load_events(mixer.value, &note, 0xffffffffu));
+        note.instrument = 1;
+        CHECK(!ll_mixer_load_events(mixer.value, &note, 1));
+        note.instrument = 0;
+        mixer.load({note});
+        std::vector<LLBusFrame> first(1024), split(1024), fixed(1024);
+        std::vector<double> bins(1024);
+        for (uint32_t i = 0; i < 1024; ++i)
+            bins[i] = i < 320 ? 78 : 100. * (1023 - i) / (1023 - 320);
+        const double valid = bins.back();
+        for (const double invalid : {-std::numeric_limits<double>::denorm_min(), 100.00001,
+                                     std::numeric_limits<double>::infinity()}) {
+            bins.back() = invalid;
+            CHECK(!ll_mixer_render_effect_buses(mixer.value, first.data(), 1024, bins.data()));
+            CHECK(ll_mixer_position(mixer.value) == 0);
+        }
+        bins.back() = valid;
+        auditing = true;
+        CHECK(ll_mixer_render_effect_buses(mixer.value, first.data(), 1024, bins.data()));
+        auditing = false;
+        CHECK(allocations == 0 && deallocations == 0);
+        mixer.reset();
+        for (uint32_t i = 0; i < 1024; ++i)
+            CHECK(ll_mixer_render_effect_buses(mixer.value, split.data() + i, 1, bins.data() + i));
+        CHECK(sameBuses(first, split));
+        mixer.reset();
+        CHECK(ll_mixer_render_buses(mixer.value, fixed.data(), 1024));
+        CHECK(std::equal(first.begin(), first.begin() + 320, fixed.begin(), sameFrame));
+        CHECK(!sameBuses(first, fixed));
+    }
+    ll_tonal_calibration_destroy(table);
+}
+
 int main() {
+    calibratedUnderflowAndPianoCutoff();
+    liveTonalBoundsAndRetargeting();
     timingAndPartitioning();
     envelopesAndStereo();
     stealing();

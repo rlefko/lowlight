@@ -16,7 +16,8 @@ LLMixerAdvance *ll_mixer_prepare_advance(const LLMixer *, uint32_t boundary, uin
                                          LLSongAdvance &);
 LLMixerChangeSamples *ll_mixer_begin_change(LLMixer *);
 void ll_mixer_destroy_change_samples(LLMixerChangeSamples *);
-int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *, const LLSongChangeSample &);
+int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *, const LLSongChangeSample &,
+                                   uint32_t tonalKey = 100);
 LLMixerAdvance *ll_mixer_prepare_change(LLMixer *, const LLSongChangeScore &,
                                         const LLMixerChangeSamples *, LLSongAdvance &);
 uint32_t ll_mixer_change_sample_bytes(const LLMixerAdvance *);

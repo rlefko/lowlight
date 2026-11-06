@@ -15,7 +15,10 @@ let package = Package(
             publicHeadersPath: "include",
             cxxSettings: [.unsafeFlags(["-ffp-contract=off"])]
         ),
-        .target(name: "LowlightAudio", dependencies: ["CLowlightDSP", "LowlightPlanning"]),
+        .target(
+            name: "LowlightAudio", dependencies: ["CLowlightDSP", "LowlightPlanning"],
+            resources: [.copy("Resources/warmth-v1.f32")]
+        ),
         .target(
             name: "CPreparationTestSupport", path: "Tests/CPreparationTestSupport",
             publicHeadersPath: "include"
