@@ -179,7 +179,9 @@ struct SessionControlsStressTests {
                 previousControls = controls
                 if controls.appliedRevision > 0 {
                     try #require(controls.appliedRevision >= lastAppliedRevision)
-                    try #require(submitted[controls.appliedRevision] == controls.applied)
+                    try #require(
+                        submitted[controls.appliedRevision]?.hasSameMusic(as: controls.applied)
+                            == true)
                     try #require(!supersededRevisions.contains(controls.appliedRevision))
                     lastAppliedRevision = controls.appliedRevision
                     appliedRevisions.insert(controls.appliedRevision)
@@ -246,7 +248,7 @@ struct SessionControlsStressTests {
         Thread.sleep(forTimeInterval: 0.2)
         let final = worker.controlsSnapshot
         if final.appliedRevision > 0 {
-            try #require(submitted[final.appliedRevision] == final.applied)
+            try #require(submitted[final.appliedRevision]?.hasSameMusic(as: final.applied) == true)
             appliedRevisions.insert(final.appliedRevision)
             if !appliedValues.contains(final.applied) { appliedValues.append(final.applied) }
         }

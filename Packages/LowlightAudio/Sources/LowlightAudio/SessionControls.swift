@@ -24,8 +24,9 @@ public enum SessionControlChangeState: Equatable, Sendable {
     case none, queued, transitioning, failed
 }
 
-/// Requested settings do not become sounding settings merely because preparation finishes.
-/// Applied settings follow the selected song at the shared rhythm handoff.
+/// The musical revision and its phase follow selection at the shared rhythm handoff.
+/// The worker's applied value combines that music with the last settled render effects.
+/// See SessionEffectsSnapshot for independent live target and ramp acknowledgments.
 public struct SessionControlsSnapshot: Equatable, Sendable {
     public let requested: Controls
     public let applied: Controls

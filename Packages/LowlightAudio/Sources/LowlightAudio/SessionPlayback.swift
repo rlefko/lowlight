@@ -45,6 +45,9 @@ public final class SessionPlayback {
     public private(set) var desiredControls: Controls
     public private(set) var appliedControls: Controls
     public private(set) var controlChangeState = SessionControlChangeState.none
+
+    /// On-demand render acknowledgment, available during long preparation work.
+    public var effectsSnapshot: SessionEffectsSnapshot { control.effectsSnapshot }
     public var commandInput: SessionPlaybackCommandInput {
         SessionPlaybackCommandInput { [weak control] command in
             control?.submit(command) ?? false
@@ -57,7 +60,9 @@ public final class SessionPlayback {
     public convenience init(
         bankURL: URL, seed: UInt64 = 91_031, controls: Controls = Controls(), frameCount: UInt32
     ) {
-        self.init(audioSession: .system, controls: controls, restart: nil) {
+        self.init(
+            audioSession: .system, controls: controls, restart: nil, supportsLiveEffects: false
+        ) {
             token, prepareOutput, _, requested in
             try token.check()
             let preparer = try TonalSamplePreparer(bankURL: bankURL)
@@ -142,6 +147,7 @@ public final class SessionPlayback {
 
     init(
         audioSession: PlaybackAudioSession, controls: Controls?, restart: SessionRestartIntent?,
+        supportsLiveEffects: Bool = true,
         factory:
             @escaping @Sendable (
                 PreparationCancellation, () throws -> Void, SessionRestartIntent?, Controls
@@ -163,7 +169,7 @@ public final class SessionPlayback {
         appliedControls = restart?.currentSong.controls ?? initial
         control = PlaybackControl(
             audioSession: audioSession, controls: initial, invalidControls: invalid,
-            restart: restart, factory: factory)
+            restart: restart, supportsLiveEffects: supportsLiveEffects, factory: factory)
         control.setReceiver { [weak self] snapshot in
             guard let self else { return }
             self.state = snapshot.state
@@ -207,10 +213,20 @@ public final class SessionPlayback {
     /// values are separate from the controls of the song currently selected for playback.
     /// Finite sources accept initial edits only, before their first admitted start.
     public func setControls(_ value: Controls) throws {
-        let request = try control.setControls(value)
-        desiredControls = request.controls
-        controlChangeState = listeningSnapshot == nil ? .none : .queued
+        let committed = try control.setControls(value)
+        if !desiredControls.hasSameMusic(as: committed), listeningSnapshot != nil {
+            controlChangeState = .queued
+        }
+        desiredControls = committed
     }
+
+    /// Auditions the effect target without committing settings or requesting playback.
+    public func previewEffects(_ effects: SessionEffects) throws {
+        try control.previewEffects(effects)
+    }
+
+    /// Smoothly returns an unfinished preview to the last complete committed settings.
+    public func cancelEffectsPreview() { try? control.previewEffects(nil) }
 
     /// Retry the latest failed change without starting or resuming audio.
     public func retryControls() { control.retryControls() }
@@ -259,6 +275,9 @@ private final class PlaybackControl: @unchecked Sendable {
         var capture = false
         var nextSelection: UInt64?
         var controls = Controls()
+        var musicalControls = Controls()
+        var effectTarget = SessionEffects(Controls())
+        var effectsRevision: UInt64 = 1
         var controlsRevision: UInt64 = 1
         var retryControls = false
         var invalidInitialControls: (any Error)?
@@ -283,6 +302,10 @@ private final class PlaybackControl: @unchecked Sendable {
     // A weak mailbox capability, never an engine or render endpoint. Its submit operation
     // invalidates stale native work synchronously even while this queue is busy.
     private var controlsInput: SessionControlsInput?
+    private var effectsInput: SessionEffectsInput?
+    private var previousEffects: SessionEffectsSnapshot?
+    private let supportsLiveEffects: Bool
+    private let initialEffects: SessionEffects
     private var admittedPlayback = false
     private var engine: SessionAudioEngine?
     // Until its first admitted start, a constructed graph is still replaceable startup
@@ -310,7 +333,7 @@ private final class PlaybackControl: @unchecked Sendable {
 
     init(
         audioSession: PlaybackAudioSession, controls: Controls, invalidControls: (any Error)?,
-        restart: SessionRestartIntent?,
+        restart: SessionRestartIntent?, supportsLiveEffects: Bool,
         factory:
             @escaping @Sendable (
                 PreparationCancellation, () throws -> Void, SessionRestartIntent?, Controls
@@ -319,34 +342,90 @@ private final class PlaybackControl: @unchecked Sendable {
     ) {
         self.audioSession = audioSession
         self.factory = factory
+        self.supportsLiveEffects = supportsLiveEffects
+        initialEffects = SessionEffects(restart?.currentSong.controls ?? controls)
+        command.musicalControls = controls
+        command.effectTarget = SessionEffects(controls)
         command.controls = controls
         command.invalidInitialControls = invalidControls
         latestRestart = restart
     }
 
-    func setControls(_ value: Controls) throws -> SessionControlsRequest {
+    func setControls(_ value: Controls) throws -> Controls {
         let normalized = try value.normalized()
-        let admitted = try lock.withLock {
+        let admitted = try lock.withLock { () -> (SessionControlsInput?, SessionControlsRequest?) in
             guard command.intent != .stop else { throw SessionAudioEngineError.stopped }
             guard !admittedPlayback || controlsInput != nil else {
                 throw SessionControlsError.unsupportedSource
             }
-            let next = command.controlsRevision.addingReportingOverflow(1)
-            guard !next.overflow else { throw SessionControlsError.invalidRevision }
-            let request = try SessionControlsRequest(
-                revision: next.partialValue, controls: normalized)
-            command.controls = request.controls
-            command.controlsRevision = request.revision
-            command.retryControls = false
+            // Finite sources bake the whole setting into their one construction.
+            let finite = !supportsLiveEffects || (observedEngine != nil && controlsInput == nil)
+            let rebuild =
+                !command.controls.hasSameMusic(as: normalized)
+                || (finite && command.controls != normalized)
+                || command.invalidInitialControls != nil
+            let effects = SessionEffects(normalized)
+            guard !rebuild || command.controlsRevision < .max,
+                effects == command.effectTarget || command.effectsRevision < .max
+            else { throw SessionControlsError.invalidRevision }
+
+            let request: SessionControlsRequest?
+            if rebuild {
+                request = try SessionControlsRequest(
+                    revision: command.controlsRevision + 1, controls: normalized)
+                command.controlsRevision += 1
+                command.musicalControls = normalized
+                command.retryControls = false
+                startup?.cancel()
+            } else {
+                request = nil
+            }
+            command.controls = normalized
             command.invalidInitialControls = nil
+            publishEffects(effects)
             command.revision &+= 1
-            startup?.cancel()
-            return (request, controlsInput)
+            return (controlsInput, request)
         }
-        // Worker notification can reenter receiveListening; never hold our mailbox lock.
-        _ = admitted.1?.send(admitted.0)
+        // Musical submission can notify the engine observer. Effects publication only
+        // writes the independent producer mailbox and never touches the worker.
+        if let request = admitted.1 { _ = admitted.0?.send(request) }
         lock.withLock { scheduleDrain() }
-        return admitted.0
+        return normalized
+    }
+
+    func previewEffects(_ value: SessionEffects?) throws {
+        let normalized = try value?.normalized()
+        try lock.withLock {
+            guard command.intent != .stop else { throw SessionAudioEngineError.stopped }
+            guard supportsLiveEffects, !admittedPlayback || effectsInput != nil else {
+                throw SessionControlsError.unsupportedSource
+            }
+            let target = normalized ?? SessionEffects(command.controls)
+            guard target != command.effectTarget else { return }
+            guard command.effectsRevision < .max else { throw SessionControlsError.invalidRevision }
+            publishEffects(target)
+        }
+    }
+
+    // Caller holds the coordinator lock. The effects input has no observers and no
+    // call into the engine or preparation worker. A missing engine receives the latest
+    // target at installation under this same lock, before it can admit output.
+    private func publishEffects(_ target: SessionEffects) {
+        guard command.effectTarget != target else { return }
+        command.effectsRevision += 1
+        command.effectTarget = target
+        _ = effectsInput?.send(target, revision: command.effectsRevision)
+    }
+
+    var effectsSnapshot: SessionEffectsSnapshot {
+        lock.withLock {
+            let actual = effectsInput?.snapshot ?? previousEffects
+            return SessionEffectsSnapshot(
+                requested: command.effectTarget, revision: command.effectsRevision,
+                settled: actual?.settled ?? initialEffects,
+                adoptedRevision: actual?.adoptedRevision ?? 0,
+                settledRevision: actual?.settledRevision ?? 0)
+        }
     }
 
     func retryControls() {
@@ -428,8 +507,13 @@ private final class PlaybackControl: @unchecked Sendable {
                 command.mediaServicesAvailable = available
                 startup?.cancel()
                 observedEngine = nil
+                previousEffects = effectsInput?.snapshot ?? previousEffects
+                effectsInput = nil
                 controlsInput = nil
                 admittedPlayback = false
+                if command.effectsRevision < .max {
+                    publishEffects(SessionEffects(command.controls))
+                }
                 // A notification racing terminal cleanup still invalidates old activation;
                 // it cannot enqueue new work or resurrect the terminal owner.
                 guard command.intent != .stop else { return }
@@ -563,7 +647,7 @@ private final class PlaybackControl: @unchecked Sendable {
         }
         if let engine,
             let request = try? SessionControlsRequest(
-                revision: current.controlsRevision, controls: current.controls)
+                revision: current.controlsRevision, controls: current.musicalControls)
         {
             _ = engine.controlsInput?.send(request)
             let retry =
@@ -647,6 +731,8 @@ private final class PlaybackControl: @unchecked Sendable {
                 lock.withLock {
                     observedEngine = generation
                     controlsInput = input
+                    effectsInput = candidate.effectsInput
+                    _ = effectsInput?.send(command.effectTarget, revision: command.effectsRevision)
                     admittedPlayback = false
                 }
                 quiescedConfiguration = current.configuration
@@ -676,7 +762,10 @@ private final class PlaybackControl: @unchecked Sendable {
         }
         // A factory may finish after Pause/Stop. Do not start that obsolete result.
         let latest = lock.withLock { command }
-        if freshOutput && latest.controlsRevision != current.controlsRevision {
+        if freshOutput
+            && (latest.controlsRevision != current.controlsRevision
+                || (engine?.effectsInput == nil && latest.controls != current.controls))
+        {
             // An obsolete first construction never becomes the saved selection or starts
             // audible output merely because its factory returned between mailbox turns.
             disposeEngine(retainingListening: false)
@@ -689,7 +778,7 @@ private final class PlaybackControl: @unchecked Sendable {
             latest.configuration == quiescedConfiguration
         else { return nil }
         if let request = try? SessionControlsRequest(
-            revision: latest.controlsRevision, controls: latest.controls)
+            revision: latest.controlsRevision, controls: latest.musicalControls)
         {
             _ = engine?.controlsInput?.send(request)
         }
@@ -849,6 +938,8 @@ private final class PlaybackControl: @unchecked Sendable {
         lock.withLock {
             observedEngine = nil
             eligibleSelection = nil
+            previousEffects = effectsInput?.snapshot ?? previousEffects
+            effectsInput = nil
             controlsInput = nil
             admittedPlayback = false
         }
@@ -860,6 +951,11 @@ private final class PlaybackControl: @unchecked Sendable {
         preparedConfiguration = nil
         if let engine {
             engine.stop()
+            // Output is now quiescent. A final render can have settled after the input
+            // capability was detached at the start of cleanup.
+            if let final = engine.effectsSnapshot {
+                lock.withLock { previousEffects = final }
+            }
             if retainingListening {
                 position = engine.position
                 source = engine.sourceStatus
@@ -884,21 +980,23 @@ private final class PlaybackControl: @unchecked Sendable {
     private func snapshot(_ state: SessionPlaybackState, _ revision: UInt64) -> PlaybackSnapshot {
         if let engine { retainListening(from: engine) }
         lock.withLock { eligibleSelection = engine != nil ? listening?.selectionID : nil }
-        let current = lock.withLock { command }
+        let (current, lastEffects) = lock.withLock { (command, previousEffects) }
         let actual = engine?.controlsSnapshot
-        let applied = actual?.applied ?? latestRestart?.currentSong.controls ?? current.controls
+        let saved = latestRestart?.currentSong.controls ?? current.controls
+        let applied = actual?.applied ?? lastEffects?.settled.applying(to: saved) ?? saved
         let controlState: SessionControlChangeState
         if let actual, actual.revision == 0 {
             controlState = .none  // A finite source has no live-control protocol.
         } else if let actual, actual.revision == current.controlsRevision {
             controlState = actual.state
         } else {
-            controlState = actual == nil && applied == current.controls ? .none : .queued
+            controlState =
+                actual == nil && applied.hasSameMusic(as: current.controls) ? .none : .queued
         }
         let controls = SessionControlsSnapshot(
             requested: current.controls, applied: applied, revision: current.controlsRevision,
             appliedRevision: actual?.appliedRevision
-                ?? (applied == current.controls ? current.controlsRevision : 0),
+                ?? (applied.hasSameMusic(as: current.controls) ? current.controlsRevision : 0),
             state: controlState)
         return PlaybackSnapshot(
             revision: revision, state: state,

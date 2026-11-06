@@ -23,6 +23,7 @@ public final class SessionAudioEngine {
     private var finalPreparationError: (any Error)?
     private var finalListeningSnapshot: SessionListeningSnapshot?
     private var finalControlsSnapshot: SessionControlsSnapshot
+    private var finalEffectsSnapshot: SessionEffectsSnapshot?
 
     public let frameCount: UInt64
     public var finiteFrameCount: UInt64? { frameCount == 0 ? nil : frameCount }
@@ -140,7 +141,11 @@ public final class SessionAudioEngine {
     }
 
     // Exposes only the weak, synchronous intent mailbox, never the owned render graph.
-    var controlsInput: SessionControlsInput? { worker?.controlsInput }
+    var controlsInput: SessionControlsInput? { worker?.musicalInput }
+    var effectsInput: SessionEffectsInput? { worker?.effectsInput }
+    public var effectsSnapshot: SessionEffectsSnapshot? {
+        worker?.effectsSnapshot ?? finalEffectsSnapshot
+    }
 
     public func requestCapture() { worker?.requestCapture() }
 
@@ -194,6 +199,7 @@ public final class SessionAudioEngine {
         finalPreparationError = worker.lastError
         finalListeningSnapshot = worker.listeningSnapshot
         finalControlsSnapshot = worker.controlsSnapshot
+        finalEffectsSnapshot = worker.effectsSnapshot
         engine.disconnectNodeOutput(source.node)
         engine.detach(source.node)
         self.source = nil

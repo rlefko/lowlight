@@ -159,7 +159,7 @@ struct SessionControlsWorkerTests {
         }
         #expect(worker.controlsSnapshot.requested == controls)
         #expect(worker.controlsSnapshot.applied == controls)
-        #expect(worker.controlsSnapshot.revision == 0)
+        #expect(worker.controlsSnapshot.revision == 0 && worker.effectsInput == nil)
         #expect(worker.controlsSnapshot.state == .none)
         #expect(!worker.setControls(try SessionControlsRequest(revision: 2, controls: Controls())))
         #expect(!worker.retryControls())
@@ -208,6 +208,28 @@ struct SessionControlsWorkerTests {
         }
         let gatePosition = try #require(endpoint?.position)
         try #require(gatePosition + 4096 < UInt64(gate.firstFrames))
+        // The sole preparation worker is blocked inside B′ analysis. Effects can still
+        // settle on real A audio and a full effect-only commit keeps its musical request.
+        let effects = try #require(worker?.effectsInput)
+        let target = SessionEffects(warmth: 0.18, space: 0.92, texture: 1)
+        #expect(effects.send(SessionEffects(warmth: 1, space: 0, texture: 0), revision: 2))
+        #expect(effects.send(target, revision: 3))
+        #expect(!effects.send(SessionEffects(initial), revision: 2))
+        var heardSignal = false
+        for _ in 0..<48 {
+            try #require(
+                output.withUnsafeMutableBufferPointer { endpoint?.render(into: $0) } == 256)
+            heardSignal = heardSignal || output.contains { abs($0) > 1e-6 }
+        }
+        #expect(heardSignal && effects.snapshot?.settled == target)
+        #expect(effects.snapshot?.adoptedRevision == 3 && effects.snapshot?.settledRevision == 3)
+        let music = try #require(worker?.controlsSnapshot)
+        let commit = try SessionControlsRequest(
+            revision: 3, controls: target.applying(to: music.requested))
+        #expect(input.send(commit))
+        #expect(worker?.controlsSnapshot.revision == music.revision)
+        #expect(worker?.controlsSnapshot.requested == commit.controls)
+        #expect(effects.snapshot?.revision == 3)
         worker?.requestStop()
         gate.resume.signal()
         worker?.join()
@@ -215,7 +237,8 @@ struct SessionControlsWorkerTests {
         #expect(gate.pool?.reservedRacks == 1)
         #expect(gate.session?.sequence?.acceptedControlsRevision == 0)
         worker = nil
-        #expect(!input.retry())
+        #expect(!input.retry() && !effects.send(target, revision: 4))
+        #expect(effects.snapshot == nil)
         #expect(gate.session != nil)
         #expect(output.withUnsafeMutableBufferPointer { endpoint?.render(into: $0) } == 256)
         #expect(try endpoint?.captureAfterWorkerStopped() != nil)

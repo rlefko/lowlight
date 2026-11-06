@@ -55,6 +55,7 @@ final class SessionControlsMailbox: @unchecked Sendable {
     private let changed: @Sendable (Bool) -> Void
     private let attemptCaptured: (@Sendable (Attempt) -> Void)?
     private var desired: SessionControlsRequest
+    private var lastSubmission: SessionControlsRequest
     private var applied: Controls
     private var appliedRevision: UInt64
     private var phase = SessionControlChangeState.none
@@ -69,9 +70,10 @@ final class SessionControlsMailbox: @unchecked Sendable {
         changed: @escaping @Sendable (Bool) -> Void
     ) throws {
         self.desired = try SessionControlsRequest(revision: 1, controls: desired)
+        lastSubmission = self.desired
         self.applied = applied
-        appliedRevision = desired == applied ? 1 : 0
-        phase = desired == applied ? .none : .queued
+        appliedRevision = desired.hasSameMusic(as: applied) ? 1 : 0
+        phase = desired.hasSameMusic(as: applied) ? .none : .queued
         self.changed = changed
         self.attemptCaptured = attemptCaptured
         intent = try SessionControlsRevision()
@@ -99,28 +101,49 @@ final class SessionControlsMailbox: @unchecked Sendable {
 
     private var value: SessionControlsSnapshot {
         SessionControlsSnapshot(
-            requested: desired.controls, applied: applied, revision: desired.revision,
+            requested: lastSubmission.controls, applied: applied, revision: desired.revision,
             appliedRevision: appliedRevision,
             state: failure?.revision == desired.revision
                 ? .failed : (phaseRevision == desired.revision ? phase : .queued))
     }
 
-    func send(_ request: SessionControlsRequest) -> Bool {
+    func send(
+        _ request: SessionControlsRequest, committingEffects effects: SessionEffectsMailbox? = nil,
+        musicalOnly: Bool = false
+    )
+        -> Bool
+    {
         lock.lock()
-        guard !stopped, request.revision >= desired.revision else {
+        guard !stopped, request.revision >= lastSubmission.revision else {
             lock.unlock()
             return false
         }
-        if request.revision == desired.revision {
-            let same = request == desired
+        if request.revision == lastSubmission.revision {
+            let same =
+                musicalOnly
+                ? request.controls.hasSameMusic(as: lastSubmission.controls)
+                : request == lastSubmission
             lock.unlock()
             return same
+        }
+        if let effects {
+            guard effects.commit(SessionEffects(request.controls)) else {
+                lock.unlock()
+                return false
+            }
+            if request.controls.hasSameMusic(as: desired.controls) {
+                lastSubmission = request
+                lock.unlock()
+                changed(false)
+                return true
+            }
         }
         guard intent.set(request.revision) else {
             lock.unlock()
             return false
         }
         desired = request
+        lastSubmission = request
         failure = nil
         phase = .queued
         phaseRevision = request.revision
