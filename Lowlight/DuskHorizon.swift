@@ -12,6 +12,7 @@ struct DuskHorizon: View {
     var body: some View {
         let night = colorScheme == .dark
         Canvas { context, size in
+            HorizonDiagnostics.draw()
             let width = size.width
             let height = size.height
             let sky =

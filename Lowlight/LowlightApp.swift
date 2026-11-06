@@ -96,7 +96,7 @@ private struct ListeningView: View {
     }
 
     private var horizonArt: some View {
-        DuskHorizon(phase: 0, seed: 0)
+        HorizonMotionView(model: model, covered: showsAbout || showsControls)
             .frame(
                 height: verticalSizeClass == .compact || dynamicTypeSize.isAccessibilitySize
                     ? 72 : 148)
