@@ -12,17 +12,17 @@ import Testing
 @MainActor
 struct ListeningModelTests {
     private func wait(_ condition: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         while !condition() {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             try await Task.sleep(for: .milliseconds(1))
         }
     }
 
     private func waitForLoad(_ loader: ModelLoadGate) async throws {
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         while await !loader.isWaiting {
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             try await Task.sleep(for: .milliseconds(1))
         }
     }
@@ -39,11 +39,13 @@ struct ListeningModelTests {
         let remote = ModelRemoteServices()
         var restorations: [SessionRestartIntent?] = []
         let model = ListeningModel(
-            persistence: ListeningPersistence(load: { saved }, save: { _ in }),
+            persistence: ListeningPersistence(
+                load: { try ListeningRecord(controls: saved.currentSong.controls, restart: saved) },
+                save: { _ in }),
             remoteServices: { remote.value },
-            makePlayback: { restart in
+            makePlayback: { controls, restart in
                 restorations.append(restart)
-                return SessionPlayback(factory: { try probe.makeEngine($0) })
+                return SessionPlayback(controls: controls, factory: { try probe.makeEngine($0) })
             })
         model.load()
         model.load()
@@ -84,8 +86,8 @@ struct ListeningModelTests {
         let model = ListeningModel(
             persistence: ListeningPersistence(load: { nil }, save: { _ in }),
             remoteServices: { remote.value },
-            makePlayback: { _ in
-                SessionPlayback(factory: { try probe.makeEngine($0) })
+            makePlayback: { controls, _ in
+                SessionPlayback(controls: controls, factory: { try probe.makeEngine($0) })
             })
         model.load()
         try await wait { !model.isLoading }
@@ -108,9 +110,10 @@ struct ListeningModelTests {
         let model = ListeningModel(
             persistence: ListeningPersistence(load: { try await loader.load() }, save: { _ in }),
             remoteServices: { remote.value },
-            makePlayback: { restart in
+            makePlayback: { controls, restart in
                 installed.append(restart)
-                return SessionPlayback(factory: { _ in throw ModelLoadError.failed })
+                return SessionPlayback(
+                    controls: controls, factory: { _ in throw ModelLoadError.failed })
             })
         model.load()
         try await waitForLoad(loader)
@@ -124,7 +127,8 @@ struct ListeningModelTests {
         #expect(fresh.state == .idle && !model.loadFailed && !model.isLoading)
         // The earlier load deliberately ignores task cancellation. Its generation cannot
         // replace the user's newer fresh-session choice when it eventually completes.
-        await loader.finish(.success(try intent()))
+        await loader.finish(
+            .success(try ListeningRecord(controls: .preset(.focus), restart: intent())))
         await Task.yield()
         #expect(model.playback === fresh && installed == [nil])
         #expect(!model.requestedPlayback)
@@ -136,12 +140,12 @@ struct ListeningModelTests {
 private enum ModelLoadError: Error { case failed }
 
 private actor ModelLoadGate {
-    private var continuation: CheckedContinuation<SessionRestartIntent?, any Error>?
+    private var continuation: CheckedContinuation<ListeningRecord?, any Error>?
     var isWaiting: Bool { continuation != nil }
-    func load() async throws -> SessionRestartIntent? {
+    func load() async throws -> ListeningRecord? {
         try await withCheckedThrowingContinuation { continuation = $0 }
     }
-    func finish(_ result: Result<SessionRestartIntent?, any Error>) {
+    func finish(_ result: Result<ListeningRecord?, any Error>) {
         continuation?.resume(with: result)
         continuation = nil
     }

@@ -27,6 +27,7 @@ struct Sample {
 };
 struct Event {
     LLEvent note{};
+    Sample sample{};
     uint32_t frames = 0, attack = 0;
     float gain = 0, left = 0, right = 0;
     double frequency = 0, bassGain = 0;
@@ -90,7 +91,7 @@ struct Buses {
 
 struct LLMixerAdvance {
     Event events[LL_EVENT_LIMIT]{};
-    uint32_t count = 0, slots = 0, prefix = 0;
+    uint32_t count = 0, slots = 0, prefix = 0, sampleBytes = 0, sharedVoices = LL_VOICE_LIMIT;
     uint64_t deadline = 0, boundary = 0;
     lowlight::RackFades fades{};
     float damping[3520]{};
@@ -107,7 +108,7 @@ struct LLMixer {
     uint32_t samplesUsed = 0, floatsUsed = 0, eventCount = 0, next = 0;
     uint32_t steals = 0, dropped = 0;
     uint32_t sharedVoices = LL_VOICE_LIMIT;
-    std::atomic<uint32_t> requiredVoiceSlots{0};
+    std::atomic<uint32_t> requiredVoiceSlots{0}, visibleSampleBytes{0};
     uint64_t origin = 0, position = 0;
     bool loaded = false;
 };
@@ -175,6 +176,7 @@ int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint3
     for (uint32_t i = 0; i < count; ++i)
         m->pcm[m->floatsUsed + i] = normal(pcm[i]);
     m->floatsUsed += count;
+    m->visibleSampleBytes.store(m->floatsUsed * sizeof(float), std::memory_order_relaxed);
     return static_cast<int32_t>(index);
 }
 void ll_mixer_reset(LLMixer *m) {
@@ -187,6 +189,32 @@ void ll_mixer_reset(LLMixer *m) {
     m->next = 0;
     m->steals = 0;
     m->dropped = 0;
+}
+static void configureEvent(Event &out, const LLEvent &e, const Sample &sample) {
+    out.note = e;
+    out.sample = sample;
+    const bool bass = e.instrument == 2;
+    const bool percussion = e.instrument >= 3;
+    out.frames = bass ? e.hold_frames + e.release_frames
+                      : (percussion ? sample.frames
+                                    : std::min(sample.frames, e.hold_frames + e.release_frames));
+    out.attack = bass || percussion ? 0 : std::min(out.frames, e.instrument ? 288u : 448u);
+    out.frequency = bass ? 440 * std::pow(2.0, (static_cast<int>(e.midi) - 69) / 12.0) : 0;
+    out.bassGain = bass ? .24 * std::pow(static_cast<double>(e.velocity), 1.10) : 0;
+    if (percussion) {
+        constexpr double gains[] = {.31, .25, .27, .11};
+        out.gain = normal(static_cast<float>(gains[e.instrument - 3] *
+                                             std::pow(static_cast<double>(e.velocity), 1.25)));
+    } else
+        out.gain = normal(static_cast<float>(
+            bass ? out.bassGain
+                 : (e.instrument ? .23 : .235) * std::pow(static_cast<double>(e.velocity), 1.05) *
+                       (e.connected ? .9 : 1)));
+    const double pan = bass ? 0 : e.pan;
+    out.left =
+        static_cast<float>(std::cos((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
+    out.right =
+        static_cast<float>(std::sin((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
 }
 bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
     lowlight::FloatingPointMode mode;
@@ -220,31 +248,7 @@ bool ll_mixer_load_events(LLMixer *m, const LLEvent *events, uint32_t count) {
     for (uint32_t i = 0; i < count; ++i) {
         const auto &e = events[i];
         auto &out = m->storage[i];
-        out.note = e;
-        const bool bass = e.instrument == 2;
-        const bool percussion = e.instrument >= 3;
-        out.frames = bass ? e.hold_frames + e.release_frames
-                          : (percussion ? m->samples[e.sample_index].frames
-                                        : std::min(m->samples[e.sample_index].frames,
-                                                   e.hold_frames + e.release_frames));
-        out.attack = bass || percussion ? 0 : std::min(out.frames, e.instrument ? 288u : 448u);
-        out.frequency = bass ? 440 * std::pow(2.0, (static_cast<int>(e.midi) - 69) / 12.0) : 0;
-        out.bassGain = bass ? .24 * std::pow(static_cast<double>(e.velocity), 1.10) : 0;
-        if (percussion) {
-            constexpr double gains[] = {.31, .25, .27, .11};
-            out.gain = normal(static_cast<float>(gains[e.instrument - 3] *
-                                                 std::pow(static_cast<double>(e.velocity), 1.25)));
-        } else
-            out.gain = normal(
-                static_cast<float>(bass ? out.bassGain
-                                        : (e.instrument ? .23 : .235) *
-                                              std::pow(static_cast<double>(e.velocity), 1.05) *
-                                              (e.connected ? .9 : 1)));
-        const double pan = bass ? 0 : e.pan;
-        out.left =
-            static_cast<float>(std::cos((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
-        out.right =
-            static_cast<float>(std::sin((pan + 1.0) * pi / 4)) * static_cast<float>(std::sqrt(2.0));
+        configureEvent(out, e, m->samples[e.sample_index]);
     }
     // Setup-only half-open lifetime sweep. The fixed event cap bounds this O(E^2)
     // scan without scratch allocation; fades and silent PCM do not retire readers.
@@ -377,7 +381,7 @@ void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
         if (!v.active)
             continue;
         const auto &e = m.events[v.event];
-        const auto &s = m.samples[e.note.sample_index];
+        const auto &s = e.sample;
         float voiceLeft, voiceRight;
         if (e.note.instrument == 2) {
             const float sample = bassSample(v, e, s, m.pcm);
@@ -487,7 +491,7 @@ uint64_t ll_mixer_origin(const LLMixer *m) {
     return m ? m->origin : 0;
 }
 uint32_t ll_mixer_sample_bytes(const LLMixer *m) {
-    return m ? m->floatsUsed * sizeof(float) : 0;
+    return m ? m->visibleSampleBytes.load(std::memory_order_acquire) : 0;
 }
 uint32_t ll_mixer_required_voice_slots(const LLMixer *m) {
     return m ? m->requiredVoiceSlots.load(std::memory_order_relaxed) : 0;
@@ -561,6 +565,7 @@ LLMixerAdvance *ll_mixer_prepare_advance(const LLMixer *m, uint32_t boundary, ui
         peak = std::max(peak, active);
     }
     patch->slots = peak + (bass ? 1u : 0u);
+    patch->sharedVoices = bass ? LL_VOICE_LIMIT - 1 : LL_VOICE_LIMIT;
     result.fades = fades;
     result.deadline = boundary - 3520;
     result.boundary = boundary;
@@ -579,5 +584,167 @@ void ll_mixer_apply_advance(LLMixer *m, const LLMixerAdvance *patch) {
     m->eventCount = patch->count;
     m->advance = patch;
     m->buses.fades = patch->fades;
+    m->sharedVoices = patch->sharedVoices;
     m->requiredVoiceSlots.store(patch->slots, std::memory_order_relaxed);
+    if (patch->sampleBytes)
+        m->visibleSampleBytes.store(patch->sampleBytes, std::memory_order_release);
+}
+
+struct LLMixerChangeSamples {
+    LLMixer *owner;
+    Sample samples[LL_SAMPLE_LIMIT]{};
+    uint32_t count = 0, floats;
+    explicit LLMixerChangeSamples(LLMixer *m) : owner(m), floats(m->floatsUsed) {}
+};
+LLMixerChangeSamples *ll_mixer_begin_change(LLMixer *m) {
+    if (!m || !m->loaded || m->advance)
+        return nullptr;
+    return new (std::nothrow) LLMixerChangeSamples(m);
+}
+void ll_mixer_destroy_change_samples(LLMixerChangeSamples *samples) {
+    delete samples;
+}
+int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *builder,
+                                   const LLSongChangeSample &sample) {
+    lowlight::FloatingPointMode mode;
+    if (!builder || builder->count == LL_SAMPLE_LIMIT)
+        return -1;
+    auto *m = builder->owner;
+    Sample prepared;
+    if (sample.original_sample >= 0) {
+        if (static_cast<uint32_t>(sample.original_sample) >= m->samplesUsed || sample.pcm ||
+            sample.frames || sample.channels)
+            return -1;
+        prepared = m->samples[sample.original_sample];
+    } else {
+        if (sample.original_sample != -1 || !sample.pcm || !sample.frames ||
+            sample.frames > sampleFramesLimit || (sample.channels != 1 && sample.channels != 2))
+            return -1;
+        const uint32_t count = sample.frames * sample.channels;
+        if (count > LL_SAMPLE_BYTES / sizeof(float) - builder->floats)
+            return -1;
+        const auto input = reinterpret_cast<uintptr_t>(sample.pcm);
+        const auto arena = reinterpret_cast<uintptr_t>(m->pcm);
+        if (input <= arena ? arena - input < uint64_t{count} * sizeof(float)
+                           : input - arena < LL_SAMPLE_BYTES)
+            return -1;
+        for (uint32_t i = 0; i < count; ++i)
+            if (!std::isfinite(sample.pcm[i]) || std::abs(sample.pcm[i]) > 8)
+                return -1;
+        prepared = {builder->floats, sample.frames, sample.channels};
+        for (uint32_t i = 0; i < count; ++i)
+            m->pcm[builder->floats + i] = normal(sample.pcm[i]);
+        builder->floats += count;
+    }
+    builder->samples[builder->count] = prepared;
+    return static_cast<int32_t>(builder->count++);
+}
+
+LLMixerAdvance *ll_mixer_prepare_change(LLMixer *m, const LLSongChangeScore &score,
+                                        const LLMixerChangeSamples *builder,
+                                        LLSongAdvance &result) {
+    lowlight::FloatingPointMode mode;
+    if (!m || !builder || builder->owner != m || !m->loaded || m->advance ||
+        score.boundary_frames < 3520 || score.boundary_frames > ll_mixer_outro_start(m) ||
+        !score.pivot_pitch_classes || score.pivot_pitch_classes > 0xfff ||
+        score.event_count > LL_EVENT_LIMIT || score.sample_count || score.samples ||
+        (score.event_count && !score.events) || !score.input_frames ||
+        m->origin > timelineLimit - score.input_frames)
+        return nullptr;
+    const auto boundary = m->origin + score.boundary_frames;
+    const auto &oldFades = m->buses.fades.points;
+    lowlight::RackFades fades;
+    if (score.fades.tonal_in_start_frame != oldFades.tonal_in_start_frame ||
+        score.fades.tonal_in_end_frame != oldFades.tonal_in_end_frame ||
+        score.fades.rhythm_in_frame != oldFades.rhythm_in_frame ||
+        score.fades.tonal_out_start_frame != boundary ||
+        score.fades.tonal_out_end_frame > m->origin + score.input_frames ||
+        score.fades.rhythm_out_frame < boundary || !fades.configure(score.fades))
+        return nullptr;
+    const auto *samples = builder->samples;
+    const auto sampleCount = builder->count;
+    auto *patch = new (std::nothrow) LLMixerAdvance;
+    if (!patch)
+        return nullptr;
+    patch->boundary = boundary;
+    patch->deadline = boundary - 3520;
+    patch->fades = fades;
+    patch->sampleBytes = builder->floats * sizeof(float);
+    for (uint32_t i = 0; i < 3520; ++i) {
+        const double cosine = std::cos((pi / 2) * i / 3519);
+        patch->damping[i] = i == 3519 ? 0.f : static_cast<float>(cosine * cosine);
+    }
+    // Keep every prefix index, including pending steals, stable across publication.
+    for (uint32_t i = 0; i < m->eventCount && m->events[i].note.start_frame < patch->deadline;
+         ++i) {
+        auto event = m->events[i];
+        event.cut = event.note.instrument < 2 &&
+                    !(score.pivot_pitch_classes & (1u << (event.note.midi % 12)));
+        patch->events[patch->count++] = event;
+    }
+    patch->prefix = patch->count;
+    if (score.event_count > LL_EVENT_LIMIT - patch->count) {
+        delete patch;
+        return nullptr;
+    }
+    bool bass = m->sharedVoices < LL_VOICE_LIMIT;
+    for (uint32_t i = 0; i < score.event_count; ++i) {
+        const auto &e = score.events[i];
+        const bool isBass = e.instrument == 2, percussion = e.instrument >= 3;
+        if (e.sample_index >= sampleCount || e.start_frame < boundary ||
+            e.start_frame >= m->origin + score.input_frames ||
+            (i && e.start_frame < score.events[i - 1].start_frame) || !e.hold_frames ||
+            e.hold_frames > 16 * 32000 || e.release_frames > 5 * 32000 ||
+            !lowlight::unitInterval(e.velocity) || !std::isfinite(e.pan) || e.pan < -1 ||
+            e.pan > 1 || e.instrument > 6 || e.connected > 1 || e.priority > 2 ||
+            (e.instrument < 2 && !(score.pivot_pitch_classes & (1u << (e.midi % 12)))) ||
+            (isBass && (e.midi < 31 || e.midi > 57 || samples[e.sample_index].channels != 1)) ||
+            (percussion && (e.priority || e.midi != (e.instrument == 4 ? 1 : 0) ||
+                            samples[e.sample_index].channels != 1))) {
+            delete patch;
+            return nullptr;
+        }
+        const uint32_t lifetime =
+            isBass ? e.hold_frames + e.release_frames
+                   : (percussion ? samples[e.sample_index].frames : sampleFramesLimit);
+        if (e.start_frame > timelineLimit - lifetime) {
+            delete patch;
+            return nullptr;
+        }
+        configureEvent(patch->events[patch->count++], e, samples[e.sample_index]);
+        bass |= isBass;
+    }
+    uint32_t peak = 0;
+    for (uint32_t i = 0; i < patch->count; ++i) {
+        const auto &current = patch->events[i];
+        if (current.note.instrument == 2 || current.gain == 0)
+            continue;
+        uint32_t active = 1;
+        for (uint32_t j = 0; j < i; ++j) {
+            const auto &prior = patch->events[j];
+            const auto end = prior.cut
+                                 ? std::min(prior.note.start_frame + prior.frames, patch->boundary)
+                                 : prior.note.start_frame + prior.frames;
+            if (prior.note.instrument != 2 && prior.gain != 0 && end > current.note.start_frame)
+                ++active;
+        }
+        peak = std::max(peak, active);
+    }
+    patch->slots = peak + (bass ? 1u : 0u);
+    patch->sharedVoices = bass ? LL_VOICE_LIMIT - 1 : LL_VOICE_LIMIT;
+    if (patch->slots > LL_VOICE_LIMIT) {
+        delete patch;
+        return nullptr;
+    }
+    result.fades = score.fades;
+    result.deadline = score.boundary_frames - 3520;
+    result.boundary = score.boundary_frames;
+    result.frames = score.input_frames;
+    result.delta = ll_mixer_outro_start(m) - score.boundary_frames;
+    result.voiceSlots = patch->slots;
+    result.sampleBytes = patch->sampleBytes;
+    return patch;
+}
+uint32_t ll_mixer_change_sample_bytes(const LLMixerAdvance *patch) {
+    return patch ? patch->sampleBytes : 0;
 }

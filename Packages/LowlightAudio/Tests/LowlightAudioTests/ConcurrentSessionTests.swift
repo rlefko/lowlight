@@ -101,14 +101,14 @@ struct ConcurrentSessionTests {
         do {
             let owner = try #require(session)
             let endpoint = try owner.makeRenderEndpoint()
-            let deadline = Date().addingTimeInterval(30)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
             let consumer = try SessionConsumer {
                 #expect(pthread_mach_thread_np(pthread_self()) != worker)
                 var output: [Float] = []
                 var block = 0
                 let sizes = [1, 159, 160, 161, 257, 1023]
                 while endpoint.position < count {
-                    try #require(Date() < deadline)
+                    try #require(ContinuousClock.now < deadline)
                     var buffer = [Float](repeating: .nan, count: 2 * sizes[block % sizes.count])
                     let written = try #require(
                         buffer.withUnsafeMutableBufferPointer { endpoint.render(into: $0) })
@@ -124,7 +124,7 @@ struct ConcurrentSessionTests {
             // No per-request semaphore, lock, or barrier publishes readiness to the reader.
             // This semaphore is signaled only after the complete consumer body returns.
             while consumer.finished.wait(timeout: .now()) != .success {
-                try #require(Date() < deadline)
+                try #require(ContinuousClock.now < deadline)
                 if owner.needsPreparation {
                     try owner.prepareNext()
                     #expect(pool?.reservedRacks == 2 && owner.requiredVoiceSlots == 2)

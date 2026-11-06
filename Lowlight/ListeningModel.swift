@@ -3,6 +3,7 @@
 
 import Foundation
 import LowlightAudio
+import LowlightPlanning
 import Observation
 
 @MainActor @Observable
@@ -10,10 +11,18 @@ final class ListeningModel {
     private(set) var playback: SessionPlayback?
     private(set) var isLoading = true
     private(set) var loadFailed = false
+    private(set) var controls = Controls()
+    private(set) var committedControls = Controls()
+    private(set) var controlCommitFailed = false
+    private(set) var isStartingNewSession = false
     var saveFailed: Bool { saves.failed }
     var isSaving: Bool { saves.busy }
+    @ObservationIgnored private let presets = Result {
+        try Preset.allCases.map { ($0, try Controls.preset($0)) }
+    }
     @ObservationIgnored private let persistence: ListeningPersistence
-    @ObservationIgnored private let makePlayback: (SessionRestartIntent?) -> SessionPlayback
+    @ObservationIgnored private let makePlayback:
+        (Controls, SessionRestartIntent?) -> SessionPlayback
     @ObservationIgnored private let remoteServices: () -> ListeningRemoteServices
     @ObservationIgnored private var remote: ListeningRemoteControl?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
@@ -27,10 +36,11 @@ final class ListeningModel {
     init(
         persistence: ListeningPersistence = .disk(),
         remoteServices: @escaping () -> ListeningRemoteServices = { .system() },
-        makePlayback: @escaping (SessionRestartIntent?) -> SessionPlayback = { restart in
+        makePlayback: @escaping (Controls, SessionRestartIntent?) -> SessionPlayback = {
+            controls, restart in
             let bank = (Bundle.main.resourceURL ?? Bundle.main.bundleURL)
                 .appendingPathComponent("SoundBank", isDirectory: true)
-            return SessionPlayback(bankURL: bank, restart: restart)
+            return SessionPlayback(bankURL: bank, controls: controls, restart: restart)
         }
     ) {
         self.persistence = persistence
@@ -66,7 +76,7 @@ final class ListeningModel {
     }
 
     /// Explicitly abandons an unreadable checkpoint; it is overwritten only after a new
-    /// valid musical selection is captured. This action still does not start playback.
+    /// valid selection or settings edit is saved. This action still does not start playback.
     func startFresh() {
         guard playback == nil else { return }
         loadRevision &+= 1
@@ -76,9 +86,29 @@ final class ListeningModel {
         install(nil)
     }
 
-    private func install(_ restart: SessionRestartIntent?) {
-        let playback = makePlayback(restart)
+    /// This explicit recovery discards the old place. Installation waits for confirmed
+    /// terminal cleanup so two app owners can never compete for the system audio session.
+    func startNewSession() {
+        guard canStartNewSession, let playback else { return }
+        isStartingNewSession = true
+        controls = committedControls
+        controlCommitFailed = false
+        captureRequested = false
+        remote?.invalidate()
+        remote = nil
+        saves.discardRestart()
+        playback.stop()
+    }
+
+    private func install(_ record: ListeningRecord?) {
+        let settings = record?.controls ?? Controls()
+        controls = settings
+        committedControls = settings
+        let playback = makePlayback(settings, record?.restart)
         self.playback = playback
+        previousListening = nil
+        previousState = nil
+        captureRequested = false
         isLoading = false
         loadFailed = false
         let input = playback.commandInput
@@ -98,23 +128,32 @@ final class ListeningModel {
     }
 
     func togglePlayback() {
+        commitControls()
         _ = remote?.submit(playback?.state == .failed ? .play : .toggle)
     }
     func next() { _ = remote?.submit(.next) }
     func retryPreparation() { playback?.retryPreparation() }
-    func retryCleanup() { playback?.pause() }
+    func retryCleanup() {
+        if isStartingNewSession { playback?.stop() } else { playback?.pause() }
+    }
 
     func sceneActive(_ value: Bool) {
         guard value != active else { return }
         active = value
-        if value { playback?.refresh() } else { capture() }
+        if value {
+            playback?.refresh()
+        } else {
+            commitControls()
+            capture()
+        }
         remote?.update(remoteSnapshot)
     }
 
     private func capture() {
+        guard !isStartingNewSession else { return }
         captureRequested = true
         playback?.requestCapture()
-        if let restart = playback?.listeningSnapshot?.restart { saves.submit(restart) }
+        if let restart = playback?.listeningSnapshot?.restart { saves.capture(restart) }
     }
 
     private func observePlayback() {
@@ -129,21 +168,31 @@ final class ListeningModel {
             _ = playback.sourceStatus
             _ = playback.preparationStatus
             _ = playback.listeningSnapshot
-        } onChange: { [weak self] in
+            _ = playback.desiredControls
+            _ = playback.appliedControls
+            _ = playback.controlChangeState
+        } onChange: { [weak self, weak playback] in
             // Observation is one-shot; property bursts share this single rearm/delivery.
-            Task { @MainActor [weak self] in
-                self?.playbackChanged()
-                self?.observePlayback()
+            Task { @MainActor [weak self, weak playback] in
+                guard let self, let playback, self.playback === playback else { return }
+                self.playbackChanged()
+                if self.playback === playback { self.observePlayback() }
             }
         }
     }
 
     private func playbackChanged() {
         guard let playback else { return }
+        if isStartingNewSession {
+            guard playback.state == .stopped, playback.audioSessionError == nil else { return }
+            isStartingNewSession = false
+            install(saves.latest)
+            return
+        }
         let listening = playback.listeningSnapshot
         if let listening, listening != previousListening {
             if listening.selectionID != previousListening?.selectionID || captureRequested {
-                saves.submit(listening.restart)
+                saves.capture(listening.restart)
                 captureRequested = false
             }
             previousListening = listening
@@ -158,6 +207,69 @@ final class ListeningModel {
         remote?.update(remoteSnapshot)
     }
 
+    /// Slider samples update presentation only. One committed gesture reaches preparation
+    /// and persistence, so a slow worker can never pull the visible controls backward.
+    func previewControls(_ value: Controls) {
+        guard canEditControls, let normalized = try? value.normalized() else { return }
+        controls = normalized
+        if normalized == committedControls { controlCommitFailed = false }
+    }
+
+    func commitControls() {
+        guard canEditControls, controls != committedControls, let playback else { return }
+        do {
+            let normalized = try controls.normalized()
+            try playback.setControls(normalized)
+            try saves.updateControls(normalized)
+            committedControls = normalized
+            controls = normalized
+            controlCommitFailed = false
+        } catch {
+            controlCommitFailed = true
+        }
+    }
+
+    func selectPreset(_ preset: Preset) {
+        guard canEditControls else { return }
+        do {
+            guard let selected = try presets.get().first(where: { $0.0 == preset }) else {
+                throw PlanningError.invalidCatalog
+            }
+            controls = selected.1
+            if controls == committedControls { controlCommitFailed = false }
+            commitControls()
+        } catch {
+            controlCommitFailed = true
+        }
+    }
+
+    var presetName: String {
+        (try? presets.get().first { $0.1 == controls }?.0.rawValue) ?? "Custom"
+    }
+
+    var canEditControls: Bool {
+        guard let playback else { return false }
+        return !isStartingNewSession && playback.state != .stopping && playback.state != .stopped
+    }
+
+    var canStartNewSession: Bool {
+        !isStartingNewSession
+            && (playback?.state == .failed || playback?.lastError != nil
+                || playback?.preparationStatus == .waitingForRetry)
+    }
+
+    var controlsFailed: Bool {
+        controlCommitFailed || playback?.controlChangeState == .failed
+    }
+
+    var controlsPending: Bool {
+        playback?.controlChangeState == .queued || playback?.controlChangeState == .transitioning
+    }
+
+    func retryControls() {
+        if controlCommitFailed { commitControls() } else { playback?.retryControls() }
+    }
+
     func retrySave() { saves.retry() }
 
     var requestedPlayback: Bool { playback?.requestedPlayback == true }
@@ -169,7 +281,7 @@ final class ListeningModel {
         return state != .none
     }
     var canPlay: Bool {
-        playback != nil && playback?.mediaServicesAvailable == true
+        !isStartingNewSession && playback != nil && playback?.mediaServicesAvailable == true
             && playback?.state != .stopped && playback?.state != .stopping
     }
     var canRequestNext: Bool {
@@ -179,6 +291,7 @@ final class ListeningModel {
     }
 
     var statusText: String {
+        if isStartingNewSession { return "Starting a new session…" }
         if isLoading { return "Restoring your session…" }
         if loadFailed { return "This session couldn’t be restored." }
         guard let playback else { return "Ready when you are" }
@@ -192,12 +305,17 @@ final class ListeningModel {
         if playback.state == .playing, playback.sourceStatus == .waitingForPreparation {
             return "Preparing the next song…"
         }
+        if controlsFailed { return "Changes couldn’t be prepared. You can keep listening." }
+        if controlsPending {
+            return playback.controlChangeState == .transitioning
+                ? "Changing with the music." : "Changes queued for an upcoming phrase."
+        }
         if nextPending { return "Next song queued" }
         switch playback.state {
         case .playing: return "A little room to unwind"
         case .paused: return "Paused — continue when you’re ready"
         case .stopping, .stopped: return "Playback stopped"
-        default: return saves.lastSaved == nil ? "Ready when you are" : "Ready to continue"
+        default: return saves.latest.restart == nil ? "Ready when you are" : "Ready to continue"
         }
     }
 

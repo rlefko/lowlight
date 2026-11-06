@@ -5,7 +5,10 @@ from collections import Counter
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,12 +27,12 @@ class WorkflowTests(unittest.TestCase):
         ], text=True))
         cls.jobs = cls.workflow["jobs"]
 
-    def test_every_existing_test_command_runs_once_without_filters_or_allow_failure(self):
+    def test_every_test_job_runs_once_without_skips_or_allow_failure(self):
         expected = {
             "build": ["scripts/build test"],
             "native": ["scripts/test-planner", "scripts/test-planner release",
                        "scripts/test-dsp", "scripts/test-audio release"],
-            "audio_debug": ["scripts/test-audio"],
+            "audio_debug": ['scripts/test-audio debug "${{ matrix.partition }}"'],
         }
         all_commands = Counter(step.get("run", "").strip()
                                for job in self.jobs.values() for step in job["steps"])
@@ -46,6 +49,17 @@ class WorkflowTests(unittest.TestCase):
                     self.assertNotIn("if", step)
             for command in commands:
                 self.assertEqual(all_commands[command], 1, command)
+
+    def test_debug_matrix_requires_every_named_partition_without_changing_other_jobs(self):
+        job = self.jobs["audio_debug"]
+        self.assertEqual(job["name"], "Debug Audio Tests (${{ matrix.partition }})")
+        self.assertEqual(job["timeout-minutes"], 30)
+        self.assertEqual(job["strategy"], {
+            "fail-fast": False,
+            "matrix": {"partition": ["core", "controls-transactions", "controls-workers"]},
+        })
+        for name in ["build", "native"]:
+            self.assertNotIn("strategy", self.jobs[name])
 
     def test_reference_audio_waits_for_its_unique_release_artifact_producer(self):
         self.assertEqual(self.jobs["audio"]["needs"], "native")
@@ -96,6 +110,91 @@ class WorkflowTests(unittest.TestCase):
                 self.assertNotEqual(self.run_gate({**missing, "unexpected": {"result": "success"}}), 0)
         self.assertNotEqual(self.run_gate({**success, "unexpected": {"result": "success"}}), 0)
         self.assertNotEqual(self.run_gate({}), 0)
+
+
+class AudioPartitionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        temporary = tempfile.TemporaryDirectory(prefix="lowlight audio partitions ")
+        cls.addClassCleanup(temporary.cleanup)
+        cls.root = Path(temporary.name)
+        (cls.root / "scripts").mkdir()
+        (cls.root / "bin").mkdir()
+        # Execute the real dispatcher, recording its Swift invocation without compiling
+        # or replacing the audio suite. Toolchain validation has its own repository gate.
+        shutil.copy2(ROOT / "scripts/test-audio", cls.root / "scripts/test-audio")
+        toolchain = cls.root / "scripts/toolchain"
+        toolchain.write_text("#!/bin/bash\nexit 0\n")
+        toolchain.chmod(0o755)
+        recorder = cls.root / "bin/xcrun"
+        recorder.write_text(
+            "#!/usr/bin/env python3\nimport json, sys\nprint(json.dumps(sys.argv[1:]))\n")
+        recorder.chmod(0o755)
+        cls.env = {**os.environ, "PATH": str(cls.root / "bin") + os.pathsep + os.environ["PATH"]}
+
+    def invoke(self, *arguments):
+        return subprocess.run(
+            [str(self.root / "scripts/test-audio"), *arguments], env=self.env,
+            text=True, capture_output=True)
+
+    def command(self, *arguments):
+        result = self.invoke(*arguments)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_default_and_release_still_run_the_entire_suite(self):
+        for arguments in [(), ("debug",), ("debug", "all"), ("release",), ("release", "all")]:
+            with self.subTest(arguments=arguments):
+                self.assertEqual(self.command(*arguments), [
+                    "swift", "test", "--configuration", arguments[0] if arguments else "debug",
+                    "--package-path", "Packages/LowlightAudio", "--scratch-path", ".build/AudioTests",
+                ])
+
+    def test_unknown_extra_and_release_partition_arguments_fail_closed(self):
+        for arguments in [
+            ("unknown",), ("",), ("debug", ""), ("debug", "unknown"),
+            ("debug", "all", "extra"),
+            ("release", "core"), ("release", "controls-transactions"),
+            ("release", "controls-workers"),
+        ]:
+            with self.subTest(arguments=arguments):
+                result = self.invoke(*arguments)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, "", "Invalid scopes must not invoke Swift")
+                self.assertIn("Usage:", result.stderr)
+
+    def test_debug_filters_partition_every_suite_exactly_once(self):
+        partitions = ["core", "controls-transactions", "controls-workers"]
+        commands = {partition: self.command("debug", partition) for partition in partitions}
+        for partition, command in commands.items():
+            self.assertEqual(command[:-2], self.command("debug"))
+            self.assertEqual(command[-2], "--skip" if partition == "core" else "--filter")
+        # Include all current suites and future/core lookalikes so an unanchored or
+        # broadened filter cannot silently exclude unrelated tests or run one twice.
+        discovered = {
+            match.group(1)
+            for path in (ROOT / "Packages/LowlightAudio/Tests/LowlightAudioTests").glob("*.swift")
+            for match in re.finditer(r"\b(?:struct|class)\s+(\w+Tests)\b", path.read_text())
+        }
+        expected = {
+            "SessionControlsTransactionTests": "controls-transactions",
+            "SessionControlsWorkerTests": "controls-workers",
+            "SessionControlsCapacityFailureTests": "controls-workers",
+        }
+        self.assertTrue(set(expected) <= discovered,
+                        "A renamed or removed partition suite must update the routing")
+        suites = discovered | {
+            "FutureTests", "OtherSessionControlsWorkerTests", "SessionControlsWorkerTestsExtra",
+        }
+        for suite in suites:
+            identifier = f"LowlightAudioTests.{suite}/testExample()"
+            selected = []
+            for partition, command in commands.items():
+                matches = re.search(command[-1], identifier) is not None
+                if matches == (command[-2] == "--filter"):
+                    selected.append(partition)
+            with self.subTest(suite=suite):
+                self.assertEqual(selected, [expected.get(suite, "core")])
 
 
 if __name__ == "__main__":

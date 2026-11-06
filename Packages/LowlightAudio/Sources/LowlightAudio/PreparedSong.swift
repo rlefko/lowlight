@@ -13,10 +13,12 @@ public final class PreparedSong {
     public let layout: SongRenderLayout
     public let measurement: SongLoudnessMeasurement
     public let gainDecibels, linearMultiplier: Double
-    private let source: SongRenderSource
-    private let handle: OpaquePointer
-    private let reservation: SongPreparationPool.Reservation?
-    private let originalVoiceSlots: Int
+    let source: SongRenderSource
+    let handle: OpaquePointer
+    let reservation: SongPreparationPool.Reservation?
+    let originalVoiceSlots: Int
+    let originalPreparedBytes: Int
+    var controlChange: PreparedSongControlChange?
     private var nextAdvance: PreparedSongAdvance?
     private typealias Prepared = (
         source: SongRenderSource, handle: OpaquePointer,
@@ -80,6 +82,7 @@ public final class PreparedSong {
         handle = prepared.handle
         self.reservation = reservation
         originalVoiceSlots = prepared.source.requiredVoiceSlots
+        originalPreparedBytes = prepared.source.preparedBytes
         measurement = prepared.measurement
         gainDecibels = prepared.gain.gain_db
         linearMultiplier = prepared.gain.linear_multiplier
@@ -148,7 +151,11 @@ public final class PreparedSong {
     }
 
     // Destroy the native borrower before releasing its privately retained source.
-    deinit { withExtendedLifetime((reservation, nextAdvance)) { ll_song_replay_destroy(handle) } }
+    deinit {
+        withExtendedLifetime((reservation, nextAdvance, controlChange)) {
+            ll_song_replay_destroy(handle)
+        }
+    }
 
     // Only the preparation worker uses this seam. The offer pins its two original owners;
     // native preparation reads immutable score/sample descriptors, never live voice state.
@@ -158,7 +165,7 @@ public final class PreparedSong {
     ) throws -> PreparedSongAdvance {
         try PreparationMode.perform {
             try cancellation?.check()
-            guard offer.first == handle, nextAdvance == nil else {
+            guard offer.first == handle, nextAdvance == nil, controlChange == nil else {
                 throw PreparedSessionError.preparationFailed
             }
             var offer = offer

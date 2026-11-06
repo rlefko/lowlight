@@ -48,4 +48,103 @@ final class LaunchTests: XCTestCase {
         XCTAssertFalse(app.navigationBars["About Lowlight"].exists)
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
     }
+
+    @MainActor
+    func testControlsPersistWithoutStartingPlayback() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        let preset = app.buttons["presetPicker"]
+        XCTAssertTrue(preset.waitForExistence(timeout: 10))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: preset)
+        waitForExpectations(timeout: 10)
+        preset.tap()
+        app.buttons["Reflective"].tap()
+        XCTAssertEqual(preset.value as? String, "Reflective")
+        retainScreenshot(app, named: "Reflective listening controls")
+        let more = app.buttons["moreControlsButton"]
+        if !more.isHittable { app.swipeUp() }
+        more.tap()
+        XCTAssertTrue(app.navigationBars["Listening Controls"].waitForExistence(timeout: 5))
+        let automatic = app.switches["autoTempoToggle"]
+        XCTAssertEqual(automatic.value as? String, "1")
+        automatic.switches.firstMatch.tap()
+        XCTAssertEqual(automatic.value as? String, "0")
+        let tempo = app.sliders["tempoSlider"]
+        XCTAssertTrue(tempo.waitForExistence(timeout: 5))
+        let originalTempoValue = try XCTUnwrap(tempo.value as? String)
+        reveal(tempo, in: app)
+        tempo.adjust(toNormalizedSliderPosition: 0.75)
+        let tempoValue = try XCTUnwrap(tempo.value as? String)
+        XCTAssertNotEqual(tempoValue, originalTempoValue)
+        let variation = app.sliders["variationSlider"]
+        let originalVariationValue = try XCTUnwrap(variation.value as? String)
+        reveal(variation, in: app)
+        let variationThumb = variation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let variationTarget = variation.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5))
+        variationThumb.press(forDuration: 0.05, thenDragTo: variationTarget)
+        let variationValue = try XCTUnwrap(variation.value as? String)
+        XCTAssertNotEqual(variationValue, originalVariationValue)
+        retainScreenshot(app, named: "Manual tempo and variation")
+        app.buttons["Done"].tap()
+        let energy = app.sliders["energySlider"]
+        let originalEnergyValue = try XCTUnwrap(energy.value as? String)
+        reveal(energy, in: app)
+        energy.adjust(toNormalizedSliderPosition: 0.7)
+        let energyValue = try XCTUnwrap(energy.value as? String)
+        XCTAssertNotEqual(energyValue, originalEnergyValue)
+        let mood = app.sliders["moodSlider"]
+        let originalMoodValue = try XCTUnwrap(mood.value as? String)
+        reveal(mood, in: app)
+        mood.adjust(toNormalizedSliderPosition: 0.8)
+        let moodValue = try XCTUnwrap(mood.value as? String)
+        XCTAssertNotEqual(moodValue, originalMoodValue)
+        XCTAssertEqual(preset.value as? String, "Custom")
+        XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(preset.waitForExistence(timeout: 10))
+        expectation(for: NSPredicate(format: "enabled == true"), evaluatedWith: preset)
+        waitForExpectations(timeout: 10)
+        XCTAssertEqual(preset.value as? String, "Custom")
+        XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
+        XCTAssertEqual(energy.value as? String, energyValue)
+        XCTAssertEqual(mood.value as? String, moodValue)
+        retainScreenshot(app, named: "Restored custom controls")
+        if !more.isHittable { app.swipeUp() }
+        more.tap()
+        XCTAssertTrue(automatic.waitForExistence(timeout: 5))
+        XCTAssertEqual(automatic.value as? String, "0")
+        XCTAssertEqual(tempo.value as? String, tempoValue)
+        XCTAssertEqual(variation.value as? String, variationValue)
+        automatic.switches.firstMatch.tap()
+        XCTAssertEqual(automatic.value as? String, "1")
+        XCTAssertFalse(tempo.exists)
+        retainScreenshot(app, named: "Automatic tempo")
+        app.buttons["Done"].tap()
+    }
+
+    @MainActor
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+        let bounds = app.frame
+        let visible = CGRect(
+            x: bounds.minX, y: bounds.minY + 160,
+            width: bounds.width, height: bounds.height - 220)
+        for _ in 0..<6 {
+            let frame = element.frame
+            if element.isHittable, visible.contains(frame) { return }
+            if frame.midY > visible.midY { app.swipeUp() } else { app.swipeDown() }
+        }
+        XCTAssertTrue(element.isHittable)
+    }
+
+    @MainActor
+    private func retainScreenshot(_ app: XCUIApplication, named name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
 }

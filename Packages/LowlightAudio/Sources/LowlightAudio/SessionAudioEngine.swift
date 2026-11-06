@@ -22,6 +22,7 @@ public final class SessionAudioEngine {
     private var finalSourceStatus = SessionAudioSourceStatus.ready
     private var finalPreparationError: (any Error)?
     private var finalListeningSnapshot: SessionListeningSnapshot?
+    private var finalControlsSnapshot: SessionControlsSnapshot
 
     public let frameCount: UInt64
     public var finiteFrameCount: UInt64? { frameCount == 0 ? nil : frameCount }
@@ -50,6 +51,7 @@ public final class SessionAudioEngine {
             self.notificationCenter = notificationCenter
             self.outputFormat = readOutput
             self.worker = worker
+            finalControlsSnapshot = worker.controlsSnapshot
             self.source = source
             frameCount = source.frameCount
             // All throwing setup precedes attachment. The source keeps its fixed 32 kHz
@@ -133,6 +135,13 @@ public final class SessionAudioEngine {
         worker?.listeningSnapshot ?? finalListeningSnapshot
     }
 
+    public var controlsSnapshot: SessionControlsSnapshot {
+        worker?.controlsSnapshot ?? finalControlsSnapshot
+    }
+
+    // Exposes only the weak, synchronous intent mailbox, never the owned render graph.
+    var controlsInput: SessionControlsInput? { worker?.controlsInput }
+
     public func requestCapture() { worker?.requestCapture() }
 
     @discardableResult
@@ -184,6 +193,7 @@ public final class SessionAudioEngine {
         finalSourceStatus = source.status
         finalPreparationError = worker.lastError
         finalListeningSnapshot = worker.listeningSnapshot
+        finalControlsSnapshot = worker.controlsSnapshot
         engine.disconnectNodeOutput(source.node)
         engine.detach(source.node)
         self.source = nil

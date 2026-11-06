@@ -75,6 +75,20 @@ extern "C" bool ll_song_replay_faulted(const LLSongReplay *song) {
     return !song || song->faulted;
 }
 
+LLMixerChangeSamples *ll_song_replay_begin_change(LLSongReplay *) {
+    std::abort();
+}
+void ll_mixer_destroy_change_samples(LLMixerChangeSamples *) {
+    std::abort();
+}
+int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *, const LLSongChangeSample &) {
+    std::abort();
+}
+LLSongAdvance *ll_song_replay_prepare_change(LLSongReplay *, const LLSongChangeScore &,
+                                             const LLMixerChangeSamples *) {
+    std::abort();
+}
+
 // Next is exercised with real racks in SongNextTests, never these synthetic children.
 LLSongAdvance *ll_song_replay_prepare_advance(LLSongReplay *, uint32_t, uint16_t) {
     std::abort();

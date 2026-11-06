@@ -3,6 +3,7 @@
 
 import AVFAudio
 import Foundation
+import LowlightPlanning
 import Testing
 
 @testable import LowlightAudio
@@ -21,12 +22,13 @@ private final class PlaybackHandle {
 
 private final class PlaybackProbe: @unchecked Sendable {
     enum Injected: Error, Equatable { case factory, start, graph, gate }
-    enum Gate { case none, beforeOwner, afterOwner }
+    enum Gate { case none, beforeOwner, afterOwner, reconfigure, reconfigureUnavailable }
     struct Counts {
         var calls = 0, active = 0, maximum = 0, starts = 0, releases = 0
         var allOffMain = true, allReleased = true
         var handled = false, actionPassed = false
         var tokens: [PreparationCancellation] = []
+        var requestedControls: [Controls] = []
     }
     let preparer: TonalSamplePreparer
     let resume = DispatchSemaphore(value: 0)
@@ -53,6 +55,10 @@ private final class PlaybackProbe: @unchecked Sendable {
     }
 
     func snapshot() -> Counts { lock.withLock { counts } }
+
+    func recordControls(_ controls: Controls) {
+        lock.withLock { counts.requestedControls.append(controls) }
+    }
 
     @MainActor
     func onGate(_ action: @escaping @MainActor @Sendable () -> Bool) {
@@ -114,6 +120,7 @@ private final class PlaybackProbe: @unchecked Sendable {
                     && score.session == nil && score.pool?.reservedRacks == 0
             }
         }
+        var formatReads = 0
         let owner = try SessionAudioEngine(
             worker: worker, engine: engine,
             start: { engine in
@@ -131,6 +138,16 @@ private final class PlaybackProbe: @unchecked Sendable {
                         throw Injected.start
                     }
                 }
+            },
+            outputFormat: { _ in
+                formatReads += 1
+                if call == 1, formatReads == 2,
+                    self.gate == .reconfigure || self.gate == .reconfigureUnavailable
+                {
+                    do { try self.wait() } catch { return nil }
+                    if self.gate == .reconfigureUnavailable { return nil }
+                }
+                return format
             })
         // Deliberately return a completed owner even if cancellation arrived in this gate.
         if call == 1 && gate == .afterOwner { try wait() }
@@ -168,12 +185,178 @@ private final class PlaybackProbe: @unchecked Sendable {
 @MainActor
 struct SessionPlaybackTests {
     private func until(_ condition: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(30)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
         while !condition() {
             try Task.checkCancellation()
-            try #require(Date() < deadline)
+            try #require(ContinuousClock.now < deadline)
             try await Task.sleep(for: .milliseconds(1))
         }
+    }
+
+    @Test func settingsSupersedeBlockedStartupAndResumeWithOnlyTheLatestRequest() async throws {
+        let probe = try PlaybackProbe(gate: .afterOwner)
+        let playback = SessionPlayback(
+            audioSession: .unmanaged, controls: Controls(), restart: nil,
+            factory: { token, prepareOutput, _, requested in
+                probe.recordControls(requested)
+                try prepareOutput()
+                return try probe.make(token)
+            })
+        let latest = try Controls.preset(.workout)
+        defer {
+            probe.releaseGate()
+            playback.stop()
+        }
+        probe.onGate {
+            do {
+                for index in 0..<64 {
+                    try playback.setControls(Controls(energy: Double(index) / 100))
+                }
+                try playback.setControls(latest)
+                playback.pause()
+                playback.retryControls()
+                return probe.snapshot().tokens.first?.isCancelled == true
+                    && playback.desiredControls == latest
+            } catch { return false }
+        }
+        playback.play()
+        try await until { probe.snapshot().handled }
+        try await until { playback.state == .paused }
+        #expect(probe.snapshot().actionPassed && probe.snapshot().starts == 0)
+        #expect(probe.snapshot().calls == 1 && probe.snapshot().releases == 1)
+        #expect(playback.desiredControls == latest && !playback.requestedPlayback)
+        playback.play()
+        try await until { playback.state == .playing }
+        #expect(probe.snapshot().requestedControls == [Controls(), latest])
+        #expect(probe.snapshot().calls == 2 && probe.snapshot().maximum == 1)
+        playback.stop()
+        try await until { playback.state == .stopped }
+        #expect(probe.snapshot().allReleased && probe.snapshot().allOffMain)
+    }
+
+    @Test func invalidInitialSettingsNeverFallBackToAudibleDefaultsOrRetryWithoutPlay() async throws
+    {
+        let probe = try PlaybackProbe()
+        let playback = SessionPlayback(controls: Controls(mood: .nan), factory: probe.make)
+        defer { playback.stop() }
+        playback.play()
+        try await until { playback.state == .failed }
+        #expect(playback.lastError as? PlanningError == .invalidControls)
+        #expect(probe.snapshot().calls == 0 && probe.snapshot().starts == 0)
+        try playback.setControls(Controls())
+        playback.retryControls()
+        _ = try await playback.inspect { $0 == nil }
+        #expect(playback.state == .failed && probe.snapshot().calls == 0)
+        playback.play()
+        try await until { playback.state == .playing }
+        #expect(probe.snapshot().calls == 1 && probe.snapshot().starts == 1)
+        playback.stop()
+        try await until { playback.state == .stopped }
+        #expect(probe.snapshot().allReleased)
+    }
+
+    @Test func obsoletePreparationErrorCannotLatchFailureForNewerSettings() async throws {
+        let probe = try PlaybackProbe(gate: .beforeOwner, failFirst: true)
+        let playback = SessionPlayback(
+            audioSession: .unmanaged, controls: Controls(), restart: nil,
+            factory: { token, prepareOutput, _, requested in
+                probe.recordControls(requested)
+                try prepareOutput()
+                return try probe.make(token)
+            })
+        let latest = try Controls.preset(.reflective)
+        defer {
+            probe.releaseGate()
+            playback.stop()
+        }
+        probe.onGate {
+            do {
+                try playback.setControls(latest)
+                return probe.snapshot().tokens.first?.isCancelled == true
+            } catch { return false }
+        }
+        playback.play()
+        try await until { probe.snapshot().handled }
+        try await until { playback.state == .playing }
+        #expect(probe.snapshot().actionPassed)
+        #expect(probe.snapshot().requestedControls == [Controls(), latest])
+        #expect(probe.snapshot().calls == 2 && probe.snapshot().starts == 1)
+        #expect(playback.desiredControls == latest && playback.lastError == nil)
+        playback.stop()
+        try await until { playback.state == .stopped }
+        #expect(probe.snapshot().allReleased && probe.snapshot().allOffMain)
+    }
+
+    @Test func controlsChangedDuringFreshReconfigurationDiscardTheUnstartedSong() async throws {
+        for unavailable in [false, true] {
+            let probe = try PlaybackProbe(
+                gate: unavailable ? .reconfigureUnavailable : .reconfigure)
+            let playback = SessionPlayback(
+                audioSession: .unmanaged, controls: Controls(), restart: nil,
+                factory: { token, prepareOutput, _, requested in
+                    probe.recordControls(requested)
+                    try prepareOutput()
+                    return try probe.make(token)
+                })
+            let latest = try Controls.preset(.reflective)
+            defer {
+                probe.releaseGate()
+                playback.stop()
+            }
+            probe.onGate {
+                do {
+                    try playback.setControls(latest)
+                    return playback.desiredControls == latest
+                } catch { return false }
+            }
+            playback.play()
+            try await until { probe.snapshot().handled }
+            try await until { playback.state == .playing }
+            #expect(probe.snapshot().actionPassed)
+            #expect(probe.snapshot().requestedControls == [Controls(), latest])
+            #expect(probe.snapshot().calls == 2 && probe.snapshot().starts == 1)
+            #expect(probe.snapshot().releases == 1 && playback.lastError == nil)
+            playback.stop()
+            try await until { playback.state == .stopped }
+            #expect(probe.snapshot().allReleased && probe.snapshot().allOffMain)
+        }
+    }
+
+    @Test func pausedUnstartedSongIsRebuiltWhenControlsChangeBeforeFirstPlay() async throws {
+        let probe = try PlaybackProbe(gate: .reconfigure)
+        let playback = SessionPlayback(
+            audioSession: .unmanaged, controls: Controls(), restart: nil,
+            factory: { token, prepareOutput, _, requested in
+                probe.recordControls(requested)
+                try prepareOutput()
+                return try probe.make(token)
+            })
+        let latest = try Controls.preset(.workout)
+        defer {
+            probe.releaseGate()
+            playback.stop()
+        }
+        probe.onGate {
+            playback.pause()
+            return true
+        }
+        playback.play()
+        try await until { probe.snapshot().handled }
+        try await until { playback.state == .paused }
+        #expect(probe.snapshot().starts == 0 && probe.snapshot().calls == 1)
+        try playback.setControls(latest)
+        playback.retryControls()
+        _ = try await playback.inspect { $0?.state }
+        #expect(playback.state == .paused && !playback.requestedPlayback)
+        #expect(probe.snapshot().starts == 0 && probe.snapshot().calls == 1)
+        playback.play()
+        try await until { playback.state == .playing }
+        #expect(probe.snapshot().requestedControls == [Controls(), latest])
+        #expect(probe.snapshot().calls == 2 && probe.snapshot().starts == 1)
+        #expect(probe.snapshot().releases == 1 && playback.lastError == nil)
+        playback.stop()
+        try await until { playback.state == .stopped }
+        #expect(probe.snapshot().allReleased && probe.snapshot().allOffMain)
     }
 
     @Test func latestPauseDiscardsBlockedStartupWithoutLateAutoplay() async throws {
@@ -338,6 +521,11 @@ struct SessionPlaybackTests {
         }
         playback.play()
         try await until { playback.state == .playing }
+        #expect(playback.controlChangeState == .none)
+        #expect(throws: SessionControlsError.unsupportedSource) {
+            try playback.setControls(Controls(energy: 0.8))
+        }
+        #expect(playback.desiredControls == Controls() && playback.controlChangeState == .none)
         var actual: [Float] = []
         let sizes = [1, 159, 160, 161, 257, 1023]
         var block = 0

@@ -73,7 +73,7 @@ struct SessionListeningTests {
         let valid = try SessionRestartIntent(checkpoint: checkpoint, canonicalFrame: 548_000)
         var object = try #require(
             JSONSerialization.jsonObject(with: valid.encoded()) as? [String: Any])
-        object["formatVersion"] = 2
+        object["formatVersion"] = 99
         #expect(throws: SessionRestartError.unsupportedVersion) {
             try SessionRestartIntent.restore(JSONSerialization.data(withJSONObject: object))
         }

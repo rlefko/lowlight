@@ -94,6 +94,13 @@ public final class SongPreparationPool {
             voiceSlots = count
         }
 
+        // Worker-only admission for supplemental PCM within the same fixed arena.
+        func replacePCMBytes(_ count: Int) {
+            precondition(claimed && (0...SongPreparationPool.pcmBytesPerRack).contains(count))
+            pool.preparedPCMBytes += count - pcmBytes
+            pcmBytes = count
+        }
+
         func restoreVoiceSlots(_ count: Int) {
             let other = pool.reservedVoiceSlots - voiceSlots
             precondition(

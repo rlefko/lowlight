@@ -452,6 +452,72 @@ bool ll_song_pair_publish_next(LLSongPair *, LLSongNext *);
 bool ll_song_pair_abandon_next(LLSongPair *); // Only a claimed, unpublished offer.
 bool ll_song_pair_next_result(LLSongPair *, LLSongNextResult *); // Consumes one acknowledgment.
 
+// Structural controls use a separate, monotonic intent token retained by the caller
+// through pair destruction. Updating it is bounded and thread safe; it never renders.
+typedef struct LLSongRevision LLSongRevision;
+LLSongRevision *ll_song_revision_create(void);
+void ll_song_revision_destroy(LLSongRevision *);
+bool ll_song_revision_set(LLSongRevision *, uint64_t revision);
+uint64_t ll_song_revision_get(const LLSongRevision *);
+
+typedef struct LLSongChange LLSongChange;
+typedef struct {
+    LLSongReplay *first, *second;
+    const LLSongRevision *intent;
+    uint64_t generation, revision, target_origin, original_origin, original_following_origin;
+    uint32_t source_input_frames, outro_start_frames, original_frames, second_frames;
+    uint32_t original_voice_slots, second_voice_slots;
+} LLSongChangeOffer;
+typedef struct {
+    // Reuse an original sample with index>=0 and all other fields zero; otherwise
+    // original_sample=-1 and bounded, fully validated PCM is copied during preparation.
+    int32_t original_sample;
+    const float *pcm;
+    uint32_t frames, channels;
+} LLSongChangeSample;
+typedef struct {
+    // Events are the replacement outro only, on the first child's canonical clock.
+    // Their sample indices select this supplied sample list. Prefix indices stay fixed.
+    const LLEvent *events;
+    const LLSongChangeSample *samples;
+    uint32_t event_count, sample_count, boundary_frames, input_frames;
+    uint16_t pivot_pitch_classes;
+    LLRackFades fades;
+} LLSongChangeScore;
+typedef struct {
+    // 1 accepted, 2 rejected (withdrawn requires rollback), 3 deferred, 4 rolled back.
+    uint32_t status, withdrawn;
+    uint64_t revision, target_origin, following_origin;
+    uint32_t boundary_frames, input_frames;
+} LLSongChangeResult;
+// One serialized worker owns this protocol. The intent token may be updated separately.
+// Offers pin the current owners. Preparation touches only immutable descriptors and the
+// unused tail of the first child's fixed PCM arena. Keep a published change alive through
+// acknowledgment; accepted changes remain alive through first-child destruction.
+bool ll_song_pair_request_change(LLSongPair *, uint64_t target_origin, uint64_t revision,
+                                 const LLSongRevision *);
+bool ll_song_pair_claim_change(LLSongPair *, LLSongChangeOffer *);
+LLSongChange *ll_song_pair_prepare_change(const LLSongChangeOffer *, const LLSongChangeScore *);
+// Incremental alternative keeps Swift scratch to one complete note. Add samples in
+// event-key order, then finish with score.samples=null and sample_count=0. Destruction
+// abandons unpublished arena contents. Do not interleave two builders for one rack.
+LLSongChange *ll_song_pair_begin_change(const LLSongChangeOffer *);
+int32_t ll_song_change_add_sample(LLSongChange *, const LLSongChangeSample *);
+bool ll_song_change_finish(LLSongChange *, const LLSongChangeScore *);
+uint32_t ll_song_change_required_voice_slots(const LLSongChange *);
+uint32_t ll_song_change_sample_bytes(const LLSongChange *);
+void ll_song_change_destroy(LLSongChange *);
+bool ll_song_pair_withdraw_change(LLSongPair *, LLSongChange *);
+// A successful claim exclusively returns the unstarted old successor, safe to destroy.
+bool ll_song_pair_claim_withdrawn_change(LLSongPair *, LLSongReplay **);
+bool ll_song_pair_publish_change(LLSongPair *, LLSongChange *, LLSongReplay *replacement,
+                                 uint64_t following_origin);
+// Fresh deterministic reconstruction of the withdrawn successor, after candidate failure.
+// No revised timeline is applied. Keep this owner until later retirement or destruction.
+bool ll_song_pair_restore_change(LLSongPair *, LLSongReplay *original);
+bool ll_song_pair_abandon_change(LLSongPair *); // Claimed, not yet withdrawn/published only.
+bool ll_song_pair_change_result(LLSongPair *, LLSongChangeResult *);
+
 #ifdef __cplusplus
 }
 #endif

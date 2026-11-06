@@ -18,16 +18,17 @@ public final class PreparedSession {
     /// Legacy extent reading: zero denotes explicit continuous mode. Prefer finiteFrameCount.
     public let frameCount: UInt64
     public var finiteFrameCount: UInt64? { frameCount == 0 ? nil : frameCount }
-    private let pool: SongPreparationPool
+    let pool: SongPreparationPool
     private let prepare:
         (SongPreparationPool, PreparationCancellation?) throws -> (PreparedSong, UInt64)
     private let accepted: () -> Void
     private let preparation: SessionPreparation
-    private let sequence: SessionListeningSequence?
+    let sequence: SessionListeningSequence?
     private var endpointIssued = false
-    private var first: PreparedSong?
-    private var second: PreparedSong?
-    private let handle: OpaquePointer
+    var first: PreparedSong?
+    var second: PreparedSong?
+    let handle: OpaquePointer
+    private var controls: PreparedSessionControls?
     private var retiredSteals = 0
     private var retiredDrops = 0
     private var nextTarget: UInt64?
@@ -170,7 +171,9 @@ public final class PreparedSession {
         handle = prepared.2
     }
 
-    deinit { withExtendedLifetime((first, second, pool)) { ll_song_pair_destroy(handle) } }
+    deinit {
+        withExtendedLifetime((first, second, pool, controls)) { ll_song_pair_destroy(handle) }
+    }
 
     /// Issue exactly one consumer endpoint off the callback, before concurrent rendering.
     public func makeRenderEndpoint() throws -> RenderEndpoint {
@@ -196,6 +199,7 @@ public final class PreparedSession {
 
         // Called only after the worker has joined and the render consumer is quiescent.
         func captureAfterWorkerStopped() throws -> SessionListeningSnapshot? {
+            try owner.receiveControlsResult()
             try owner.receiveNextResult()
             return try owner.captureListeningSnapshot()
         }
@@ -302,9 +306,29 @@ public final class PreparedSession {
         return true
     }
 
-    var canCaptureListeningSnapshot: Bool { !nextPublished }
-    var hasNextWork: Bool { nextTarget != nil && !nextTransitioning && !nextPublished }
-    var canPrepareSuccessor: Bool { !nextPublished }
+    var canCaptureListeningSnapshot: Bool { !nextPublished && controls?.blocksCapture != true }
+    var hasNextWork: Bool {
+        nextTarget != nil && !nextTransitioning && !nextPublished && controls?.allowsNext != false
+    }
+    var canPrepareSuccessor: Bool { !nextPublished && controls?.isActive != true }
+
+    func installControls(_ mailbox: SessionControlsMailbox) {
+        precondition(controls == nil && sequence != nil)
+        controls = PreparedSessionControls(owner: self, mailbox: mailbox)
+    }
+
+    var hasControlsWork: Bool { controls?.hasWork == true }
+    var isRestoringControls: Bool { controls?.isRestoring == true }
+
+    func prepareControls(cancellation: PreparationCancellation) throws -> Bool {
+        try controls?.service(cancellation: cancellation) ?? false
+    }
+
+    func receiveControlsResult() throws { try controls?.receive() }
+
+    func controlsSatisfiedNext(selectionID: UInt64) {
+        if nextTarget == selectionID { nextTransitioning = true }
+    }
 
     /// Acknowledgments are consumed before ordinary retirement, while both offered owners
     /// remain pinned. A late proposal is retried at a newly offered physical cursor.
@@ -334,7 +358,8 @@ public final class PreparedSession {
     @discardableResult
     func prepareAdvance(cancellation: PreparationCancellation) throws -> Bool {
         try cancellation.check()
-        guard let sequence, let target = nextTarget, !nextTransitioning, !nextPublished,
+        guard controls?.allowsNext != false,
+            let sequence, let target = nextTarget, !nextTransitioning, !nextPublished,
             let record = sequence.record(for: target)
         else { return false }
         if !nextRequested {
@@ -373,7 +398,7 @@ public final class PreparedSession {
         }
     }
 
-    private var listeningPosition: UInt64 { ll_song_pair_listening_position64(handle) }
+    var listeningPosition: UInt64 { ll_song_pair_listening_position64(handle) }
 
     var listeningNextState: SessionNextState {
         nextTarget != nil && nextTarget == listeningSelectionID
