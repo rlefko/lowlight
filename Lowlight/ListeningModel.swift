@@ -312,7 +312,7 @@ final class ListeningModel {
         if isStartingNewSession { return "Starting a new session…" }
         if isLoading { return "Restoring your session…" }
         if loadFailed { return "This session couldn’t be restored." }
-        guard let playback else { return "Ready when you are" }
+        guard let playback else { return "Ready to play" }
         if !playback.mediaServicesAvailable { return "Audio is temporarily unavailable." }
         if playback.isInterrupted { return "Playback interrupted" }
         if playback.state == .preparing { return "Preparing your music…" }
@@ -330,10 +330,10 @@ final class ListeningModel {
         }
         if nextPending { return "Next song queued" }
         switch playback.state {
-        case .playing: return "A little room to unwind"
-        case .paused: return "Paused — continue when you’re ready"
+        case .playing: return "Playing"
+        case .paused: return "Paused"
         case .stopping, .stopped: return "Playback stopped"
-        default: return saves.latest.restart == nil ? "Ready when you are" : "Ready to continue"
+        default: return saves.latest.restart == nil ? "Ready to play" : "Ready to continue"
         }
     }
 

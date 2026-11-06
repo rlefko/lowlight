@@ -5,7 +5,7 @@ import XCTest
 
 final class LaunchTests: XCTestCase {
     @MainActor
-    func testLaunchAndAboutRoundTrip() {
+    func testLaunchAndAboutRoundTrip() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
@@ -18,21 +18,26 @@ final class LaunchTests: XCTestCase {
         waitForExpectations(timeout: 5)
         XCTAssertEqual(transport.label, "Play")
         XCTAssertTrue(app.buttons["nextButton"].exists)
+        retainScreenshot(app, named: "Listening at rest")
+        try audit(app, disabledNext: app.buttons["nextButton"])
         transport.tap()
         expectation(for: NSPredicate(format: "label == %@", "Pause"), evaluatedWith: transport)
         waitForExpectations(timeout: 10)
+        retainScreenshot(app, named: "Playback requested")
         transport.tap()
         expectation(for: NSPredicate(format: "label == %@", "Play"), evaluatedWith: transport)
         waitForExpectations(timeout: 10)
         app.buttons["aboutButton"].tap()
         XCTAssertTrue(app.navigationBars["About Lowlight"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Development accelerated with Codex"].exists)
-        XCTAssertTrue(
-            app.staticTexts[
-                "Original code: GNU General Public License v3.0 only (GPL-3.0-only)."
-            ].exists)
-        app.swipeUp()
-        app.buttons["softwareNoticesLink"].tap()
+        retainScreenshot(app, named: "About Lowlight")
+        let credit = app.staticTexts["Development accelerated with Codex"]
+        reveal(credit, in: app)
+        let license = app.staticTexts[
+            "Original code: GNU General Public License v3.0 only (GPL-3.0-only)."]
+        reveal(license, in: app)
+        let notices = app.buttons["softwareNoticesLink"]
+        reveal(notices, in: app)
+        notices.tap()
         XCTAssertTrue(app.navigationBars["Software Notices"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("Melissa"))
         XCTAssertTrue(app.staticTexts["softwareNoticeText"].label.contains("NumPy Developers"))
@@ -63,7 +68,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(preset.value as? String, "Reflective")
         retainScreenshot(app, named: "Reflective listening controls")
         let more = app.buttons["moreControlsButton"]
-        if !more.isHittable { app.swipeUp() }
+        if !more.isHittable { reveal(more, in: app) }
         more.tap()
         XCTAssertTrue(app.navigationBars["Listening Controls"].waitForExistence(timeout: 5))
         let automatic = app.switches["autoTempoToggle"]
@@ -83,9 +88,7 @@ final class LaunchTests: XCTestCase {
         let variation = app.sliders["variationSlider"]
         reveal(variation, in: app)
         let originalVariationValue = try XCTUnwrap(variation.value as? String)
-        let variationThumb = variation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        let variationTarget = variation.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5))
-        variationThumb.press(forDuration: 0.05, thenDragTo: variationTarget)
+        drag(variation, to: 0.2)
         let variationValue = try XCTUnwrap(variation.value as? String)
         XCTAssertNotEqual(variationValue, originalVariationValue)
         retainScreenshot(app, named: "Variation")
@@ -118,7 +121,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(mood.value as? String, moodValue)
         reveal(energy, in: app)
         retainScreenshot(app, named: "Restored custom controls")
-        if !more.isHittable { app.swipeUp() }
+        if !more.isHittable { reveal(more, in: app) }
         more.tap()
         XCTAssertTrue(automatic.waitForExistence(timeout: 5))
         XCTAssertEqual(automatic.value as? String, "0")
@@ -136,7 +139,21 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(automatic.value as? String, "1")
         XCTAssertFalse(tempo.exists)
         retainScreenshot(app, named: "Automatic tempo")
+        try audit(app)
         app.buttons["Done"].tap()
+    }
+
+    @MainActor
+    private func audit(_ app: XCUIApplication, disabledNext: XCUIElement? = nil) throws {
+        try app.performAccessibilityAudit(for: [
+            .contrast, .hitRegion, .sufficientElementDescription, .textClipped, .dynamicType,
+        ]) { issue in
+            // UIKit dims the unavailable button. Restrict this exception to its own label and bounds.
+            guard issue.auditType == .contrast, let disabledNext, !disabledNext.isEnabled,
+                let element = issue.element
+            else { return false }
+            return element.label == disabledNext.label && element.frame == disabledNext.frame
+        }
     }
 
     @MainActor
@@ -147,28 +164,49 @@ final class LaunchTests: XCTestCase {
         reveal(slider, in: app)
         XCTAssertEqual(slider.label, name)
         let original = try XCTUnwrap(slider.value as? String)
-        slider.adjust(toNormalizedSliderPosition: position)
+        drag(slider, to: position)
         let changed = try XCTUnwrap(slider.value as? String)
         XCTAssertNotEqual(original, changed)
         return changed
     }
 
     @MainActor
+    private func drag(_ slider: XCUIElement, to position: CGFloat) {
+        let thumb = slider.coordinate(
+            withNormalizedOffset: CGVector(dx: slider.normalizedSliderPosition, dy: 0.5))
+        let target = slider.coordinate(withNormalizedOffset: CGVector(dx: position, dy: 0.5))
+        thumb.press(
+            forDuration: 0.10, thenDragTo: target, withVelocity: 100, thenHoldForDuration: 0.20)
+    }
+
+    @MainActor
     private func reveal(_ element: XCUIElement, in app: XCUIApplication, searchAbove: Bool = false)
     {
         let bounds = app.frame
-        let visible = CGRect(
-            x: bounds.minX, y: bounds.minY + 160,
-            width: bounds.width, height: bounds.height - 220)
-        for _ in 0..<6 {
-            if !element.exists {
-                // Offscreen Form rows can leave the accessibility tree entirely.
-                if searchAbove { app.swipeDown() } else { app.swipeUp() }
-                continue
+        let bar = app.navigationBars.firstMatch
+        let top = (bar.exists ? bar.frame.maxY : bounds.minY) + 4
+        let bottom = bounds.maxY - 20
+        let center = (top + bottom) / 2
+        let maxDrag = (bottom - top) * 0.40
+        for _ in 0..<14 {
+            var distance = searchAbove ? -maxDrag : maxDrag
+            if element.exists {
+                let frame = element.frame
+                if element.isHittable, frame.maxY > top, frame.minY < bottom,
+                    (top...bottom).contains(frame.midY) || frame.height > bottom - top
+                {
+                    return
+                }
+                distance = min(maxDrag, max(-maxDrag, frame.midY - center))
             }
-            let frame = element.frame
-            if element.isHittable, visible.contains(frame) { return }
-            if frame.midY > visible.midY { app.swipeUp() } else { app.swipeDown() }
+            // Scroll from the gutter in short controlled drags. A full flick can jump
+            // past the entire control on a compact phone at an accessibility text size.
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            let start = origin.withOffset(
+                CGVector(dx: bounds.width * 0.045, dy: center + distance / 2))
+            let end = start.withOffset(CGVector(dx: 0, dy: -distance))
+            start.press(
+                forDuration: 0.04, thenDragTo: end, withVelocity: 460, thenHoldForDuration: 0.15)
         }
         XCTAssertTrue(element.isHittable)
     }
