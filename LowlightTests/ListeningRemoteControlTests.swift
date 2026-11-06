@@ -165,15 +165,25 @@ struct ListeningRemoteControlTests {
     }
 
     @Test
-    func metadataPublishesOnlySemanticStateWithoutDurationOrSeek() throws {
+    func metadataReusesTheBundledPosterWithoutDurationOrSeek() throws {
         #expect(ListeningRemoteMetadata.values(Self.ready) == nil)
         var value = Self.ready
         let nonPlaying: [ListeningRemoteSnapshot.State] = [
             .preparing, .paused, .waiting, .interrupted, .failed, .ended,
         ]
+        var previousArtwork: MPMediaItemArtwork?
         for state in nonPlaying + [.playing] {
             value.state = state
             let metadata = try #require(ListeningRemoteMetadata.values(value))
+            let artwork = try #require(metadata[MPMediaItemPropertyArtwork] as? MPMediaItemArtwork)
+            if let previousArtwork {
+                #expect(artwork === previousArtwork)
+            } else {
+                #expect(artwork.bounds.size == CGSize(width: 512, height: 512))
+                let size = CGSize(width: 64, height: 64)
+                #expect(artwork.image(at: size)?.size == size)
+                previousArtwork = artwork
+            }
             #expect(metadata[MPMediaItemPropertyTitle] as? String == "Lowlight")
             #expect(metadata[MPMediaItemPropertyAlbumTitle] as? String == "Focus")
             #expect(
@@ -183,6 +193,7 @@ struct ListeningRemoteControlTests {
                 metadata.keys.sorted()
                     == [
                         MPMediaItemPropertyTitle, MPMediaItemPropertyAlbumTitle,
+                        MPMediaItemPropertyArtwork,
                         MPNowPlayingInfoPropertyMediaType, MPNowPlayingInfoPropertyPlaybackRate,
                     ].sorted())
         }
