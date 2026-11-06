@@ -73,6 +73,8 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Listening Controls"].waitForExistence(timeout: 5))
         let automatic = app.switches["autoTempoToggle"]
         XCTAssertEqual(automatic.value as? String, "1")
+        // Audit a freshly presented sheet before the tempo toggle replaces its form rows.
+        try audit(app)
         automatic.switches.firstMatch.tap()
         XCTAssertEqual(automatic.value as? String, "0")
         let tempo = app.sliders["tempoSlider"]
@@ -139,21 +141,21 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(automatic.value as? String, "1")
         XCTAssertFalse(tempo.exists)
         retainScreenshot(app, named: "Automatic tempo")
-        try audit(app)
         app.buttons["Done"].tap()
     }
 
     @MainActor
     private func audit(_ app: XCUIApplication, disabledNext: XCUIElement? = nil) throws {
-        try app.performAccessibilityAudit(for: [
-            .contrast, .hitRegion, .sufficientElementDescription, .textClipped, .dynamicType,
-        ]) { issue in
+        try app.performAccessibilityAudit(for: .contrast) { issue in
             // UIKit dims the unavailable button. Restrict this exception to its own label and bounds.
             guard issue.auditType == .contrast, let disabledNext, !disabledNext.isEnabled,
                 let element = issue.element
             else { return false }
             return element.label == disabledNext.label && element.frame == disabledNext.frame
         }
+        try app.performAccessibilityAudit(for: [
+            .hitRegion, .sufficientElementDescription, .textClipped, .dynamicType,
+        ])
     }
 
     @MainActor

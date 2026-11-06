@@ -43,6 +43,7 @@ private struct ListeningView: View {
                                 status
                                 Button("Try Restoring Again") { model.load() }
                                     .buttonStyle(.borderedProminent)
+                                    .foregroundStyle(Color(uiColor: .systemBackground))
                                 Button("Start a Fresh Session") { model.startFresh() }
                                     .buttonStyle(.bordered)
                             } else {
