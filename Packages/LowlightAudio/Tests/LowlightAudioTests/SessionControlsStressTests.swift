@@ -33,6 +33,7 @@ struct SessionControlsStressTests {
             worker.join()
         }
         let endpoint = try worker.makeRenderEndpoint()
+        var effects = LiveEffectSoak(input: try #require(worker.effectsInput), cycles: seconds / 30)
         let destination = environment["LOWLIGHT_CONTROLS_SOAK_OUTPUT"].map {
             URL(fileURLWithPath: $0, isDirectory: true)
         }
@@ -77,6 +78,8 @@ struct SessionControlsStressTests {
         var appliedValues = [initial]
         var lastAppliedRevision: UInt64 = 1
         var pauses = 0
+        let intendedCount = (seconds - 480) / 240
+        var deferredSettings: [[String: UInt64]] = []
         var nextSettings: UInt64 = 240 * 32_000
         var nextSkip: UInt64 = 120 * 32_000
         var nextCapture: UInt64 = 32_000
@@ -112,7 +115,18 @@ struct SessionControlsStressTests {
             try #require(worker.lastError == nil && worker.controlsError == nil)
             // Keep an eight-minute musical tail for a deferred request to reach a later
             // eligible selection. Wall-clock waiting alone cannot finish a transition.
-            if endpoint.position >= nextSettings, nextSettings + 480 * 32_000 <= target {
+            // A newer intention may legally supersede a late handoff. Give each intended
+            // setting a turn before sending the next burst. Retry on the 30-second grid
+            // between live-effect reversals and keep rendering while preparation catches up.
+            if endpoint.position >= nextSettings, !appliedRevisions.contains(revision),
+                nextSettings + 480 * 32_000 <= target
+            {
+                deferredSettings.append(["frame": endpoint.position, "pending_revision": revision])
+                nextSettings += 30 * 32_000
+            }
+            if endpoint.position >= nextSettings, requestIndex < intendedCount,
+                nextSettings + 480 * 32_000 <= target
+            {
                 requestIndex += 1
                 var controls: Controls
                 let sequence: [Preset] = [.relax, .commute, .workout, .reflective, .focus]
@@ -152,7 +166,8 @@ struct SessionControlsStressTests {
                     try #require(worker.controlsSnapshot.requested == latest)
                     try #require(worker.resume())
                 }
-                nextSettings += 240 * 32_000
+                nextSettings = max(
+                    nextSettings + 30 * 32_000, UInt64(requestIndex + 1) * 240 * 32_000)
             }
             if endpoint.position >= nextSkip {
                 if let selected = worker.listeningSnapshot?.selectionID, worker.requestNext() {
@@ -179,11 +194,15 @@ struct SessionControlsStressTests {
                 previousControls = controls
                 if controls.appliedRevision > 0 {
                     try #require(controls.appliedRevision >= lastAppliedRevision)
-                    try #require(submitted[controls.appliedRevision] == controls.applied)
+                    try #require(
+                        submitted[controls.appliedRevision]?.hasSameMusic(as: controls.applied)
+                            == true)
                     try #require(!supersededRevisions.contains(controls.appliedRevision))
                     lastAppliedRevision = controls.appliedRevision
                     appliedRevisions.insert(controls.appliedRevision)
-                    if !appliedValues.contains(controls.applied) {
+                    if controls.applied == submitted[controls.appliedRevision],
+                        !appliedValues.contains(controls.applied)
+                    {
                         appliedValues.append(controls.applied)
                     }
                 }
@@ -197,6 +216,7 @@ struct SessionControlsStressTests {
                         with: JSONEncoder().encode(controls.applied)),
                 ])
             }
+            try effects.update(frame: endpoint.position, committed: SessionEffects(latest))
             let before = endpoint.position
             let count = min(sizes[pulls % sizes.count], Int(target - before))
             let written = try #require(
@@ -238,17 +258,30 @@ struct SessionControlsStressTests {
                 progress = clock.now
                 // This correctness soak explicitly yields preparation time; its elapsed
                 // duration is not a maximum-throughput or device-deadline measurement.
-                Thread.sleep(forTimeInterval: Double(written) / (32_000 * acceleration))
+                let waitingForHandoff =
+                    deferredSettings.last?["pending_revision"] == revision
+                    && !appliedRevisions.contains(revision)
+                let pace = waitingForHandoff ? 1 : acceleration
+                Thread.sleep(forTimeInterval: Double(written) / (32_000 * pace))
             }
         }
         // Give the worker its ordinary observation turn after the final consumer pull.
         worker.requestCapture()
         Thread.sleep(forTimeInterval: 0.2)
         let final = worker.controlsSnapshot
+        let finalEffects = try #require(worker.effectsSnapshot)
+        try #require(effects.cycles == seconds / 30)
+        try #require(finalEffects.requested == SessionEffects(latest))
+        try #require(finalEffects.requested == finalEffects.settled)
+        try #require(finalEffects.revision == finalEffects.settledRevision)
         if final.appliedRevision > 0 {
-            try #require(submitted[final.appliedRevision] == final.applied)
+            try #require(submitted[final.appliedRevision]?.hasSameMusic(as: final.applied) == true)
             appliedRevisions.insert(final.appliedRevision)
-            if !appliedValues.contains(final.applied) { appliedValues.append(final.applied) }
+            if final.applied == submitted[final.appliedRevision],
+                !appliedValues.contains(final.applied)
+            {
+                appliedValues.append(final.applied)
+            }
         }
         worker.requestStop()
         worker.join()
@@ -263,13 +296,18 @@ struct SessionControlsStressTests {
             presets.allSatisfy { appliedValues.contains($0) }
             && appliedValues.contains { $0.tempo == 92 && $0.variation == 0 }
             && appliedValues.contains { $0.tempo == 92 && $0.variation == 1 }
-        let coverage = seconds < 7200 || fullCoverage
+        let intendedRevisions = Set(submitted.keys).subtracting(supersededRevisions)
+        let allIntendedApplied =
+            requestIndex == intendedCount && appliedRevisions == intendedRevisions
+        let coverage = allIntendedApplied && (seconds < 7200 || fullCoverage)
         let elapsed = started.duration(to: clock.now).components
         let elapsedSeconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
         let receipt: [String: Any] = [
             "passed": final.requested == latest && final.applied == latest && final.state == .none
                 && final.revision == revision && final.appliedRevision == revision
                 && nextSelectionChanges == nextRequests && coverage,
+            "effect_cycles": effects.cycles, "effect_observations": effects.receipts,
+            "final_effect_revision": finalEffects.revision,
             "seed": 1, "audio_seconds": seconds, "frames": target,
             "samples": target * 2, "peak": peak, "rms": sqrt(squares / Double(target * 2)),
             "elapsed_seconds_excluding_initial_preparation": elapsedSeconds,
@@ -278,6 +316,8 @@ struct SessionControlsStressTests {
             "selections": selections, "next_requests": nextRequests, "suspensions": pauses,
             "next_selection_changes": nextSelectionChanges,
             "applied_revisions": appliedRevisions.sorted(),
+            "intended_revisions": intendedRevisions.sorted(), "planned_changes": intendedCount,
+            "deferred_settings_windows": deferredSettings,
             "applied_settings_count": appliedValues.count,
             "zero_pulls": zeroPulls, "short_pulls": shortPulls, "pulls": pulls,
             "requests": requests, "observations": observations, "last_revision": revision,

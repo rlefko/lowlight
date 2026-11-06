@@ -159,11 +159,12 @@ final class PreparedSessionControls {
                 state = .transitioning
             }
         }
-        if record.schedule.song.controls != appliedControls {
+        if !record.schedule.song.controls.hasSameMusic(as: appliedControls) {
             appliedControls = record.schedule.song.controls
             appliedRevision = 0
         }
-        if appliedRevision == request.revision, record.schedule.song.controls == request.controls,
+        if appliedRevision == request.revision,
+            record.schedule.song.controls.hasSameMusic(as: request.controls),
             !isActive, committed == nil
         {
             state = .none
@@ -193,28 +194,25 @@ final class PreparedSessionControls {
         let request = attempt.request
         evaluated = makeStamp(attempt)
         do {
-            guard let plan = try sequence.planControls(request, selectionID: selection) else {
-                if sequence.records.allSatisfy({ $0.schedule.song.controls == request.controls }) {
-                    appliedRevision = request.revision
-                    appliedControls = request.controls
-                }
+            // Existing music can realize this request even when its baked preparation
+            // settings differ from the current live effects. Keep its canonical anchor.
+            if sequence.records.allSatisfy({
+                $0.schedule.song.controls.hasSameMusic(as: request.controls)
+            }) {
+                appliedRevision = request.revision
+                appliedControls = request.controls
                 publishState()
                 return false
             }
-            if plan.current.schedule == sequence.records[0].schedule,
-                plan.successor.checkpoint == sequence.records[1].checkpoint
+            if sequence.records.count == 2, sequence.records[0].schedule.song.id == selection,
+                sequence.records[1].schedule.song.controls.hasSameMusic(as: request.controls)
             {
-                if plan.current.schedule.song.controls == request.controls {
-                    appliedRevision = request.revision
-                    appliedControls = request.controls
-                } else {
-                    // The prepared successor already realizes this request. Preserve its
-                    // transition and acknowledge the request at its actual rhythm handoff.
-                    committed = (
-                        request.revision, plan.successor.schedule.song.id,
-                        plan.successor.placement
-                    )
-                }
+                let successor = sequence.records[1]
+                committed = (request.revision, successor.schedule.song.id, successor.placement)
+                publishState()
+                return false
+            }
+            guard let plan = try sequence.planControls(request, selectionID: selection) else {
                 publishState()
                 return false
             }

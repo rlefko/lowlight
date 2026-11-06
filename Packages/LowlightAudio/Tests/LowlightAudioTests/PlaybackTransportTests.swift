@@ -165,10 +165,58 @@ struct PlaybackTransportTests {
             try playback.setControls(Controls(tempo: .nan))
         }
         #expect(playback.desiredControls == relax)
+        let tone = SessionEffects(warmth: 0.23, space: 0.81, texture: 0).applying(to: relax)
+        let startupEdited = DispatchSemaphore(value: 0)
+        let priorEffectsRevision = playback.effectsSnapshot.revision
+        probe.onActivation {
+            Task { @MainActor in
+                defer { startupEdited.signal() }
+                do { try playback.setControls(tone) } catch { Issue.record(error) }
+            }
+            #expect(startupEdited.wait(timeout: .now() + 30) == .success)
+        }
         playback.play()
         _ = try await playback.inspect { $0?.position }
         try await until { playback.state == .playing && playback.listeningSnapshot != nil }
-        #expect(probe.factoryControls == relax && playback.appliedControls == relax)
+        #expect(probe.counts.factories == 1 && probe.factoryControls == relax)
+        #expect(playback.appliedControls == relax && playback.desiredControls == tone)
+        #expect(playback.effectsSnapshot.revision == priorEffectsRevision + 1)
+        try playback.setControls(relax)
+
+        // Drag previews reach production offline audio without committing or replanning.
+        let selection = try #require(playback.listeningSnapshot)
+        let musicalRevision = try await playback.inspect { $0?.controlsSnapshot.revision }
+        try playback.previewEffects(SessionEffects(tone))
+        let previewRevision = playback.effectsSnapshot.revision
+        #expect(playback.desiredControls == relax)
+        #expect(throws: PlanningError.invalidControls) {
+            try playback.previewEffects(SessionEffects(warmth: .nan, space: 0.5, texture: 0.1))
+        }
+        #expect(playback.effectsSnapshot.revision == previewRevision)
+        for _ in 0..<3 { _ = try await playback.inspect { try probe.pull(4096, $0).position } }
+        #expect(playback.effectsSnapshot.settledRevision == previewRevision)
+        #expect(playback.effectsSnapshot.settled == SessionEffects(tone))
+        try playback.setControls(tone)
+        #expect(
+            playback.desiredControls == tone && playback.effectsSnapshot.revision == previewRevision
+        )
+        #expect(try await playback.inspect { $0?.controlsSnapshot.revision } == musicalRevision)
+        playback.requestCapture()
+        try await until {
+            (playback.listeningSnapshot?.canonicalFrame ?? 0) > selection.canonicalFrame
+        }
+        #expect(
+            playback.listeningSnapshot?.restart.planningAnchor == selection.restart.planningAnchor)
+        #expect(playback.listeningSnapshot?.nextSong == selection.nextSong)
+        #expect(playback.listeningSnapshot?.currentSong.controls == relax)
+        // A canceled preview retargets the committed sound without saving a new value.
+        try playback.previewEffects(SessionEffects(workout))
+        playback.cancelEffectsPreview()
+        #expect(playback.effectsSnapshot.requested == SessionEffects(tone))
+        #expect(playback.desiredControls == tone)
+        try playback.setControls(relax)
+        for _ in 0..<3 { _ = try await playback.inspect { try probe.pull(4096, $0).position } }
+        #expect(playback.effectsSnapshot.settled == SessionEffects(relax))
         playback.pause()
         _ = try await playback.inspect { $0?.position }
         try await until { playback.state == .paused && playback.preparationStatus == .suspended }
@@ -180,6 +228,11 @@ struct PlaybackTransportTests {
         #expect(playback.desiredControls == reflective && playback.appliedControls == relax)
         #expect(playback.controlChangeState == .queued && !playback.requestedPlayback)
         #expect(probe.counts.starts == starts && playback.preparationStatus == .suspended)
+        let pausedPosition = playback.position
+        try playback.previewEffects(SessionEffects(workout))
+        #expect(playback.effectsSnapshot.requested == SessionEffects(workout))
+        #expect(playback.effectsSnapshot.settled == SessionEffects(relax))
+        #expect(playback.position == pausedPosition && probe.counts.starts == starts)
         probe.emit(.mediaServicesLost)
         try playback.setControls(workout)
         _ = try await playback.inspect { $0 == nil }
@@ -196,11 +249,14 @@ struct PlaybackTransportTests {
         try await until { playback.state == .playing }
         #expect(
             probe.factoryControls == workout && probe.factoryRestart?.currentSong.controls == relax)
-        #expect(playback.desiredControls == workout && playback.appliedControls == relax)
+        #expect(playback.desiredControls == workout)
+        #expect(playback.appliedControls == SessionEffects(workout).applying(to: relax))
         #expect(probe.counts.factories == 2 && probe.counts.starts == starts + 1)
         playback.stop()
         _ = try await playback.inspect { $0 == nil }
         try await until { playback.state == .stopped }
+        #expect(playback.appliedControls == SessionEffects(workout).applying(to: relax))
+        #expect(playback.effectsSnapshot.settled == SessionEffects(workout))
         #expect(throws: SessionAudioEngineError.self) { try playback.setControls(reflective) }
         #expect(playback.desiredControls == workout)
     }

@@ -1,5 +1,7 @@
 # Presets and musical listening controls
 
+This record describes PR 49. See [live listening controls](validation-live-effects.md) for current tone, preset timing, and gesture behavior.
+
 This change exposes the existing Focus, Relax, Commute, Workout, and Reflective presets as complete normalized `Controls` snapshots. Selecting one replaces all preset values atomically, including the tone settings used when preparing its next song. Custom is derived from full-value comparison with those five presets; it is not an additional preset or a separately persisted selection.
 
 | Surface | Controls |

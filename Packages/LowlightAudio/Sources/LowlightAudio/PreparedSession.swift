@@ -60,14 +60,22 @@ public final class PreparedSession {
     /// Continuous listening has no finite exit fade. Restoring warms at most the selected
     /// song prefix off-callback and then applies an entry fade; it does not restore prior tails.
     public convenience init(
-        seed: UInt64 = 91_031, controls: Controls = Controls(),
+        seed: UInt64 = 91_031, controls: Controls? = nil,
         restart: SessionRestartIntent? = nil,
         preparer: TonalSamplePreparer, cancellation: PreparationCancellation? = nil
     ) throws {
         try cancellation?.check()
+        let normalized = try (controls ?? restart?.currentSong.controls ?? Controls()).normalized()
         let sequence = try SessionListeningSequence(
-            seed: seed, controls: controls, restart: restart, preparer: preparer)
+            seed: seed, controls: normalized, restart: restart, preparer: preparer)
         try self.init(sequence: sequence, cancellation: cancellation)
+        guard
+            ll_song_pair_seed_effects(
+                handle,
+                LLEffectValues(
+                    warmth: normalized.warmth, space: normalized.space, texture: normalized.texture),
+                Self.tonalBin(normalized.warmth))
+        else { throw PreparedSessionError.invalidSession }
         if restart != nil {
             var scratch = [Float](repeating: 0, count: 512)
             while position < sequence.warmFrames {

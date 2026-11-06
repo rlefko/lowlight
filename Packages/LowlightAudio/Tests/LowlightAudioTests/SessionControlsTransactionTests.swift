@@ -280,6 +280,17 @@ struct SessionControlsTransactionTests {
         #expect(mailbox.snapshot.applied == original[0].schedule.song.controls)
         #expect(sequence.records == original && sequence.acceptedControlsRevision == 0)
         #expect(session.pool.reservedRacks == 2 && !session.hasControlsWork)
+        let effects = SessionEffectsMailbox(try #require(session.makeEffectsEndpoint()))
+        let liveOnly = try SessionControlsRequest(
+            revision: 3,
+            controls: SessionEffects(warmth: 0, space: 1, texture: 0).applying(
+                to: requested.controls))
+        #expect(mailbox.send(liveOnly, committingEffects: effects))
+        #expect(mailbox.snapshot.requested == liveOnly.controls)
+        #expect(
+            mailbox.snapshot.revision == requested.revision && mailbox.snapshot.state == .failed)
+        #expect(mailbox.lastError != nil && !session.hasControlsWork)
+        #expect(effects.snapshot.requested == SessionEffects(liveOnly.controls))
         #expect(mailbox.retry() && !mailbox.retry())
         for _ in 0..<16 {
             try service(session)
@@ -289,13 +300,13 @@ struct SessionControlsTransactionTests {
         #expect(sequence.records == original && sequence.acceptedControlsRevision == 0)
         #expect(session.pool.reservedRacks == 2 && !session.hasControlsWork)
         let recover = try SessionControlsRequest(
-            revision: 3, controls: Controls(energy: 0.3, mood: 0.5, tempo: 100))
+            revision: 4, controls: Controls(energy: 0.3, mood: 0.5, tempo: 100))
         #expect(mailbox.send(recover))
         for _ in 0..<12 {
             try service(session)
             try render(session, endpoint: endpoint)
         }
-        #expect(mailbox.lastError == nil && sequence.acceptedControlsRevision == 3)
+        #expect(mailbox.lastError == nil && sequence.acceptedControlsRevision == 4)
     }
 
     @Test func acceptedNativeRevisionCommitsEvenWhenNewerRequestPrecedesWorkerAcknowledgment()

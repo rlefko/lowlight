@@ -3,6 +3,7 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "SongAdvance.h"
+#include "LiveEffects.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -75,6 +76,11 @@ void ll_song_mix_reset(LLSongMix *mix) {
         mix->first[ch] = mix->second[ch] = 0;
 }
 bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output, uint32_t frames) {
+    return ll_song_mix_process_effects(mix, input, output, frames, nullptr, 0);
+}
+bool ll_song_mix_process_effects(LLSongMix *mix, const LLGlueFrame *input, float *output,
+                                 uint32_t frames, const lowlight::EffectTimeline *effects,
+                                 uint64_t frame) {
     lowlight::FloatingPointMode mode;
     const auto a = reinterpret_cast<uintptr_t>(input), b = reinterpret_cast<uintptr_t>(output);
     const uint64_t inputBytes = uint64_t{frames} * sizeof(*input),
@@ -97,7 +103,8 @@ bool ll_song_mix_process(LLSongMix *mix, const LLGlueFrame *input, float *output
         }
     // Air validates/certifies its finite replay and rolls back the complete call
     // on failure. Keep HP history untouched until that single call succeeds.
-    if (!ll_air_add(mix->air, output, frames))
+    if (!(effects ? ll_air_add_effects(mix->air, output, frames, effects, frame)
+                  : ll_air_add(mix->air, output, frames)))
         return false;
     // HP32 poles have radius <.996 and numerator l1 <4, giving impulse l1
     // <250,000. Bounded buses plus air stay far below Float overflow; no later

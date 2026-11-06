@@ -103,6 +103,36 @@ struct SongOriginTests {
         #expect(boundary.position == 1 << 52)
     }
 
+    @Test func onlyLiveTonalKeysRequireTheCalibrationBank() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let bank = originRoot.appendingPathComponent("Lowlight/SoundBank")
+        try FileManager.default.createDirectory(
+            at: directory.appendingPathComponent("assets"), withIntermediateDirectories: true)
+        for name in ["sample_manifest.json", "electric_guitar_manifest.json", "assets/kick"] {
+            try FileManager.default.copyItem(
+                at: bank.appendingPathComponent(name), to: directory.appendingPathComponent(name))
+        }
+        // Valid JSON with a different fingerprint. Drums do not consume the Warmth table.
+        let manifest = directory.appendingPathComponent("electric_guitar_manifest.json")
+        var data = try Data(contentsOf: manifest)
+        data.append(0x0a)
+        try data.write(to: manifest)
+        let preparer = try TonalSamplePreparer(bankURL: directory)
+        var timeline = try SessionTimeline()
+        let score = try EventPlanner.events(for: timeline.next())
+        let kick = try #require(score.first { $0.instrument == .kick })
+        let drum = try TonalVoiceMixer(preparer: preparer, events: [kick], warmth: 0.5)
+        #expect(drum.preparedBytes > 0)
+        let event = try #require(
+            score.first { $0.instrument == .guitar || $0.instrument == .piano })
+        #expect(throws: SamplePreparationError.invalidBank) {
+            _ = try TonalVoiceMixer(preparer: preparer, events: [event], warmth: 0.5)
+        }
+    }
+
     private func translate(_ events: [NoteEvent], subtracting origin: Int64) throws -> [NoteEvent] {
         var records = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder().encode(events)) as? [[String: Any]])

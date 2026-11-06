@@ -77,16 +77,20 @@ final class LaunchTests: XCTestCase {
         tempo.adjust(toNormalizedSliderPosition: 0.75)
         let tempoValue = try XCTUnwrap(tempo.value as? String)
         XCTAssertNotEqual(tempoValue, originalTempoValue)
+        let spaceValue = try adjustEffect("Space", to: 0.28, in: app)
+        let textureValue = try adjustEffect("Texture", to: 0.32, in: app)
+        retainScreenshot(app, named: "Space and texture")
         let variation = app.sliders["variationSlider"]
-        let originalVariationValue = try XCTUnwrap(variation.value as? String)
         reveal(variation, in: app)
+        let originalVariationValue = try XCTUnwrap(variation.value as? String)
         let variationThumb = variation.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         let variationTarget = variation.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5))
         variationThumb.press(forDuration: 0.05, thenDragTo: variationTarget)
         let variationValue = try XCTUnwrap(variation.value as? String)
         XCTAssertNotEqual(variationValue, originalVariationValue)
-        retainScreenshot(app, named: "Manual tempo and variation")
+        retainScreenshot(app, named: "Variation")
         app.buttons["Done"].tap()
+        let warmthValue = try adjustEffect("Warmth", to: 0.45, in: app)
         let energy = app.sliders["energySlider"]
         let originalEnergyValue = try XCTUnwrap(energy.value as? String)
         reveal(energy, in: app)
@@ -109,15 +113,25 @@ final class LaunchTests: XCTestCase {
         waitForExpectations(timeout: 10)
         XCTAssertEqual(preset.value as? String, "Custom")
         XCTAssertEqual(app.buttons["playPauseButton"].label, "Play")
+        XCTAssertEqual(app.sliders["warmthSlider"].value as? String, warmthValue)
         XCTAssertEqual(energy.value as? String, energyValue)
         XCTAssertEqual(mood.value as? String, moodValue)
+        reveal(energy, in: app)
         retainScreenshot(app, named: "Restored custom controls")
         if !more.isHittable { app.swipeUp() }
         more.tap()
         XCTAssertTrue(automatic.waitForExistence(timeout: 5))
         XCTAssertEqual(automatic.value as? String, "0")
         XCTAssertEqual(tempo.value as? String, tempoValue)
-        XCTAssertEqual(variation.value as? String, variationValue)
+        for (name, expected) in [
+            ("spaceSlider", spaceValue), ("textureSlider", textureValue),
+            ("variationSlider", variationValue),
+        ] {
+            let slider = app.sliders[name]
+            reveal(slider, in: app)
+            XCTAssertEqual(slider.value as? String, expected)
+        }
+        reveal(automatic, in: app, searchAbove: true)
         automatic.switches.firstMatch.tap()
         XCTAssertEqual(automatic.value as? String, "1")
         XCTAssertFalse(tempo.exists)
@@ -126,12 +140,32 @@ final class LaunchTests: XCTestCase {
     }
 
     @MainActor
-    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+    private func adjustEffect(_ name: String, to position: CGFloat, in app: XCUIApplication) throws
+        -> String
+    {
+        let slider = app.sliders[name.lowercased() + "Slider"]
+        reveal(slider, in: app)
+        XCTAssertEqual(slider.label, name)
+        let original = try XCTUnwrap(slider.value as? String)
+        slider.adjust(toNormalizedSliderPosition: position)
+        let changed = try XCTUnwrap(slider.value as? String)
+        XCTAssertNotEqual(original, changed)
+        return changed
+    }
+
+    @MainActor
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication, searchAbove: Bool = false)
+    {
         let bounds = app.frame
         let visible = CGRect(
             x: bounds.minX, y: bounds.minY + 160,
             width: bounds.width, height: bounds.height - 220)
         for _ in 0..<6 {
+            if !element.exists {
+                // Offscreen Form rows can leave the accessibility tree entirely.
+                if searchAbove { app.swipeDown() } else { app.swipeUp() }
+                continue
+            }
             let frame = element.frame
             if element.isHittable, visible.contains(frame) { return }
             if frame.midY > visible.midY { app.swipeUp() } else { app.swipeDown() }

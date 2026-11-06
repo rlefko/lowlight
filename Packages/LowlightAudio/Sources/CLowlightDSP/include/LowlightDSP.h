@@ -81,6 +81,17 @@ typedef struct {
 bool ll_mixer_configure_fades(LLMixer *mixer, const LLRackFades *fades);
 // Returns a sample index, or -1. Only permitted before loading the first score.
 int32_t ll_mixer_add_sample(LLMixer *mixer, const float *pcm, uint32_t frames, uint32_t channels);
+// Frozen 100-key x 101-bin gains (key-major), copied during setup. The immutable table
+// also designs target filters for this platform. Its owner must outlive every mixer borrower.
+typedef struct LLTonalCalibration LLTonalCalibration;
+LLTonalCalibration *ll_tonal_calibration_create(const float *gains, uint32_t count);
+void ll_tonal_calibration_destroy(LLTonalCalibration *calibration);
+bool ll_mixer_configure_tonal(LLMixer *mixer, const LLTonalCalibration *calibration,
+                              uint32_t initial_bin);
+// HP-only PCM: keys 0...79 are (guitar MIDI - 50) * 4 + take and 80...99 are
+// 80 + piano MIDI - 50. The existing arena and sample/voice limits apply.
+int32_t ll_mixer_add_tonal_sample(LLMixer *, const float *, uint32_t frames, uint32_t channels,
+                                  uint32_t key);
 // Sorted absolute 32 kHz starts at/after the configured origin; gate/release
 // lengths come from canonical endpoints. Successful loads rewind to the origin.
 // Invalid loads leave the existing score/state untouched. Empty scores are valid.
@@ -452,6 +463,19 @@ bool ll_song_pair_publish_next(LLSongPair *, LLSongNext *);
 bool ll_song_pair_abandon_next(LLSongPair *); // Only a claimed, unpublished offer.
 bool ll_song_pair_next_result(LLSongPair *, LLSongNextResult *); // Consumes one acknowledgment.
 
+// Configure once before rendering an ongoing transport. Publication and observation
+// run off the callback. The single render consumer adopts the latest complete target.
+typedef struct {
+    double warmth, space, texture;
+} LLEffectValues;
+typedef struct {
+    uint64_t adopted_revision, settled_revision;
+    LLEffectValues settled_values;
+} LLEffectProgress;
+bool ll_song_pair_seed_effects(LLSongPair *, LLEffectValues, uint32_t tonal_bin);
+bool ll_song_pair_send_effects(LLSongPair *, LLEffectValues, uint32_t tonal_bin, uint64_t revision);
+LLEffectProgress ll_song_pair_effect_progress(const LLSongPair *);
+
 // Structural controls use a separate, monotonic intent token retained by the caller
 // through pair destruction. Updating it is bounded and thread safe; it never renders.
 typedef struct LLSongRevision LLSongRevision;
@@ -503,6 +527,8 @@ LLSongChange *ll_song_pair_prepare_change(const LLSongChangeOffer *, const LLSon
 // abandons unpublished arena contents. Do not interleave two builders for one rack.
 LLSongChange *ll_song_pair_begin_change(const LLSongChangeOffer *);
 int32_t ll_song_change_add_sample(LLSongChange *, const LLSongChangeSample *);
+// New HP-only tonal PCM in the same supplemental arena. Original-slot references retain their key.
+int32_t ll_song_change_add_tonal_sample(LLSongChange *, const LLSongChangeSample *, uint32_t key);
 bool ll_song_change_finish(LLSongChange *, const LLSongChangeScore *);
 uint32_t ll_song_change_required_voice_slots(const LLSongChange *);
 uint32_t ll_song_change_sample_bytes(const LLSongChange *);

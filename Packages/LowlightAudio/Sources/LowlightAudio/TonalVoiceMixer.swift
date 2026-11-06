@@ -15,6 +15,7 @@ public final class TonalVoiceMixer {
     private let handle: OpaquePointer
     let originalSamples: [Key: SampleReference]
     let warmth: Double
+    let useLiveTonalSamples: Bool
     var controlChangeOwner: PreparedSongControlChange?
     // An accepted transport table is borrowed by the native mixer. Its owner outlives
     // that borrower regardless of the enclosing song's stored-property release order.
@@ -25,6 +26,28 @@ public final class TonalVoiceMixer {
     struct Key: Hashable {
         let instrument: TonalInstrument
         let note, roundRobin, layer: Int
+        var calibrationKey: UInt32? {
+            guard (50...69).contains(note) else { return nil }
+            switch instrument {
+            case .guitar: return UInt32((note - 50) * 4 + roundRobin)
+            case .piano: return UInt32(80 + note - 50)
+            default: return nil
+            }
+        }
+
+        func sample(preparer: TonalSamplePreparer, warmth: Double, velocity: Double, live: Bool)
+            throws -> PreparedTonalSample
+        {
+            if live, calibrationKey != nil {
+                // Initial and supplemental tonal keys use the same verified gain table.
+                try preparer.calibrationBank.verify()
+                return try preparer.tonalSource(
+                    instrument: instrument, note: note, roundRobin: roundRobin)
+            }
+            return try preparer.prepare(
+                instrument: instrument, note: note, roundRobin: roundRobin, warmth: warmth,
+                velocity: velocity)
+        }
     }
 
     struct SampleReference {
@@ -51,16 +74,29 @@ public final class TonalVoiceMixer {
     /// use that same clock; earlier events are rejected before sample preparation.
     /// This does not seek within a song or restore notes already in progress.
     /// Swift preparation preserves subnormals and restores caller FP state, including on failure.
-    public init(
+    public convenience init(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
         busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0,
         cancellation: PreparationCancellation? = nil
     ) throws {
+        try self.init(
+            preparer: preparer, events: events, warmth: warmth, busEnergy: busEnergy,
+            rackFades: rackFades, frameOrigin: frameOrigin, cancellation: cancellation,
+            useLiveTonalSamples: true)
+    }
+
+    // The baked path remains an independent fixed-control oracle for native comparison.
+    init(
+        preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
+        busEnergy: Double? = nil, rackFades: SongRackFades? = nil, frameOrigin: UInt64 = 0,
+        cancellation: PreparationCancellation? = nil, useLiveTonalSamples: Bool
+    ) throws {
+        self.useLiveTonalSamples = useLiveTonalSamples
         let prepared = try PreparationMode.perform {
             try Self.makeHandle(
                 preparer: preparer, events: events, warmth: warmth,
                 busEnergy: busEnergy, rackFades: rackFades, frameOrigin: frameOrigin,
-                cancellation: cancellation)
+                cancellation: cancellation, useLiveTonalSamples: useLiveTonalSamples)
         }
         handle = prepared.handle
         originalSamples = prepared.samples
@@ -72,7 +108,7 @@ public final class TonalVoiceMixer {
     private static func makeHandle(
         preparer: TonalSamplePreparer, events: [NoteEvent], warmth: Double,
         busEnergy: Double?, rackFades: SongRackFades?, frameOrigin: UInt64,
-        cancellation: PreparationCancellation?
+        cancellation: PreparationCancellation?, useLiveTonalSamples: Bool
     ) throws -> (handle: OpaquePointer, samples: [Key: SampleReference]) {
         try cancellation?.check()
         guard events.count <= Int(LL_EVENT_LIMIT), warmth.isFinite,
@@ -111,6 +147,13 @@ public final class TonalVoiceMixer {
                     throw VoiceMixerError.invalidScore
                 }
             }
+            if useLiveTonalSamples {
+                let calibration = try LiveTonalCalibration.shared.get()
+                let bin = UInt32((TonalSamplePreparer.quantizedWarmth(warmth) * 100).rounded())
+                guard ll_mixer_configure_tonal(handle, calibration.handle, bin) else {
+                    throw SamplePreparationError.invalidBank
+                }
+            }
             var slots: [Key: UInt32] = [:]
             var references: [Key: SampleReference] = [:]
             var score: [LLEvent] = []
@@ -122,9 +165,9 @@ public final class TonalVoiceMixer {
                     guard slots.count < Int(LL_SAMPLE_LIMIT) else {
                         throw VoiceMixerError.capacityExceeded
                     }
-                    let sample = try preparer.prepare(
-                        instrument: instrument, note: key.note,
-                        roundRobin: key.roundRobin, warmth: warmth, velocity: event.velocity)
+                    let sample = try key.sample(
+                        preparer: preparer, warmth: warmth, velocity: event.velocity,
+                        live: useLiveTonalSamples)
                     try cancellation?.check()
                     // Preserve the kernel's full-sample bounds, including discarded suffixes.
                     guard (1...2).contains(sample.channels),
@@ -132,13 +175,17 @@ public final class TonalVoiceMixer {
                         (1...215_513).contains(sample.frames),
                         sample.samples.allSatisfy({ $0.isFinite && abs($0) <= 8 })
                     else { throw VoiceMixerError.capacityExceeded }
-                    // Prepare the whole body before trimming: filtering and normalization
-                    // need it. Tonal/bass readers cannot reach beyond any event's lifetime;
-                    // percussion still plays its complete shaped body regardless of gates.
+                    // Retain only the reachable tonal/bass prefix after preparing the source.
+                    // Percussion plays its complete shaped body regardless of event gates.
                     let frames = min(sample.frames, requiredFrames[key] ?? sample.frames)
-                    let slot = sample.samples.withUnsafeBufferPointer {
-                        ll_mixer_add_sample(
-                            handle, $0.baseAddress, UInt32(frames), UInt32(sample.channels))
+                    let slot = sample.samples.withUnsafeBufferPointer { buffer in
+                        if useLiveTonalSamples, let row = key.calibrationKey {
+                            return ll_mixer_add_tonal_sample(
+                                handle, buffer.baseAddress, UInt32(frames), UInt32(sample.channels),
+                                row)
+                        }
+                        return ll_mixer_add_sample(
+                            handle, buffer.baseAddress, UInt32(frames), UInt32(sample.channels))
                     }
                     guard slot >= 0 else { throw VoiceMixerError.capacityExceeded }
                     slots[key] = UInt32(slot)

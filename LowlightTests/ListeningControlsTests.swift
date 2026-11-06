@@ -71,6 +71,38 @@ struct ListeningControlsTests {
         try await wait { playback.state == .stopped }
     }
 
+    @Test func effectDraggingAuditionsWithoutSavingAndCommitKeepsTheLastRamp() async throws {
+        let store = ControlsSaveStore()
+        let model = model(store: store)
+        model.load()
+        try await wait { !model.isLoading }
+        let owner = try #require(model.playback)
+        let initial = model.committedControls
+        var preview = initial
+        preview.warmth = 0.1
+        preview.space = 0.85
+        preview.texture = 0.3
+        model.previewControls(preview)
+        #expect(owner.effectsSnapshot.requested == SessionEffects(preview))
+        #expect(model.presetName == "Custom" && !model.controlsPending)
+        #expect(owner.desiredControls == initial && model.committedControls == initial)
+        #expect(await store.attempts.isEmpty)
+
+        // Choosing the saved preset during a drag cancels its audition without a write.
+        model.selectPreset(.focus)
+        #expect(owner.effectsSnapshot.requested == SessionEffects(initial))
+        #expect(await store.attempts.isEmpty)
+        model.previewControls(preview)
+        let lastPreview = owner.effectsSnapshot.revision
+        model.commitControls()
+        try await wait { await store.attempts.count == 1 && !model.isSaving }
+        #expect(owner.effectsSnapshot.revision == lastPreview)
+        #expect(await store.attempts[0].controls == preview)
+        #expect(owner.state == .idle && !model.requestedPlayback)
+        owner.stop()
+        try await wait { owner.state == .stopped }
+    }
+
     @Test func presetsSubmitEveryExactValueAndCustomRetainsTheOtherSettings() async throws {
         let store = ControlsSaveStore()
         let model = model(store: store)

@@ -31,6 +31,7 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         var token: PreparationCancellation?
         var cancelOnControls = false
         var controls: SessionControlsMailbox?
+        var effects: SessionEffectsMailbox?
         var renderFailed: (@Sendable () -> Bool)?
         var captureRequested = false
         var nextSelection: UInt64?
@@ -186,26 +187,50 @@ public final class SessionPreparationWorker: @unchecked Sendable {
     }
 
     /// Retaining this capability never retains the worker or grants playback permission.
-    public var controlsInput: SessionControlsInput {
+    public var controlsInput: SessionControlsInput { makeControlsInput(committingEffects: true) }
+
+    // The playback coordinator owns the two revisions itself, including live previews.
+    var musicalInput: SessionControlsInput { makeControlsInput(committingEffects: false) }
+
+    private func makeControlsInput(committingEffects: Bool) -> SessionControlsInput {
         shared.condition.lock()
         let controls = shared.controls
+        let effects = committingEffects ? shared.effects : nil
         shared.condition.unlock()
         return SessionControlsInput(
-            submit: { [weak controls] in controls?.send($0) ?? false },
+            submit: { [weak controls, weak effects] in
+                controls?.send($0, committingEffects: effects, musicalOnly: !committingEffects)
+                    ?? false
+            },
             retry: { [weak controls] in controls?.retry() ?? false })
     }
+
+    public var effectsInput: SessionEffectsInput? {
+        shared.condition.lock()
+        defer { shared.condition.unlock() }
+        return shared.effects.map(SessionEffectsInput.init)
+    }
+
+    public var effectsSnapshot: SessionEffectsSnapshot? { effectsInput?.snapshot }
 
     /// Revision zero identifies a finite source without live controls. Its known initial
     /// settings remain accurate; input submission and retry return false for that source.
     public var controlsSnapshot: SessionControlsSnapshot {
         shared.condition.lock()
         let controls = shared.controls
+        let effects = shared.effects
         shared.condition.unlock()
-        return controls?.snapshot
-            ?? SessionControlsSnapshot(
-                requested: initialControls ?? Controls(), applied: initialControls ?? Controls(),
-                revision: 0, appliedRevision: 0,
-                state: .none)
+        if let actual = controls?.snapshot {
+            return SessionControlsSnapshot(
+                requested: actual.requested,
+                applied: effects?.snapshot.settled.applying(to: actual.applied) ?? actual.applied,
+                revision: actual.revision, appliedRevision: actual.appliedRevision,
+                state: actual.state)
+        }
+        return SessionControlsSnapshot(
+            requested: initialControls ?? Controls(), applied: initialControls ?? Controls(),
+            revision: 0, appliedRevision: 0,
+            state: .none)
     }
 
     public var controlsError: (any Error)? {
@@ -327,9 +352,11 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         shared.captureRequested = true
         shared.token?.cancel()
         let controls = shared.controls
+        let effects = shared.effects
         shared.condition.broadcast()
         shared.condition.unlock()
         controls?.close()
+        effects?.close()
     }
 
     /// Waits for this preparation thread, not the render consumer. Request stop first unless
@@ -363,8 +390,10 @@ public final class SessionPreparationWorker: @unchecked Sendable {
             try token.check()
             let endpoint = try session.makeRenderEndpoint()
             let initialSnapshot = try session.captureListeningSnapshot()
+            let effects = session.makeEffectsEndpoint().map(SessionEffectsMailbox.init)
             let controls: SessionControlsMailbox?
             if let initialSnapshot {
+                guard effects != nil else { throw PreparedSessionError.preparationFailed }
                 controls = try SessionControlsMailbox(
                     desired: work.initialControls ?? initialSnapshot.currentSong.controls,
                     applied: initialSnapshot.currentSong.controls
@@ -392,6 +421,7 @@ public final class SessionPreparationWorker: @unchecked Sendable {
                 state.token = nil
                 state.listening = initialSnapshot
                 state.controls = controls
+                state.effects = effects
                 state.setStatus(.running)
                 state.initialFinished = true
                 state.condition.broadcast()
@@ -416,6 +446,7 @@ public final class SessionPreparationWorker: @unchecked Sendable {
         state.condition.broadcast()
         state.condition.unlock()
         state.controls?.close()
+        state.effects?.close()
         notify(state)
     }
 

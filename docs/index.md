@@ -3,6 +3,7 @@
 - [Quick start](../README.md#build)
 - [Architecture and real-time boundaries](architecture.md)
 - [Music and controls](music.md)
+- [Live effects, listening comparisons, and performance evidence](validation-live-effects.md)
 - [Sound bank and parity](audio-reference.md)
 - [Sound-bank provenance and checks](sound-bank.md)
 - [Native tonal preparation and evidence](validation-tonal.md)

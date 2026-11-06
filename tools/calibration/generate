@@ -1,0 +1,21 @@
+#!/bin/bash
+# Copyright (C) 2026 Ryan Lefkowitz
+# SPDX-License-Identifier: GPL-3.0-only
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+export TOOLCHAINS=com.apple.dt.toolchain.Xcode
+scripts/toolchain
+[[ $# == 1 ]] || { echo 'Usage: tools/calibration/generate OUTPUT_FILE' >&2; exit 2; }
+architecture="${LOWLIGHT_CALIBRATION_ARCH:-$(uname -m)}"
+case "$architecture" in arm64|x86_64) ;; *) echo 'Unsupported calibration architecture' >&2; exit 2 ;; esac
+work=".build/TonalCalibrationGenerator/$architecture"
+native=Packages/LowlightAudio/Sources/CLowlightDSP
+swift=Packages/LowlightAudio/Sources/LowlightAudio
+mkdir -p "$work/module" "$work/cache"
+echo 'module CLowlightDSP { header "LowlightDSP.h" export * }' > "$work/module/module.modulemap"
+cp "$native/include/LowlightDSP.h" "$work/module/LowlightDSP.h"
+xcrun clang++ -arch "$architecture" -mmacosx-version-min=15.0 -O2 -std=c++17 -ffp-contract=off -I "$native/include" -c "$native/Preparation.cpp" -o "$work/preparation.o"
+xcrun swiftc -target "$architecture-apple-macosx15.0" -O -module-cache-path "$work/cache" -I "$work/module" -Xlinker -lc++ \
+  tools/calibration/Generate.swift "$swift"/{TonalSamplePreparer,TonalCalibrationBank,SampleProcessing,PreparationMode}.swift \
+  "$work/preparation.o" -o "$work/generate"
+"$work/generate" Lowlight/SoundBank "$1"

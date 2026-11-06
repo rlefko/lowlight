@@ -3,6 +3,8 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "SongAdvance.h"
+#include "LiveEffects.h"
+#include "TonalRendering.h"
 #include "RackFades.h"
 #include <algorithm>
 #include <new>
@@ -24,6 +26,9 @@ bool overlaps(float *output, uint32_t capacity, uint32_t *written) {
 
 struct LLSongSource {
     LLMixer *mixer = nullptr;
+    const lowlight::EffectTimeline *effects = nullptr;
+    uint64_t placement = 0;
+    double warmthBins[blockFrames]{};
     LLGlue *glue = nullptr;
     LLRoom *room = nullptr;
     LLSongMix *mix = nullptr;
@@ -32,6 +37,28 @@ struct LLSongSource {
     LLBusFrame buses[blockFrames]{};
     LLGlueFrame delayed[blockFrames]{}, wet[blockFrames]{};
 };
+
+bool ll_song_source_supports_effects(const LLSongSource *source) {
+    return source && ll_mixer_supports_effects(source->mixer);
+}
+void ll_song_source_use_effects(LLSongSource *source, const lowlight::EffectTimeline *timeline,
+                                uint64_t placement) {
+    source->effects = timeline;
+    source->placement = placement;
+}
+
+static bool renderBuses(LLSongSource *source, uint32_t count) {
+    if (!source->effects)
+        return ll_mixer_render_buses(source->mixer, source->buses, count);
+    const auto frame = source->placement + source->input;
+    if (const auto *fixed = source->effects->constant(frame))
+        std::fill_n(source->warmthBins, count, fixed->toneBin);
+    else
+        for (uint32_t i = 0; i < count; ++i)
+            source->warmthBins[i] =
+                source->effects->at(frame + i).field(&lowlight::EffectShape::toneBin);
+    return ll_mixer_render_effect_buses(source->mixer, source->buses, count, source->warmthBins);
+}
 
 LLSongSource *ll_song_source_create(LLMixer *mixer, const LLSongSourceConfig *config) {
     lowlight::FloatingPointMode mode;
@@ -104,7 +131,7 @@ bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacit
         bool success;
         if (source->input < source->frames) {
             physical = std::min(physical, source->frames - source->input);
-            success = ll_mixer_render_buses(source->mixer, source->buses, physical) &&
+            success = renderBuses(source, physical) &&
                       ll_glue_process(source->glue, source->buses, source->delayed, physical);
             if (success)
                 source->input += physical;
@@ -121,10 +148,19 @@ bool ll_song_source_render(LLSongSource *source, float *output, uint32_t capacit
         const uint32_t skipped = std::min(source->startup, physical);
         source->startup -= skipped;
         const uint32_t count = physical - skipped;
-        if (count &&
-            (!ll_room_process(source->room, source->delayed + skipped, source->wet, count) ||
-             !ll_song_mix_process(source->mix, source->wet, output + uint64_t{produced} * 2,
-                                  count))) {
+        if (count) {
+            const auto frame = source->placement + source->position + produced;
+            auto *destination = output + uint64_t{produced} * 2;
+            const auto *input = source->delayed + skipped;
+            success = source->effects
+                          ? ll_room_process_effects(source->room, input, source->wet, count,
+                                                    source->effects, frame) &&
+                                ll_song_mix_process_effects(source->mix, source->wet, destination,
+                                                            count, source->effects, frame)
+                          : ll_room_process(source->room, input, source->wet, count) &&
+                                ll_song_mix_process(source->mix, source->wet, destination, count);
+        }
+        if (!success) {
             source->faulted = true;
             clear(output, capacity);
             return false;
