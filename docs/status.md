@@ -10,7 +10,7 @@
 | 6. Support Background Playback | [App playback integration](validation-playback-integration.md) implemented; physical-device acceptance pending |
 | 7. Add Expressive Listening Controls | [Presets and musical controls](validation-listening-controls.md) and [live effects](validation-live-effects.md) implemented. Listening and physical-device acceptance are tracked separately. |
 | 8. Polish the Native Listening Experience | [Native listening screen, artwork, accessibility, and visual overhead](validation-native-listening.md) validated on Simulator. On-device acceptance is part of milestone 9. |
-| 9. Validate the MVP on Devices | Planned |
+| 9. Validate the MVP on Devices | [Playback comparison harness rehearsed on Simulator](validation-playback-comparisons.md). Energy, latency and soak measurements on both phones remain open. |
 
 The [public repository](https://github.com/rlefko/lowlight) is configured and administrative access was verified. The active [main-branch ruleset](https://github.com/rlefko/lowlight/rules/26254576) requires PRs, resolved review conversations, up-to-date CI Gate results from GitHub Actions, and CodeQL results with no errors/warnings or medium-or-higher security findings. It blocks deletion and force pushes and has no bypass actors. Active rules were read back from GitHub after configuration.
 

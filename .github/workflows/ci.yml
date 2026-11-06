@@ -47,6 +47,7 @@ jobs:
       - run: python3 -B -m unittest discover -s tests -p 'test_codeql_coverage.py'
       - run: python3 -B -m unittest discover -s tests -p 'test_quality.py'
       - run: python3 -B -m unittest discover -s tests -p 'test_ci_workflow.py'
+      - run: python3 -B -m unittest discover -s tests -p 'test_playback_comparison.py'
   build:
     name: Build and Tests
     runs-on: macos-26

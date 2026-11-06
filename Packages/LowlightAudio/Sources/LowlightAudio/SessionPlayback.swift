@@ -204,6 +204,13 @@ public final class SessionPlayback {
 
     /// On-demand snapshots only: no timer, automatic EOF stop, or converter-drain claim.
     public func refresh() { control.request(.refresh) }
+    /// Reads the canonical source frame position once on the engine's control queue.
+    /// A stopped owner retains its final position.
+    public func readRenderedPosition() async throws -> UInt64 {
+        let livePosition = try await control.inspect { $0?.position }
+        return livePosition ?? position
+    }
+
     public func requestCapture() { control.request(.capture) }
 
     /// Retry a latched successor error only; never creates a session or resumes output.

@@ -8,18 +8,27 @@ import SwiftUI
 
 @main
 struct LowlightApp: App {
-    @State private var model = ListeningModel()
-    @Environment(\.scenePhase) private var scenePhase
+    #if LOWLIGHT_PLAYBACK_COMPARISON
+        @State private var comparison = PlaybackComparison()
 
-    var body: some Scene {
-        WindowGroup {
-            ListeningView(model: model)
-                .task { model.load() }
-                .onChange(of: scenePhase, initial: true) { _, phase in
-                    model.sceneActive(phase == .active)
-                }
+        var body: some Scene {
+            WindowGroup { PlaybackComparisonView(model: comparison) }
         }
-    }
+
+    #else
+        @State private var model = ListeningModel()
+        @Environment(\.scenePhase) private var scenePhase
+
+        var body: some Scene {
+            WindowGroup {
+                ListeningView(model: model)
+                    .task { model.load() }
+                    .onChange(of: scenePhase, initial: true) { _, phase in
+                        model.sceneActive(phase == .active)
+                    }
+            }
+        }
+    #endif
 }
 
 private struct ListeningView: View {
