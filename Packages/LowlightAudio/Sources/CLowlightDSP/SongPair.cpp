@@ -3,6 +3,7 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "SongAdvance.h"
+#include "LiveEffects.h"
 #include <algorithm>
 #include <atomic>
 #include <new>
@@ -41,6 +42,7 @@ struct LLSongNext {
 
 struct LLSongPair {
     LLSongReplay *songs[2]{};
+    lowlight::LiveEffects effects;
     LLPeakProtector *peak = nullptr;
     uint64_t origins[2]{}, frames = 0, input = 0, position = 0, entryOrigin = 0;
     uint32_t lengths[2]{}, startup = LL_PEAK_LATENCY, restartFade = 12800;
@@ -156,7 +158,12 @@ struct LLSongPair {
                 continue;
             const auto amount = static_cast<uint32_t>(end - start);
             uint32_t received = 0;
-            if (!ll_song_replay_render(songs[song], piece, amount, &received) || received != amount)
+            if (effects.enabled())
+                ll_song_replay_use_effects(songs[song], &effects.timeline, origins[song]);
+            const bool rendered = ll_song_replay_render(songs[song], piece, amount, &received);
+            if (effects.enabled())
+                ll_song_replay_use_effects(songs[song], nullptr, 0);
+            if (!rendered || received != amount)
                 return false;
             for (uint32_t i = 0; i < 2 * amount; ++i)
                 sum[2 * (start - input) + i] += piece[i];
@@ -282,7 +289,8 @@ static bool publish(LLSongPair *pair, LLSongReplay *next, uint64_t origin, uint6
     if (!pair || !pair->streaming ||
         pair->phase.load(std::memory_order_acquire) != LLSongPair::preparing ||
         pair->visibleFault.load(std::memory_order_acquire) || !next ||
-        next == pair->request.survivor)
+        next == pair->request.survivor ||
+        (pair->effects.enabled() && !ll_song_replay_supports_effects(next)))
         return false;
     // Never inspect the concurrently rendered survivor or live input clock.
     const auto end = origin + ll_song_replay_frames(next);
@@ -400,6 +408,8 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
                                                      : pair->waitingOrigin();
                 physical = static_cast<uint32_t>(std::min(uint64_t{physical}, stop - pair->input));
             }
+            if (pair->effects.enabled())
+                pair->effects.consume(pair->input, pair->position + produced);
             success = pair->mix(physical);
             if (success)
                 pair->input += physical;
@@ -429,6 +439,8 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
             }
         }
         produced += count;
+        if (pair->effects.enabled())
+            pair->effects.advanced(pair->position + produced);
         // Publish generated musical progress before releasing a retirement request. A
         // worker must not select the survivor using the preceding call's stale cursor.
         // Keep the existing returned-output/fault position contract separate.
@@ -442,6 +454,18 @@ bool ll_song_pair_render(LLSongPair *pair, float *output, uint32_t capacity, uin
     if (pair->streaming)
         pair->visiblePosition.store(pair->position, std::memory_order_release);
     return true;
+}
+bool ll_song_pair_seed_effects(LLSongPair *pair, LLEffectValues values, uint32_t bin) {
+    return pair && pair->placed && !pair->frames && pair->position == pair->entryOrigin &&
+           pair->input == pair->entryOrigin && ll_song_replay_supports_effects(pair->songs[0]) &&
+           ll_song_replay_supports_effects(pair->songs[1]) && pair->effects.seed(values, bin);
+}
+bool ll_song_pair_send_effects(LLSongPair *pair, LLEffectValues values, uint32_t bin,
+                               uint64_t revision) {
+    return pair && pair->effects.send(values, bin, revision);
+}
+LLEffectProgress ll_song_pair_effect_progress(const LLSongPair *pair) {
+    return pair ? pair->effects.progress() : LLEffectProgress{};
 }
 uint32_t ll_song_pair_position(const LLSongPair *pair) {
     return static_cast<uint32_t>(ll_song_pair_position64(pair));
@@ -827,6 +851,7 @@ static bool matchingChange(const LLSongPair *pair, const LLSongChange *patch) {
 bool ll_song_pair_withdraw_change(LLSongPair *pair, LLSongChange *patch) {
     if (!matchingChange(pair, patch) || ll_song_pair_faulted(pair) ||
         pair->changePhase.load(std::memory_order_acquire) != LLSongPair::changePreparing ||
+        (pair->effects.enabled() && !ll_mixer_advance_supports_effects(patch->advance->score)) ||
         ll_song_revision_get(patch->offer.intent) != patch->offer.revision)
         return false;
     pair->changePatch = patch;
@@ -850,7 +875,8 @@ bool ll_song_pair_publish_change(LLSongPair *pair, LLSongChange *patch, LLSongRe
     if (!matchingChange(pair, patch) || !replacement || replacement == patch->offer.first ||
         ll_song_pair_faulted(pair) ||
         pair->changePhase.load(std::memory_order_acquire) != LLSongPair::changeBuilding ||
-        ll_song_replay_faulted(replacement) || ll_song_replay_position(replacement))
+        ll_song_replay_faulted(replacement) || ll_song_replay_position(replacement) ||
+        (pair->effects.enabled() && !ll_song_replay_supports_effects(replacement)))
         return false;
     const uint64_t origin = patch->offer.target_origin + patch->advance->boundary;
     const uint32_t length = ll_song_replay_frames(replacement);
@@ -875,6 +901,7 @@ bool ll_song_pair_restore_change(LLSongPair *pair, LLSongReplay *original) {
     const auto state = pair->changePhase.load(std::memory_order_acquire);
     if ((state != LLSongPair::changeBuilding && state != LLSongPair::changeRollback) ||
         original == pair->changeOffer.first ||
+        (pair->effects.enabled() && !ll_song_replay_supports_effects(original)) ||
         ll_song_replay_frames(original) != pair->changeOffer.second_frames ||
         ll_song_replay_required_voice_slots(original) != pair->changeOffer.second_voice_slots)
         return false;

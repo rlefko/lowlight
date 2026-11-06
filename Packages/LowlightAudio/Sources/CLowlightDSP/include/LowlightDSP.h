@@ -463,6 +463,19 @@ bool ll_song_pair_publish_next(LLSongPair *, LLSongNext *);
 bool ll_song_pair_abandon_next(LLSongPair *); // Only a claimed, unpublished offer.
 bool ll_song_pair_next_result(LLSongPair *, LLSongNextResult *); // Consumes one acknowledgment.
 
+// Configure once before rendering an ongoing transport. Publication and observation
+// run off the callback. The single render consumer adopts the latest complete target.
+typedef struct {
+    double warmth, space, texture;
+} LLEffectValues;
+typedef struct {
+    uint64_t adopted_revision, settled_revision;
+    LLEffectValues settled_values;
+} LLEffectProgress;
+bool ll_song_pair_seed_effects(LLSongPair *, LLEffectValues, uint32_t tonal_bin);
+bool ll_song_pair_send_effects(LLSongPair *, LLEffectValues, uint32_t tonal_bin, uint64_t revision);
+LLEffectProgress ll_song_pair_effect_progress(const LLSongPair *);
+
 // Structural controls use a separate, monotonic intent token retained by the caller
 // through pair destruction. Updating it is bounded and thread safe; it never renders.
 typedef struct LLSongRevision LLSongRevision;

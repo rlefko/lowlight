@@ -6,6 +6,7 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "SongAdvance.h"
+#include "LiveEffects.h"
 #include "NumpyRandom.h"
 #include "RackFades.h"
 #include <algorithm>
@@ -111,6 +112,10 @@ struct LLAir {
     uint32_t frames;
     uint64_t origin;
     float gains[2]{};
+    double divisors[2]{};
+    float gain(double texture, unsigned channel) const {
+        return static_cast<float>(texture * .00065 / divisors[channel]);
+    }
     Stream stream;
     LLAir(uint32_t seed, uint32_t count, uint64_t start, lowlight::RackFades fade)
         : starts{lowlight::NumpyRandom(seed), lowlight::NumpyRandom(seed)}, fades(fade),
@@ -136,8 +141,8 @@ LLAir *ll_air_create(uint32_t takeSeed, uint32_t inputFrames, uint64_t frameOrig
         // _mean divides the Float scalar sum by an integer in Double, then stores
         // Float before sqrt. NumPy's weak Python scalar is cast before air *= gain.
         const float rms = std::sqrt(static_cast<float>(static_cast<double>(total) / inputFrames));
-        air->gains[ch] =
-            static_cast<float>(texture * .00065 / std::max(static_cast<double>(rms), 1e-9));
+        air->divisors[ch] = std::max(static_cast<double>(rms), 1e-9);
+        air->gains[ch] = air->gain(texture, ch);
         if (!power.valid || !std::isfinite(air->gains[ch])) {
             delete air;
             return nullptr;
@@ -156,6 +161,10 @@ void ll_air_reset(LLAir *air) {
         air->stream = Stream(air->starts[0], air->starts[1]);
 }
 bool ll_air_add(LLAir *air, float *stereo, uint32_t frames) {
+    return ll_air_add_effects(air, stereo, frames, nullptr, 0);
+}
+bool ll_air_add_effects(LLAir *air, float *stereo, uint32_t frames,
+                        const lowlight::EffectTimeline *effects, uint64_t frame) {
     lowlight::FloatingPointMode mode;
     if (!air || frames > air->frames - air->stream.position || (frames && !stereo)) {
         clear(stereo, frames);
@@ -167,9 +176,20 @@ bool ll_air_add(LLAir *air, float *stereo, uint32_t frames) {
             return false;
         }
     const Stream checkpoint = air->stream;
+    const auto *fixed = effects ? effects->constant(frame) : nullptr;
+    float gains[2] = {air->gains[0], air->gains[1]};
+    if (fixed)
+        for (unsigned ch = 0; ch < 2; ++ch)
+            gains[ch] = air->gain(fixed->texture, ch);
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
         for (; offset < end; ++offset, ++air->stream.position) {
+            if (effects && !fixed) {
+                const auto texture =
+                    effects->at(frame + offset).field(&lowlight::EffectShape::texture);
+                for (unsigned ch = 0; ch < 2; ++ch)
+                    gains[ch] = air->gain(texture, ch);
+            }
             const double time = static_cast<double>(air->stream.position) / 32000;
             const double fade = air->fades.tonalGain(air->origin + air->stream.position);
             for (uint32_t ch = 0; ch < 2; ++ch) {
@@ -179,7 +199,7 @@ bool ll_air_add(LLAir *air, float *stereo, uint32_t frames) {
                     clear(stereo, frames);
                     return false;
                 }
-                sample *= air->gains[ch];
+                sample *= gains[ch];
                 const double modulation = .8 + .12 * std::sin(2 * pi * time / 19 + ch) +
                                           .08 * std::sin(2 * pi * time / 7.1 + 2 * ch);
                 const uint64_t i = uint64_t{offset} * 2 + ch;

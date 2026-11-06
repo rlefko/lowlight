@@ -850,3 +850,18 @@ LLMixerAdvance *ll_mixer_prepare_change(LLMixer *m, const LLSongChangeScore &sco
 uint32_t ll_mixer_change_sample_bytes(const LLMixerAdvance *patch) {
     return patch ? patch->sampleBytes : 0;
 }
+
+// A baked tonal sample still renders through the finite compatibility API. It cannot
+// follow a live Warmth target, so check each new score before its rack is published.
+static bool supportsEffects(const Event *events, uint32_t count) {
+    return std::all_of(events, events + count, [](const Event &event) {
+        return event.note.instrument >= 2 || event.sample.tonalKey < lowlight::tonalKeys;
+    });
+}
+bool ll_mixer_supports_effects(const LLMixer *mixer) {
+    return mixer && mixer->loaded && mixer->buses.configured && mixer->tonal.table &&
+           supportsEffects(mixer->events, mixer->eventCount);
+}
+bool ll_mixer_advance_supports_effects(const LLMixerAdvance *patch) {
+    return patch && supportsEffects(patch->events, patch->count);
+}

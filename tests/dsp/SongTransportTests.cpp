@@ -30,6 +30,18 @@ struct LLSongReplay {
     LLSongReplay(uint64_t canonical, uint32_t length, int id)
         : origin(canonical), frames(length), identity(id) {}
 };
+namespace lowlight {
+class EffectTimeline;
+}
+bool ll_song_replay_supports_effects(const LLSongReplay *) {
+    return false;
+}
+bool ll_mixer_advance_supports_effects(const LLMixerAdvance *) {
+    return false;
+}
+void ll_song_replay_use_effects(LLSongReplay *, const lowlight::EffectTimeline *, uint64_t) {
+    std::abort(); // This transport-only fixture never configures effects.
+}
 static std::atomic<uint32_t> *progressGate = nullptr;
 static float sample(int identity, uint32_t frame, uint32_t channel) {
     const int value = int((frame + uint32_t(identity) * 7) % (channel ? 19 : 31)) - 9;

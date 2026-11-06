@@ -9,7 +9,7 @@ import Testing
 
 @testable import LowlightAudio
 
-private let callbackEvidenceRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+let callbackEvidenceRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
     .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
     .deletingLastPathComponent()
 
@@ -40,73 +40,19 @@ struct LiveCallbackEvidenceTests {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         for name in ["ordinary", "maximum-overlap"] {
-            let fixture = try name == "ordinary" ? ordinary(bank) : maximumOverlap(bank)
+            let recipe = try CallbackEvidenceRecipe.named(name, preparer: bank)
+            var gains: [Double] = []
+            let pair = try PreparedSongPair(frameCount: recipe.frameCount) { pool in
+                let racks = try recipe.prepare(pool)
+                gains = [racks.0.linearMultiplier, racks.1.linearMultiplier]
+                return racks
+            }
+            if name == "maximum-overlap" { try #require(pair.requiredVoiceSlots == 64) }
+            let fixture = Fixture(pair: pair, gains: gains)
             let result = try measure(fixture)
             try encoder.encode(result).write(
                 to: directory.appendingPathComponent(name + ".json"), options: .atomic)
         }
-    }
-
-    /// A real seeded first selection and its complete outgoing overlap, including both
-    /// song protectors, room, quiet air, and the shared session protection and fades.
-    private func ordinary(_ preparer: TonalSamplePreparer) throws -> Fixture {
-        var timeline = try SessionTimeline()
-        let first = try timeline.next()
-        let second = try timeline.next()
-        let end = UInt32(try first.outgoing.ramp.frame(at: 16))
-        var gains: [Double] = []
-        let pair = try PreparedSongPair(frameCount: end) { pool in
-            let left = try pool.prepare(schedule: first, preparer: preparer)
-            let right = try pool.prepare(schedule: second, preparer: preparer)
-            gains = [left.linearMultiplier, right.linearMultiplier]
-            return (left, right)
-        }
-        return Fixture(pair: pair, gains: gains)
-    }
-
-    /// Sustain 32 tonal voices on each of two overlapping production racks. Their staggered
-    /// onsets exercise both racks independently while keeping within the real admission bound.
-    private func maximumOverlap(_ preparer: TonalSamplePreparer) throws -> Fixture {
-        let frames: UInt32 = 32 * 32_000
-        var gains: [Double] = []
-        let pair = try PreparedSongPair(frameCount: frames) { pool in
-            func rack(origin: UInt64) throws -> PreparedSong {
-                var events: [NoteEvent] = []
-                for second in 0..<32 {
-                    for voice in 0..<32 {
-                        let start = origin + UInt64(second * 32_000)
-                        let record: [String: Any] = [
-                            "formatVersion": 1,
-                            "instrument": voice.isMultiple(of: 2) ? "piano" : "guitar",
-                            "role": "chord", "articulation": "normal", "note": 60 + voice % 4,
-                            "roundRobin": voice % 2, "beat": second, "velocity": 0.16,
-                            "pan": Double(voice % 5 - 2) / 4,
-                            "startFrame": start, "gateEndFrame": start + 31_500,
-                            "releaseEndFrame": start + 32_000,
-                        ]
-                        events.append(
-                            try JSONDecoder().decode(
-                                NoteEvent.self, from: JSONSerialization.data(withJSONObject: record)
-                            ))
-                    }
-                }
-                let end = Double(origin + UInt64(frames))
-                return try pool.prepare(
-                    layout: SongRenderLayout(
-                        frameOrigin: origin, inputFrames: frames, bodyFrames: 0..<32_000),
-                    preparer: preparer, events: events, takeSeed: 308, focus: .guitar,
-                    warmth: 0.78, energy: 0.35, space: 0.44, texture: 0.09,
-                    rackFades: SongRackFades(
-                        tonalOutStartFrame: end, tonalOutEndFrame: end + 1024,
-                        rhythmInFrame: Double(origin), rhythmOutFrame: end))
-            }
-            let left = try rack(origin: 0)
-            let right = try rack(origin: 256)
-            gains = [left.linearMultiplier, right.linearMultiplier]
-            return (left, right)
-        }
-        try #require(pair.requiredVoiceSlots == 64)
-        return Fixture(pair: pair, gains: gains)
     }
 
     private func measure(_ fixture: Fixture) throws -> Measurement {
@@ -150,4 +96,72 @@ struct LiveCallbackEvidenceTests {
     }
 
     private enum EvidenceError: Error { case nonfinite }
+}
+
+struct CallbackEvidenceRecipe {
+    let frameCount: UInt32
+    let prepare: (SongPreparationPool) throws -> (PreparedSong, PreparedSong)
+
+    static func named(_ name: String, preparer: TonalSamplePreparer) throws -> Self {
+        switch name {
+        case "ordinary": return try ordinary(preparer)
+        case "maximum-overlap": return maximumOverlap(preparer)
+        default: throw PreparedSongPairError.invalidPair
+        }
+    }
+
+    /// A real seeded first selection and its complete outgoing overlap, including both
+    /// song protectors, room, quiet air, and the shared session protection and fades.
+    static func ordinary(_ preparer: TonalSamplePreparer) throws -> Self {
+        var timeline = try SessionTimeline()
+        let first = try timeline.next()
+        let second = try timeline.next()
+        let end = UInt32(try first.outgoing.ramp.frame(at: 16))
+        return Self(frameCount: end) { pool in
+            let left = try pool.prepare(schedule: first, preparer: preparer)
+            let right = try pool.prepare(schedule: second, preparer: preparer)
+            return (left, right)
+        }
+    }
+
+    /// Sustain 32 tonal voices on each of two overlapping production racks. Their staggered
+    /// onsets exercise both racks independently while keeping within the real admission bound.
+    static func maximumOverlap(_ preparer: TonalSamplePreparer) -> Self {
+        let frames: UInt32 = 32 * 32_000
+        return Self(frameCount: frames) { pool in
+            func rack(origin: UInt64) throws -> PreparedSong {
+                var events: [NoteEvent] = []
+                for second in 0..<32 {
+                    for voice in 0..<32 {
+                        let start = origin + UInt64(second * 32_000)
+                        let record: [String: Any] = [
+                            "formatVersion": 1,
+                            "instrument": voice.isMultiple(of: 2) ? "piano" : "guitar",
+                            "role": "chord", "articulation": "normal", "note": 60 + voice % 4,
+                            "roundRobin": voice % 2, "beat": second, "velocity": 0.16,
+                            "pan": Double(voice % 5 - 2) / 4,
+                            "startFrame": start, "gateEndFrame": start + 31_500,
+                            "releaseEndFrame": start + 32_000,
+                        ]
+                        events.append(
+                            try JSONDecoder().decode(
+                                NoteEvent.self, from: JSONSerialization.data(withJSONObject: record)
+                            ))
+                    }
+                }
+                let end = Double(origin + UInt64(frames))
+                return try pool.prepare(
+                    layout: SongRenderLayout(
+                        frameOrigin: origin, inputFrames: frames, bodyFrames: 0..<32_000),
+                    preparer: preparer, events: events, takeSeed: 308, focus: .guitar,
+                    warmth: 0.78, energy: 0.35, space: 0.44, texture: 0.09,
+                    rackFades: SongRackFades(
+                        tonalOutStartFrame: end, tonalOutEndFrame: end + 1024,
+                        rhythmInFrame: Double(origin), rhythmOutFrame: end))
+            }
+            let left = try rack(origin: 0)
+            let right = try rack(origin: 256)
+            return (left, right)
+        }
+    }
 }

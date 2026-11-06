@@ -3,6 +3,7 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "SongAdvance.h"
+#include "LiveEffects.h"
 #include <algorithm>
 #include <new>
 
@@ -29,6 +30,14 @@ struct LLSongReplay {
     bool faulted = false, advanced = false;
     float dry[2 * blockFrames]{}, gained[2 * blockFrames]{}, delayed[2 * blockFrames]{};
 };
+
+bool ll_song_replay_supports_effects(const LLSongReplay *replay) {
+    return replay && ll_song_source_supports_effects(replay->source);
+}
+void ll_song_replay_use_effects(LLSongReplay *replay, const lowlight::EffectTimeline *timeline,
+                                uint64_t placement) {
+    ll_song_source_use_effects(replay->source, timeline, placement);
+}
 
 LLSongReplay *ll_song_replay_create(LLSongSource *source, double bodyLUFS) {
     lowlight::FloatingPointMode mode;

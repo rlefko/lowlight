@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
+#include "LiveEffects.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -11,8 +12,7 @@
 namespace {
 constexpr double pi = 3.14159265358979323846;
 // Frozen render_room.room delays, rounded to the nearest canonical 32 kHz frame.
-constexpr uint32_t combFrames[2][8] = {{950, 1110, 1187, 1315, 1398, 1533, 1706, 1898},
-                                       {995, 1155, 1232, 1360, 1443, 1577, 1750, 1942}};
+using lowlight::combFrames;
 constexpr uint32_t allpassFrames[2][3] = {{160, 54, 23}, {166, 60, 29}};
 constexpr uint32_t earlyFrames[2][3] = {{618, 1187, 1981}, {718, 1287, 2081}};
 constexpr float earlyGains[] = {.10f, .065f, .045f};
@@ -142,10 +142,22 @@ bool valid(const LLGlueFrame &frame) {
 struct LLRoom {
     float storage[storageFrames]{};
     Channel channels[2];
+    lowlight::EffectShape initial;
     Biquad highpass, lowpass;
     float wetGain = 0;
 };
 
+static void applyRoomShape(LLRoom &room, const lowlight::ShapePoint &point) {
+    using lowlight::EffectShape;
+    room.wetGain = static_cast<float>(point.field(&EffectShape::wet));
+    room.lowpass.b0 = point.field(&EffectShape::b0);
+    room.lowpass.b1 = point.field(&EffectShape::b1);
+    room.lowpass.a1 = point.field(&EffectShape::a1);
+    room.lowpass.a2 = point.field(&EffectShape::a2);
+    for (unsigned ch = 0; ch < 2; ++ch)
+        for (unsigned i = 0; i < 8; ++i)
+            room.channels[ch].combs[i].feedback = point.feedback(ch, i);
+}
 LLRoom *ll_room_create(double space, double warmth) {
     lowlight::FloatingPointMode mode;
     if (!unitInterval(space) || !unitInterval(warmth))
@@ -154,12 +166,11 @@ LLRoom *ll_room_create(double space, double warmth) {
     if (!room)
         return nullptr;
     uint32_t cursor = 0;
-    const double decay = 1.65 + .85 * space;
+    const auto initial = lowlight::designEffects({warmth, space, 0}, 0, 0);
     for (uint32_t ch = 0; ch < 2; ++ch) {
         auto &channel = room->channels[ch];
         for (uint32_t i = 0; i < 8; ++i) {
             channel.combs[i].delay.configure(cursor, combFrames[ch][i]);
-            channel.combs[i].feedback = std::pow(10., -3. * combFrames[ch][i] / 32000 / decay);
         }
         for (uint32_t i = 0; i < 3; ++i)
             channel.allpasses[i].configure(cursor, allpassFrames[ch][i]);
@@ -167,8 +178,8 @@ LLRoom *ll_room_create(double space, double warmth) {
         channel.early.configure(cursor, earlyFrames[ch][2]);
     }
     room->highpass.configure(145, true);
-    room->lowpass.configure(1700 - 700 * warmth, false);
-    room->wetGain = static_cast<float>(.60 + .8 * space);
+    room->initial = initial.shape;
+    applyRoomShape(*room, {room->initial, room->initial, 0});
     return room;
 }
 void ll_room_destroy(LLRoom *room) {
@@ -181,10 +192,16 @@ void ll_room_reset(LLRoom *room) {
         value = 0;
     for (auto &channel : room->channels)
         channel.reset();
+    applyRoomShape(*room, {room->initial, room->initial, 0});
     room->highpass.reset();
     room->lowpass.reset();
 }
 bool ll_room_process(LLRoom *room, const LLGlueFrame *input, LLGlueFrame *output, uint32_t frames) {
+    return ll_room_process_effects(room, input, output, frames, nullptr, 0);
+}
+bool ll_room_process_effects(LLRoom *room, const LLGlueFrame *input, LLGlueFrame *output,
+                             uint32_t frames, const lowlight::EffectTimeline *effects,
+                             uint64_t frame) {
     lowlight::FloatingPointMode mode;
     const auto a = reinterpret_cast<uintptr_t>(input), b = reinterpret_cast<uintptr_t>(output);
     const uint64_t bytes = uint64_t{frames} * sizeof(*input);
@@ -197,9 +214,14 @@ bool ll_room_process(LLRoom *room, const LLGlueFrame *input, LLGlueFrame *output
             clear(output, frames);
             return false;
         }
+    const auto *fixed = effects ? effects->constant(frame) : nullptr;
+    if (fixed)
+        applyRoomShape(*room, {*fixed, *fixed, 0});
     for (uint32_t offset = 0; offset < frames;) {
         const uint32_t end = offset + std::min(256u, frames - offset);
         for (; offset < end; ++offset) {
+            if (effects && !fixed)
+                applyRoomShape(*room, effects->at(frame + offset));
             const auto &frame = input[offset];
             const float mid = (frame.tonal[0] + frame.tonal[1]) * .5f;
             const float side = (frame.tonal[0] - frame.tonal[1]) * .5f;

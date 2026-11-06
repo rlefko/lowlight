@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 #include "LowlightDSP.h"
 #include "../../Packages/LowlightAudio/Sources/CLowlightDSP/SongAdvance.h"
+#include "../../Packages/LowlightAudio/Sources/CLowlightDSP/LiveEffects.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -120,7 +121,8 @@ struct Song {
     LLSongSource *source = nullptr;
     LLSongReplay *replay = nullptr;
     Song(uint64_t origin, std::vector<LLEvent> events = score(), bool shortened = false,
-         double texture = 0, uint32_t hitFrames = 1600, const std::vector<float> &extra = {}) {
+         double texture = 0, uint32_t hitFrames = 1600, const std::vector<float> &extra = {},
+         LLTonalCalibration *calibration = nullptr) {
         const uint32_t frames = oldFrames - (shortened ? delta : 0);
         const uint32_t outro = shortened ? boundary : oldOutro;
         LLSongSourceConfig c{origin,
@@ -133,6 +135,8 @@ struct Song {
                              {0, 0, double(origin + outro), double(origin + outro + 4000),
                               double(origin), double(origin + outro + 2000)}};
         CHECK(mixer && ll_mixer_configure_origin(mixer, origin));
+        if (calibration)
+            CHECK(ll_mixer_configure_tonal(mixer, calibration, 75));
         CHECK(ll_mixer_configure_buses(mixer, .5));
         CHECK(ll_mixer_configure_fades(mixer, &c.rack_fades));
         std::vector<float> pcm(oldFrames);
@@ -140,16 +144,39 @@ struct Song {
             pcm[i] = float(int(i % 31) - 15) / 4;
         CHECK(ll_mixer_add_sample(mixer, pcm.data(), oldFrames, 1) == 0);
         CHECK(ll_mixer_add_sample(mixer, pcm.data(), hitFrames, 1) == 1);
-        if (!extra.empty())
+        if (!extra.empty() && !calibration)
             CHECK(ll_mixer_add_sample(mixer, extra.data(), uint32_t(extra.size()), 1) == 2);
-        for (auto &e : events)
+        for (auto &e : events) {
+            if (calibration && e.instrument < 2) {
+                // In live fixtures each guitar/piano event carries the production key,
+                // including the independently assembled oracle's supplemental bridge.
+                const auto &body = e.sample_index == 2 ? extra : pcm;
+                const bool piano = e.instrument == 1;
+                const auto key = piano ? 80 + e.midi - 50 : 4 * (e.midi - 50);
+                std::vector<float> stereo;
+                if (piano) {
+                    stereo.reserve(2 * body.size());
+                    for (auto sample : body) {
+                        stereo.push_back(sample);
+                        stereo.push_back(-.8f * sample);
+                    }
+                }
+                const auto slot =
+                    ll_mixer_add_tonal_sample(mixer, piano ? stereo.data() : body.data(),
+                                              uint32_t(body.size()), piano ? 2 : 1, uint32_t(key));
+                CHECK(slot >= 0);
+                e.sample_index = uint32_t(slot);
+            }
             e.start_frame += origin;
+        }
         CHECK(ll_mixer_load_events(mixer, events.data(), uint32_t(events.size())));
         source = ll_song_source_create(mixer, &c);
         CHECK(source);
         replay = ll_song_replay_create(source, -35);
         CHECK(replay);
     }
+    Song(uint64_t origin, LLTonalCalibration *calibration)
+        : Song(origin, score(), false, 0, 1600, {}, calibration) {}
     ~Song() {
         ll_song_replay_destroy(replay);
         ll_song_source_destroy(source);
@@ -185,15 +212,23 @@ static bool same(const std::vector<float> &a, const std::vector<float> &b) {
     return a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * sizeof(float)) == 0;
 }
 struct ChangeFixture {
-    std::unique_ptr<Song> first{new Song(100000)}, second{new Song(900000)};
-    LLSongPair *pair =
-        ll_song_pair_create_transport(first->replay, second->replay, oldOutro, oldFrames, 50000);
+    LLTonalCalibration *calibration;
+    std::unique_ptr<Song> first, second;
+    LLSongPair *pair;
     LLSongRevision *intent = ll_song_revision_create();
     LLSongChange *change = nullptr;
     LLSongChangeOffer frozen{};
     std::vector<float> output;
-    ChangeFixture() {
+    explicit ChangeFixture(LLTonalCalibration *table = nullptr)
+        : calibration(table), first(new Song(100000, table)), second(new Song(900000, table)),
+          pair(ll_song_pair_create_transport(first->replay, second->replay, oldOutro,
+                                             table ? 0 : oldFrames, 50000)) {
+        if (table)
+            CHECK(ll_song_pair_seed_effects(pair, {.75, .5, 0}, 75));
         CHECK(pair && intent && ll_song_revision_set(intent, 1));
+        request();
+    }
+    void request() {
         CHECK(ll_song_pair_request_change(pair, 0, 1, intent));
         CHECK(!ll_song_pair_request_next(pair, 0));
         append(pair, output, 1, {1});
@@ -215,7 +250,7 @@ struct ChangeFixture {
         second.reset();
     }
     void rollback() {
-        second.reset(new Song(900000));
+        second.reset(new Song(900000, calibration));
         CHECK(ll_song_pair_restore_change(pair, second->replay));
         append(pair, output, 1, {1});
         LLSongChangeResult result{};
@@ -246,14 +281,17 @@ static LLSongChangeScore configuration(const std::vector<LLEvent> &events) {
             0x91,
             {0, 0, 100000 + boundary, 100000 + boundary + 4000, 100000, 100000 + boundary + 2000}};
 }
-static LLSongChange *prepare(ChangeFixture &fixture) {
+static LLSongChange *prepare(ChangeFixture &fixture, bool liveSupplement = true) {
     auto *change = ll_song_pair_begin_change(&fixture.frozen);
     CHECK(change);
     LLSongChangeSample original{0, nullptr, 0, 0};
     CHECK(ll_song_change_add_sample(change, &original) == 0);
     auto pcm = newPCM();
     LLSongChangeSample supplemental{-1, pcm.data(), uint32_t(pcm.size()), 1};
-    CHECK(ll_song_change_add_sample(change, &supplemental) == 1);
+    const int32_t added = fixture.calibration && liveSupplement
+                              ? ll_song_change_add_tonal_sample(change, &supplemental, 68)
+                              : ll_song_change_add_sample(change, &supplemental);
+    CHECK(added == 1);
     // PCM is copied, never borrowed from the worker's scratch buffer.
     std::fill(pcm.begin(), pcm.end(), 0);
     auto future = futureEvents();
@@ -261,7 +299,8 @@ static LLSongChange *prepare(ChangeFixture &fixture) {
         event.start_frame += 100000;
     auto score = configuration(future);
     CHECK(checked([&] { return ll_song_change_finish(change, &score); }, false));
-    CHECK(ll_song_change_sample_bytes(change) == (32000 + 1600 + 6000) * sizeof(float));
+    CHECK(ll_song_change_sample_bytes(change) ==
+          ll_mixer_sample_bytes(fixture.first->mixer) + 6000 * sizeof(float));
     CHECK(ll_song_change_required_voice_slots(change) > 0);
     CHECK(ll_song_change_add_sample(change, &original) == -1);
     return change;
@@ -298,6 +337,150 @@ static void completeChain() {
     }
     CHECK(same(expected, changed({1, 17, 256, 1023})));
     CHECK(same(expected, changed({4093})));
+}
+// These two sends occur at identical returned frames for an edited pair and for an
+// independently constructed pair whose incoming rack was present from frame zero.
+static void effectsBeforeAdmission(LLSongPair *pair, std::vector<float> &output, bool shortened) {
+    const uint32_t start = shortened ? 6100 : oldOutro - 4000;
+    append(pair, output, start - uint32_t(output.size() / 2), {137, 257});
+    CHECK(ll_song_pair_send_effects(pair, {.8, 0, 0}, 80, 2));
+    append(pair, output, 73, {1, 32});
+    CHECK(ll_song_pair_send_effects(pair, {.05, 1, 0}, 5, 3));
+    append(pair, output, 64, {64});
+    const auto progress = ll_song_pair_effect_progress(pair);
+    CHECK(progress.adopted_revision == 3 && progress.settled_revision == 1);
+}
+static std::vector<float> effectsOracle(LLTonalCalibration *table, bool shortened, bool edit) {
+    auto events = score();
+    auto extra = std::vector<float>{};
+    if (shortened) {
+        events.resize(5);
+        auto future = futureEvents();
+        future[0].sample_index = 2;
+        events.insert(events.end(), future.begin(), future.end());
+        extra = newPCM();
+    }
+    // Inject the expected ramp directly into each borrowed replay. The oracle bypasses
+    // pair effects publication and rack adoption, so skipping B in either path is visible.
+    lowlight::EffectTimeline timeline;
+    timeline.seed(lowlight::designEffects({.75, .5, 0}, 75, 1).shape);
+    Song first(100000, events, shortened, 0, 1600, extra, table), second(900000, table);
+    ll_song_replay_use_effects(first.replay, &timeline, 0);
+    ll_song_replay_use_effects(second.replay, &timeline, shortened ? boundary : oldOutro);
+    Pair pair(first, second, shortened, 0);
+    std::vector<float> expected;
+    if (edit) {
+        const uint32_t start = shortened ? 6100 : oldOutro - 4000;
+        constexpr uint32_t lead = LL_GLUE_LATENCY + 2 * LL_PEAK_LATENCY;
+        append(pair.value, expected, start, {509});
+        timeline.retarget(start + lead, lowlight::designEffects({.8, 0, 0}, 80, 2).shape);
+        append(pair.value, expected, 73, {73});
+        timeline.retarget(start + 73 + lead, lowlight::designEffects({.05, 1, 0}, 5, 3).shape);
+    }
+    const auto end = oldFrames - (shortened ? delta : 0) + 2000;
+    append(pair.value, expected, end - uint32_t(expected.size() / 2), {509});
+    return expected;
+}
+static std::vector<float> effectsAcrossOrdinaryAdmission(LLTonalCalibration *table, bool oracle) {
+    constexpr uint32_t onset = 50000, edit = onset - 4000;
+    constexpr uint32_t lead = LL_GLUE_LATENCY + 2 * LL_PEAK_LATENCY;
+    lowlight::EffectTimeline timeline;
+    timeline.seed(lowlight::designEffects({.75, .5, 0}, 75, 1).shape);
+    auto first = std::make_unique<Song>(100000, table);
+    Song second(900000, table);
+    std::unique_ptr<Song> third;
+    Pair pair(*first, second, false, 0);
+    if (oracle) {
+        ll_song_replay_use_effects(first->replay, &timeline, 0);
+        ll_song_replay_use_effects(second.replay, &timeline, oldOutro);
+    } else {
+        CHECK(ll_song_pair_seed_effects(pair.value, {.75, .5, 0}, 75));
+    }
+    std::vector<float> output;
+    append(pair.value, output, oldFrames + 32, {193});
+    LLSongReplay *retired = nullptr;
+    CHECK(ll_song_pair_claim_retired(pair.value, &retired) && retired == first->replay);
+    first.reset();
+    auto publish = [&] {
+        third = std::make_unique<Song>(1900000, table);
+        if (oracle)
+            ll_song_replay_use_effects(third->replay, &timeline, onset);
+        CHECK(ll_song_pair_publish_transport(pair.value, third->replay, onset, 76000));
+    };
+    if (oracle)
+        publish();
+    append(pair.value, output, edit - uint32_t(output.size() / 2), {431});
+    if (oracle)
+        timeline.retarget(edit + lead, lowlight::designEffects({.05, 1, 0}, 5, 2).shape);
+    else
+        CHECK(ll_song_pair_send_effects(pair.value, {.05, 1, 0}, 5, 2));
+    append(pair.value, output, 128, {128});
+    if (!oracle) {
+        CHECK(ll_song_pair_effect_progress(pair.value).adopted_revision == 2);
+        {
+            Song incompatible(1900000);
+            CHECK(!ll_song_pair_publish_transport(pair.value, incompatible.replay, onset, 76000));
+        }
+        publish(); // The worker publishes C after the new effects have already been adopted.
+    }
+    append(pair.value, output, onset + 512 - uint32_t(output.size() / 2), {811});
+    if (!oracle)
+        CHECK(ll_song_pair_effect_progress(pair.value).settled_revision == 1);
+    append(pair.value, output, oldOutro + oldFrames + 2000 - uint32_t(output.size() / 2), {97});
+    return output;
+}
+static void effectsAcrossReplacementAndRestoration() {
+    std::array<float, 10100> gains{};
+    gains.fill(1);
+    std::unique_ptr<LLTonalCalibration, decltype(&ll_tonal_calibration_destroy)> table(
+        ll_tonal_calibration_create(gains.data(), gains.size()), ll_tonal_calibration_destroy);
+    CHECK(table.get());
+    for (bool shortened : {true, false}) {
+        const auto expected = effectsOracle(table.get(), shortened, true);
+        const auto unchanged = effectsOracle(table.get(), shortened, false);
+        ChangeFixture fixture(table.get());
+        // A complete legacy bridge can pass score validation. Reject its uncalibrated
+        // guitar while the original successor is still owned and playable.
+        auto *incompatibleBridge = prepare(fixture, false);
+        CHECK(!ll_song_pair_withdraw_change(fixture.pair, incompatibleBridge));
+        CHECK(ll_song_pair_abandon_change(fixture.pair));
+        ll_song_change_destroy(incompatibleBridge);
+        fixture.request();
+        fixture.change = prepare(fixture);
+        fixture.withdraw();
+        effectsBeforeAdmission(fixture.pair, fixture.output, shortened);
+        {
+            Song incompatible(900000);
+            const bool admitted =
+                shortened ? ll_song_pair_publish_change(fixture.pair, fixture.change,
+                                                        incompatible.replay, 50000 - delta)
+                          : ll_song_pair_restore_change(fixture.pair, incompatible.replay);
+            CHECK(!admitted);
+        }
+        if (shortened) {
+            fixture.second.reset(new Song(900000, table.get()));
+            CHECK(ll_song_pair_publish_change(fixture.pair, fixture.change, fixture.second->replay,
+                                              50000 - delta));
+            append(fixture.pair, fixture.output, 1, {1});
+            LLSongChangeResult result{};
+            CHECK(ll_song_pair_change_result(fixture.pair, &result) && result.status == 1);
+        } else {
+            fixture.rollback();
+        }
+        const auto onset = shortened ? boundary : oldOutro;
+        append(fixture.pair, fixture.output, onset + 512 - uint32_t(fixture.output.size() / 2),
+               {256, 79});
+        // B starts inside revision 3's ramp, even though it was absent for both sends.
+        CHECK(ll_song_pair_effect_progress(fixture.pair).settled_revision == 1);
+        append(fixture.pair, fixture.output, uint32_t(expected.size() - fixture.output.size()) / 2,
+               {811, 1});
+        CHECK(ll_song_pair_effect_progress(fixture.pair).settled_revision == 3);
+        CHECK(same(expected, fixture.output));
+        // The application of effects to the incoming rack is audible after A fully retires.
+        CHECK(!std::equal(expected.end() - 2000, expected.end(), unchanged.end() - 2000));
+    }
+    CHECK(same(effectsAcrossOrdinaryAdmission(table.get(), true),
+               effectsAcrossOrdinaryAdmission(table.get(), false)));
 }
 static void revisionAndRollback() {
     for (int phase = 0; phase < 3; ++phase) {
@@ -464,6 +647,7 @@ int main() {
     const auto saved = state();
     install(saved);
     completeChain();
+    effectsAcrossReplacementAndRestoration();
     revisionAndRollback();
     lateAndWaiting();
     capacityAndValidation();
