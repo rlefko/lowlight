@@ -16,4 +16,4 @@ Transitions use a common-tone four-bar pivot, one clock, a 16-beat tempo ramp, l
 
 All presets use Auto tempo, near `64 + 34 × energy`; explicit tempo is 60–100 BPM. Mood ranges from −1 to 1 and biases minor-family probability with `0.5 − 0.46 × mood`. The other controls range from 0 to 1. Energy still changes activity at fixed tempo; variation zero does not freeze the sequence.
 
-Warmth, Space, and Texture need smooth live updates. Structural changes use musical boundaries, one coalesced latest request, and versioned prepared work. Aim to start an audible change within eight bars. These live behaviors are new native work, not verified prototype features.
+Warmth filters guitar, piano, and room return together. Space sets room return and decay. Texture sets the level of the quiet air. The three effects follow dragging with 200 ms ramps. Choosing a preset starts those ramps and commits one complete setting. Energy, Mood, Tempo, and Variation follow the latest request at a prepared musical handoff. See [live controls and listening comparisons](validation-live-effects.md).

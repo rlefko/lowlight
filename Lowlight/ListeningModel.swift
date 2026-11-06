@@ -91,6 +91,7 @@ final class ListeningModel {
     func startNewSession() {
         guard canStartNewSession, let playback else { return }
         isStartingNewSession = true
+        playback.cancelEffectsPreview()
         controls = committedControls
         controlCommitFailed = false
         captureRequested = false
@@ -207,16 +208,33 @@ final class ListeningModel {
         remote?.update(remoteSnapshot)
     }
 
-    /// Slider samples update presentation only. One committed gesture reaches preparation
-    /// and persistence, so a slow worker can never pull the visible controls backward.
+    /// Only tone changes audition during a drag. The gesture's final complete settings
+    /// reach musical preparation and persistence together.
     func previewControls(_ value: Controls) {
-        guard canEditControls, let normalized = try? value.normalized() else { return }
+        guard canEditControls, let playback, let normalized = try? value.normalized() else {
+            return
+        }
+        let oldEffects = SessionEffects(controls)
         controls = normalized
+        let effects = SessionEffects(normalized)
+        if effects != oldEffects {
+            do {
+                try playback.previewEffects(effects)
+            } catch {
+                controlCommitFailed = true
+                return
+            }
+        }
         if normalized == committedControls { controlCommitFailed = false }
     }
 
     func commitControls() {
-        guard canEditControls, controls != committedControls, let playback else { return }
+        guard canEditControls, let playback else { return }
+        guard controls != committedControls else {
+            playback.cancelEffectsPreview()
+            controlCommitFailed = false
+            return
+        }
         do {
             let normalized = try controls.normalized()
             try playback.setControls(normalized)

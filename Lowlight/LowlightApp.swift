@@ -104,6 +104,7 @@ private struct ListeningView: View {
             .accessibilityLabel("Preset")
             .accessibilityValue(model.presetName)
             .accessibilityIdentifier("presetPicker")
+            ListeningEffectSlider(title: "Warmth", key: \.warmth, model: model)
             ListeningControlSlider(
                 title: "Energy", value: model.controls.energy, range: 0...1,
                 valueText: "\(Int((model.controls.energy * 100).rounded()))%",
@@ -191,7 +192,26 @@ private struct ListeningView: View {
     }
 }
 
-/// Touch dragging previews only. An accessibility adjustment commits one complete
+private struct ListeningEffectSlider: View {
+    let title: String
+    let key: WritableKeyPath<Controls, Double>
+    let model: ListeningModel
+
+    var body: some View {
+        let value = model.controls[keyPath: key]
+        ListeningControlSlider(
+            title: title, value: value, range: 0...1,
+            valueText: "\(Int((value * 100).rounded()))%",
+            identifier: title.lowercased() + "Slider",
+            preview: {
+                var controls = model.controls
+                controls[keyPath: key] = $0
+                model.previewControls(controls)
+            }, commit: model.commitControls)
+    }
+}
+
+/// Touch dragging previews until release. An accessibility adjustment commits one complete
 /// snapshot explicitly, without depending on the order of native drag callbacks.
 private struct ListeningControlSlider: View {
     let title: String
@@ -291,6 +311,10 @@ private struct ListeningControlsSheet: View {
                         Text("Auto follows Energy.")
                             .foregroundStyle(.secondary)
                     }
+                }
+                Section("Sound") {
+                    ListeningEffectSlider(title: "Space", key: \.space, model: model)
+                    ListeningEffectSlider(title: "Texture", key: \.texture, model: model)
                 }
                 Section {
                     ListeningControlSlider(
