@@ -19,8 +19,15 @@ notices = JSON.parse(File.read('config/third-party-notices.json')).fetch('files'
 notices.each do |path, expected|
   abort "Changed or missing third-party notice: #{path}" unless File.file?(path) && Digest::SHA256.file(path).hexdigest == expected
 end
+artwork = %w[
+  Contents.json
+  AppIcon.appiconset/Contents.json AppIcon.appiconset/Day.png
+  AppIcon.appiconset/Night.png AppIcon.appiconset/Tinted.png
+  NowPlayingArtwork.imageset/Contents.json NowPlayingArtwork.imageset/Dusk.png
+].map { |path| "Lowlight/Assets.xcassets/#{path}" }
+artwork.each { |path| abort "Missing artwork: #{path}" unless File.file?(path) }
 unexpected = Dir.glob('Lowlight/**/*').select do |path|
-  File.file?(path) && !path.end_with?('.swift') && !path.start_with?('Lowlight/SoundBank/') && !notices.key?(path)
+  File.file?(path) && !path.end_with?('.swift') && !path.start_with?('Lowlight/SoundBank/') && !notices.key?(path) && !artwork.include?(path)
 end
 abort "Unexpected app resources: #{unexpected.join(', ')}" unless unexpected.empty?
 puts 'Documentation links, license, credits, and app resource inventory passed'

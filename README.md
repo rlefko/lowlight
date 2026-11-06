@@ -24,6 +24,10 @@ Open `Lowlight.xcodeproj` and choose the shared **Lowlight** scheme for interact
 
 Use Warmth to soften guitar, piano, and the room while the music plays. Energy changes activity and Mood steers harmony at a musical handoff. **More Controls** contains Auto or manual Tempo, Space for the room, Texture for quiet synthetic air, and Variation for changes between pieces. A preset sets all seven values. Settings are saved when you finish an adjustment.
 
+The dusk horizon moves slowly with the current piece while you listen. It settles when you pause, cover the artwork, leave the app, or enable Reduce Motion or Low Power Mode.
+
+<img src="docs/images/listening-light.png" alt="Lowlight listening screen in light appearance" width="285"> <img src="docs/images/listening-dark.png" alt="Lowlight listening screen in dark appearance" width="285">
+
 No account, server, tracking, ads, microphone, or runtime downloads are required. The app makes no network requests and follows system appearance and Dynamic Type. Physical-device lock-screen/route behavior, accessibility, output quality, and energy measurements remain release gates; simulator results do not establish battery equivalence to local-file playback.
 
 See [project documentation](docs/index.md) for architecture, sound provenance, testing, and performance targets.

@@ -2,6 +2,7 @@
 
 - [Quick start](../README.md#build)
 - [Architecture and real-time boundaries](architecture.md)
+- [Listening screen, accessibility, and visual measurements](validation-native-listening.md)
 - [Music and controls](music.md)
 - [Live effects, listening comparisons, and performance evidence](validation-live-effects.md)
 - [Sound bank and parity](audio-reference.md)

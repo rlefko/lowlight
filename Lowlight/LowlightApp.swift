@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Ryan Lefkowitz
 // SPDX-License-Identifier: GPL-3.0-only
 
+import Accessibility
 import LowlightAudio
 import LowlightPlanning
 import SwiftUI
@@ -23,52 +24,59 @@ struct LowlightApp: App {
 
 private struct ListeningView: View {
     let model: ListeningModel
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @State private var showsAbout = false
     @State private var showsControls = false
-    @ScaledMetric private var illustrationSize = 88
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 28) {
-                    Image(systemName: "waveform.circle")
-                        .font(.system(size: min(illustrationSize, 112), weight: .ultraLight))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                    VStack(spacing: 12) {
-                        Text("A little room to unwind")
-                            .font(.title2)
-                        Text(model.statusText)
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("listeningStatus")
-                    }
-                    .multilineTextAlignment(.center)
-                    if model.loadFailed {
-                        VStack(spacing: 12) {
-                            Button("Try Restoring Again") { model.load() }
-                                .buttonStyle(.borderedProminent)
-                            Button("Start a Fresh Session") { model.startFresh() }
-                                .buttonStyle(.bordered)
-                        }
-                    } else {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 16) { transportButtons }
-                            VStack(spacing: 16) { transportButtons }
+                VStack(spacing: 16) {
+                    VStack(spacing: 0) {
+                        horizonArt
+                        VStack(alignment: .leading, spacing: 12) {
+                            if model.loadFailed {
+                                status
+                                Button("Try Restoring Again") { model.load() }
+                                    .buttonStyle(.borderedProminent)
+                                    .foregroundStyle(Color(uiColor: .systemBackground))
+                                Button("Start a Fresh Session") { model.startFresh() }
+                                    .buttonStyle(.bordered)
+                            } else {
+                                FittingRow(spacing: 10) {
+                                    status.frame(maxWidth: .infinity, alignment: .leading)
+                                    FittingRow(spacing: 10) { transportButtons }
+                                        .fixedSize(
+                                            horizontal: !dynamicTypeSize.isAccessibilitySize,
+                                            vertical: false)
+                                }
+                            }
+                            recoveryActions
                         }
                         .controlSize(.large)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
                     }
-                    recoveryActions
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: .rect(cornerRadius: 20)
+                    )
+                    .clipShape(.rect(cornerRadius: 20))
                     primaryControls
-                    Text("Original lo-fi, entirely offline")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: 480)
-                .padding(32)
+                .frame(maxWidth: 520)
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 20)
                 .frame(maxWidth: .infinity)
             }
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Lowlight")
+            .toolbarTitleDisplayMode(.inlineLarge)
             .toolbar {
                 Button("About", systemImage: "info.circle") { showsAbout = true }
                     .accessibilityIdentifier("aboutButton")
@@ -77,49 +85,103 @@ private struct ListeningView: View {
             .sheet(isPresented: $showsControls, onDismiss: { model.commitControls() }) {
                 ListeningControlsSheet(model: model)
             }
+            .onChange(of: model.statusText) { _, message in
+                guard voiceOver, scenePhase == .active, !showsAbout, !showsControls else { return }
+                AccessibilityNotification.Announcement(message).post()
+            }
         }
+        .tint(
+            colorScheme == .dark
+                ? Color(red: 0.76, green: 0.71, blue: 0.83)
+                : Color(red: 0.35, green: 0.31, blue: 0.44))
+    }
+
+    private var horizonArt: some View {
+        HorizonMotionView(model: model, covered: showsAbout || showsControls)
+            .frame(
+                height: verticalSizeClass == .compact || dynamicTypeSize.isAccessibilitySize
+                    ? 72 : 148)
+    }
+
+    private var status: some View {
+        Text(model.statusText)
+            .font(.subheadline.weight(.medium))
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("listeningStatus")
+    }
+
+    private var presetPicker: some View {
+        Menu {
+            ForEach(Preset.allCases, id: \.self) { preset in
+                Button {
+                    model.selectPreset(preset)
+                } label: {
+                    if preset.rawValue == model.presetName {
+                        Label(preset.rawValue, systemImage: "checkmark")
+                    } else {
+                        Text(preset.rawValue)
+                    }
+                }
+                .accessibilityAddTraits(preset.rawValue == model.presetName ? .isSelected : [])
+            }
+        } label: {
+            FittingRow(spacing: 4) {
+                Text("Preset").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                presetValue
+            }
+            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .foregroundStyle(.primary)
+        .menuOrder(.fixed)
+        .accessibilityLabel("Preset")
+        .accessibilityValue(model.presetName)
+        .accessibilityIdentifier("presetPicker")
+    }
+
+    private var presetValue: some View {
+        HStack(spacing: 6) {
+            Text(model.presetName)
+            Image(systemName: "chevron.up.chevron.down").font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(.tint)
     }
 
     private var primaryControls: some View {
-        VStack(spacing: 24) {
-            Menu {
-                ForEach(Preset.allCases, id: \.self) { preset in
-                    Button(preset.rawValue) { model.selectPreset(preset) }
-                }
-            } label: {
-                Group {
-                    if dynamicTypeSize.isAccessibilitySize {
-                        Text("Preset: \(model.presetName)")
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Label(
-                            "Preset: \(model.presetName)", systemImage: "line.3.horizontal.decrease"
-                        )
-                    }
-                }
-                .frame(maxWidth: .infinity)
+        VStack(alignment: .leading, spacing: 0) {
+            presetPicker
+            Divider()
+            VStack(spacing: 10) {
+                ListeningEffectSlider(title: "Warmth", key: \.warmth, model: model)
+                ListeningControlSlider(
+                    title: "Energy", value: model.controls.energy, range: 0...1,
+                    valueText: "\(Int((model.controls.energy * 100).rounded()))%",
+                    identifier: "energySlider", preview: { preview(\.energy, value: $0) },
+                    commit: model.commitControls)
+                ListeningControlSlider(
+                    title: "Mood", value: model.controls.mood, range: -1...1,
+                    valueText: moodText, identifier: "moodSlider",
+                    lowerLabel: "Reflective", upperLabel: "Bright",
+                    preview: { preview(\.mood, value: $0) }, commit: model.commitControls)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-            .accessibilityLabel("Preset")
-            .accessibilityValue(model.presetName)
-            .accessibilityIdentifier("presetPicker")
-            ListeningEffectSlider(title: "Warmth", key: \.warmth, model: model)
-            ListeningControlSlider(
-                title: "Energy", value: model.controls.energy, range: 0...1,
-                valueText: "\(Int((model.controls.energy * 100).rounded()))%",
-                identifier: "energySlider", preview: { preview(\.energy, value: $0) },
-                commit: model.commitControls)
-            ListeningControlSlider(
-                title: "Mood", value: model.controls.mood, range: -1...1,
-                valueText: moodText, identifier: "moodSlider",
-                lowerLabel: "Reflective", upperLabel: "Bright",
-                preview: { preview(\.mood, value: $0) }, commit: model.commitControls)
-            Button("More Controls", systemImage: "slider.horizontal.3") { showsControls = true }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .accessibilityIdentifier("moreControlsButton")
+            .padding(.vertical, 14)
+            Divider()
+            Button {
+                showsControls = true
+            } label: {
+                HStack {
+                    Label("More Controls", systemImage: "slider.horizontal.3")
+                    Spacer()
+                    Image(systemName: "chevron.forward").font(.caption.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .contentShape(.rect)
+            }
+            .accessibilityIdentifier("moreControlsButton")
         }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 4)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 20))
         .disabled(!model.canEditControls)
     }
 
@@ -143,10 +205,13 @@ private struct ListeningView: View {
             model.togglePlayback()
         }
         .buttonStyle(.borderedProminent)
+        .foregroundStyle(Color(uiColor: .systemBackground))
+        .fixedSize()
         .disabled(!model.canPlay)
         .accessibilityIdentifier("playPauseButton")
         Button("Next", systemImage: "forward.end.fill") { model.next() }
             .buttonStyle(.bordered)
+            .fixedSize()
             .disabled(!model.canRequestNext)
             .accessibilityHint("Changes with the next available musical phrase")
             .accessibilityIdentifier("nextButton")
@@ -163,32 +228,60 @@ private struct ListeningView: View {
                 .buttonStyle(.bordered)
         }
         if model.playback?.audioSessionError != nil {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Audio couldn’t finish stopping.")
                 Button(model.isStartingNewSession ? "Retry Stopping Audio" : "Try Pausing Again") {
                     model.retryCleanup()
                 }
                 .buttonStyle(.bordered)
             }
-            .multilineTextAlignment(.center)
         }
         if model.canStartNewSession {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Keep your settings and discard your saved place. Press Play to begin again.")
                 Button("Start a New Session") { model.startNewSession() }
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("startNewSessionButton")
             }
-            .multilineTextAlignment(.center)
         }
         if model.saveFailed {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Your settings and place couldn’t be saved. You can keep listening.")
                 Button("Retry Saving") { model.retrySave() }
                     .buttonStyle(.bordered)
             }
-            .multilineTextAlignment(.center)
         }
+    }
+}
+
+/// Reflows the same accessibility elements when their labels outgrow the row.
+private struct FittingRow: Layout {
+    var spacing: CGFloat
+
+    private func stack(width: CGFloat?, subviews: Subviews) -> AnyLayout {
+        let row = AnyLayout(HStackLayout(spacing: spacing))
+        var cache = row.makeCache(subviews: subviews)
+        let natural = row.sizeThatFits(proposal: .unspecified, subviews: subviews, cache: &cache)
+        if let width, natural.width > width {
+            return AnyLayout(VStackLayout(alignment: .leading, spacing: spacing))
+        }
+        return row
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let layout = stack(width: proposal.width, subviews: subviews)
+        var layoutCache = layout.makeCache(subviews: subviews)
+        return layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &layoutCache)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
+    ) {
+        let layout = stack(width: bounds.width, subviews: subviews)
+        var layoutCache = layout.makeCache(subviews: subviews)
+        layout.placeSubviews(
+            in: bounds, proposal: ProposedViewSize(bounds.size), subviews: subviews,
+            cache: &layoutCache)
     }
 }
 
@@ -226,17 +319,10 @@ private struct ListeningControlSlider: View {
     let commit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    Text(title)
-                    Spacer()
-                    Text(valueText).foregroundStyle(.secondary)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                    Text(valueText).foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            FittingRow(spacing: 4) {
+                Text(title).fontWeight(.medium).frame(maxWidth: .infinity, alignment: .leading)
+                Text(valueText).monospacedDigit().foregroundStyle(.primary.opacity(0.67))
             }
             .accessibilityHidden(true)
             Slider(
@@ -244,6 +330,7 @@ private struct ListeningControlSlider: View {
                 in: range, step: step,
                 onEditingChanged: { if !$0 { commit() } }
             )
+            .frame(minHeight: 44)
             .accessibilityLabel(title)
             .accessibilityValue(valueText)
             .accessibilityIdentifier(identifier)
@@ -264,7 +351,7 @@ private struct ListeningControlSlider: View {
                     Text(upperLabel)
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary.opacity(0.67))
                 .accessibilityHidden(true)
             }
         }
@@ -285,7 +372,7 @@ private struct ListeningControlsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Tempo") {
+                Section {
                     Toggle(
                         "Auto Tempo",
                         isOn: Binding(
@@ -309,12 +396,18 @@ private struct ListeningControlsSheet: View {
                             }, commit: model.commitControls)
                     } else {
                         Text("Auto follows Energy.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary.opacity(0.72))
                     }
+                } header: {
+                    Text("Tempo").font(.subheadline.weight(.semibold)).foregroundStyle(
+                        Color(uiColor: .label).opacity(0.72))
                 }
-                Section("Sound") {
+                Section {
                     ListeningEffectSlider(title: "Space", key: \.space, model: model)
                     ListeningEffectSlider(title: "Texture", key: \.texture, model: model)
+                } header: {
+                    Text("Sound").font(.subheadline.weight(.semibold)).foregroundStyle(
+                        Color(uiColor: .label).opacity(0.72))
                 }
                 Section {
                     ListeningControlSlider(
@@ -326,10 +419,9 @@ private struct ListeningControlsSheet: View {
                             controls.variation = $0
                             model.previewControls(controls)
                         }, commit: model.commitControls)
-                } footer: {
-                    Text(
-                        "Shape how much the music changes between pieces. New pieces keep playing at every setting."
-                    )
+                    Text("Variation sets how much each new piece differs from the last.")
+                        .font(.subheadline)
+                        .foregroundStyle(.primary.opacity(0.72))
                 }
             }
             .disabled(!model.canEditControls)
@@ -337,9 +429,13 @@ private struct ListeningControlsSheet: View {
             .navigationBarTitleDisplayMode(dynamicTypeSize.isAccessibilitySize ? .inline : .large)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button("Done", systemImage: "checkmark") {
                         model.commitControls()
                         dismiss()
+                    }
+                    .labelStyle(.iconOnly)
+                    .accessibilityShowsLargeContentViewer {
+                        Label("Done", systemImage: "checkmark")
                     }
                 }
             }

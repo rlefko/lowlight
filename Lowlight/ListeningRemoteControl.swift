@@ -3,6 +3,7 @@
 
 import Foundation
 import MediaPlayer
+import UIKit
 
 enum ListeningRemoteAction: CaseIterable, Hashable, Sendable { case play, pause, toggle, next }
 enum ListeningRemoteResult: Equatable, Sendable { case accepted, unavailable }
@@ -220,6 +221,17 @@ private final class SystemListeningRemote {
 
 @MainActor
 enum ListeningRemoteMetadata {
+    // This poster belongs to the ongoing session and survives transport and song changes.
+    private static let artwork: MPMediaItemArtwork? = {
+        guard let poster = UIImage(named: "NowPlayingArtwork") else { return nil }
+        return MPMediaItemArtwork(boundsSize: poster.size) { @Sendable size in
+            guard size.width > 0, size.height > 0,
+                min(size.width, size.height) < poster.size.width
+            else { return poster }
+            return poster.preparingThumbnail(of: size) ?? poster
+        }
+    }()
+
     static func values(_ snapshot: ListeningRemoteSnapshot) -> [String: Any]? {
         guard snapshot.state != .unavailable, snapshot.state != .ready else { return nil }
         var value: [String: Any] = [
@@ -227,6 +239,7 @@ enum ListeningRemoteMetadata {
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
             MPNowPlayingInfoPropertyPlaybackRate: snapshot.state == .playing ? 1.0 : 0.0,
         ]
+        value[MPMediaItemPropertyArtwork] = artwork
         if let subtitle = snapshot.subtitle { value[MPMediaItemPropertyAlbumTitle] = subtitle }
         return value
     }

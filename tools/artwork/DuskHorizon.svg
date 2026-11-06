@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Copyright (C) 2026 Ryan Lefkowitz. SPDX-License-Identifier: GPL-3.0-only -->
+  <title>Lowlight – Dusk Horizon</title>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#938588"/>
+      <stop offset=".74" stop-color="#e9ba9c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <circle id="sun" cx="658" cy="484" r="175" fill="#ffe2a8"/>
+  <path id="far-ridge" fill="#6a687d"
+        d="M0 602 C231 499 360 493 550 557 C747 624 851 632 1024 538 V1024 H0 Z"/>
+  <path id="near-ridge" fill="#343d53"
+        d="M0 676 C192 780 379 793 577 697 C747 614 872 608 1024 670 V1024 H0 Z"/>
+</svg>
