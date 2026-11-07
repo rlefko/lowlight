@@ -10,13 +10,14 @@
     "Lowlight/SoundBank/electric_guitar_manifest.json": "1af1164e3d02bf340015e9a79427c40247b34fc87f1da3991e6c3468ad726faf",
     "Lowlight/SoundBank/sample_manifest.json": "f7c139c9d6c2f26bda5d6864e44361bf3848a12a736960c64921d3e4baa303e3",
     "Packages/LowlightAudio/Sources/LowlightAudio/Resources/warmth-v1.f32": "eabf569987e7e511f46b59bc9db5da26b3d3e158d46a9e8619a9a5c3d7ca1333",
-    "Packages/LowlightAudio/Sources/LowlightAudio/TonalSamplePreparer.swift": "da60a6781d75e6fad5f92f428e06e5941e1cdf6cb4fb6293ba30269ba222dd9d",
+    "Packages/LowlightAudio/Sources/LowlightAudio/TonalSamplePreparer.swift": "44a958e15c1c1e8143d9a7f623ebd6939403fbcdcef2f0b613fbabcf7d8b070c",
     "Packages/LowlightAudio/Sources/LowlightAudio/SampleProcessing.swift": "83ba6af2051fef6cb902537d62ffae19090afc18a901d404e97d8cd8c6e77b57",
     "Packages/LowlightAudio/Sources/LowlightAudio/PreparationMode.swift": "38aeb43eaf5ff54a19d726029b715a76556bda83037e8c500e8e2695e9b0f5b7",
     "Packages/LowlightAudio/Sources/CLowlightDSP/Preparation.cpp": "858ecd5ed21ad5103f23dd7edbd2d61b3b32b8e1fdb9aa1424e32c5b5405ca89",
     "Packages/LowlightAudio/Sources/CLowlightDSP/FloatingPointMode.h": "8b0e21f6618c90c7eb12c7ccf454cc1dc27fdfeef402620c236e2437970e0462",
     "tools/calibration/Generate.swift": "f8a9e3a0a8e85f43d948aead2c071728708e2b18a85c2a1f50e9f1e88ef930df",
-    "tools/calibration/generate": "b6b676d470dbfbe906ed90921271f11560928b27cedefe503b13032ca81e1700",
-    "config/toolchain.env": "71bd7c81e03fe23f929bb10ada176d1a0da4f8a7a254e4fd28977a21f540f036"
+    "tools/calibration/generate": "052a39f998cc9f668579fdd3fbd48095c9b9897860507826c19f990899dcbb43",
+    "config/toolchain.env": "71bd7c81e03fe23f929bb10ada176d1a0da4f8a7a254e4fd28977a21f540f036",
+    "Packages/LowlightAudio/Sources/LowlightAudio/BandSampleBank.swift": "9dc911744acf5f80a364ff003a92f975ba6a6ff2a2134c6a6500d7ab3089383b"
   }
 }

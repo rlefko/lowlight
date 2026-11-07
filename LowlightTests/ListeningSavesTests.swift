@@ -116,6 +116,7 @@ struct ListeningSavesTests {
         let writer = CheckpointWriteGate()
         let saves = ListeningSaves(write: { try await writer.write($0) })
         let relax = try Controls.preset(.relax)
+        saves.bindSessionSeed(.max)
         try saves.updateControls(relax)
         try await wait { await writer.isWaiting }
         #expect(await writer.records.first?.restart == nil)
@@ -129,6 +130,7 @@ struct ListeningSavesTests {
         try await wait { !saves.busy }
         #expect(saves.lastSaved?.restart == captured)
         #expect(saves.lastSaved?.controls == relax)
+        #expect(await writer.records.map(\.sessionSeed) == [.max, .max])
     }
 
     @Test func discardingThePlaceSupersedesAnOlderFailedWrite() async throws {
@@ -139,8 +141,9 @@ struct ListeningSavesTests {
         saves.restored(try ListeningRecord(controls: settings, restart: values[0]))
         saves.capture(values[1])
         try await wait { await writer.current == 200 }
-        saves.discardRestart()
+        saves.discardRestart(seed: 42)
         #expect(saves.latest.controls == settings && saves.latest.restart == nil)
+        #expect(saves.latest.sessionSeed == 42)
         await writer.finish(.failure(CheckpointWriteError.failed))
         try await wait { saves.failed && !saves.busy }
         saves.retry()

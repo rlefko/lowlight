@@ -43,7 +43,7 @@ struct ListeningModelTests {
                 load: { try ListeningRecord(controls: saved.currentSong.controls, restart: saved) },
                 save: { _ in }),
             remoteServices: { remote.value },
-            makePlayback: { controls, restart in
+            makePlayback: { controls, restart, _ in
                 restorations.append(restart)
                 return SessionPlayback(controls: controls, factory: { try probe.makeEngine($0) })
             })
@@ -83,11 +83,18 @@ struct ListeningModelTests {
     @Test func failedStartupRetriesOnOnePlayTap() async throws {
         let probe = ListeningModelProbe(failFirst: true)
         let remote = ModelRemoteServices()
+        var seedDraws = 0
+        var installedSeeds: [UInt64] = []
         let model = ListeningModel(
             persistence: ListeningPersistence(load: { nil }, save: { _ in }),
             remoteServices: { remote.value },
-            makePlayback: { controls, _ in
-                SessionPlayback(controls: controls, factory: { try probe.makeEngine($0) })
+            makeSeed: {
+                seedDraws += 1
+                return 123
+            },
+            makePlayback: { controls, _, seed in
+                installedSeeds.append(seed)
+                return SessionPlayback(controls: controls, factory: { try probe.makeEngine($0) })
             })
         model.load()
         try await wait { !model.isLoading }
@@ -99,6 +106,7 @@ struct ListeningModelTests {
         model.togglePlayback()
         try await wait { playback.state == .playing }
         #expect(model.primaryActionIsPause && probe.constructions == 2)
+        #expect(seedDraws == 1 && installedSeeds == [123])
         playback.stop()
         try await wait { playback.state == .stopped }
     }
@@ -110,7 +118,7 @@ struct ListeningModelTests {
         let model = ListeningModel(
             persistence: ListeningPersistence(load: { try await loader.load() }, save: { _ in }),
             remoteServices: { remote.value },
-            makePlayback: { controls, restart in
+            makePlayback: { controls, restart, _ in
                 installed.append(restart)
                 return SessionPlayback(
                     controls: controls, factory: { _ in throw ModelLoadError.failed })

@@ -18,9 +18,14 @@ public struct SessionTimeline {
         let positionFrame: Int64?
     }
 
-    public init(seed: UInt64 = 91_031, controls: Controls = Controls()) throws {
-        planner = try SongPlanner(seed: seed, controls: controls)
+    public init(
+        seed: UInt64 = 91_031, controls: Controls = Controls(),
+        edition: CompositionEdition = .classic
+    ) throws {
+        planner = try SongPlanner(seed: seed, controls: controls, edition: edition)
     }
+
+    public mutating func useEvolvingSuccessors() { planner.useEvolvingSuccessors() }
 
     public mutating func next() throws -> SongSchedule {
         var updated = planner

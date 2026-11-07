@@ -1,6 +1,8 @@
-# Frozen revision 9 sound bank
+# Sound bank
 
-The app bank contains the 77 active recorded notes from the accepted revision 9 archive, copied without conversion or editing. Archive SHA-256: `64f61c7bc012aa862a26cfc0de28a03681acdde1174992f970f1b5d281c2ca61`. The two original manifests preserve source URLs, revisions, source checksums, mapping corrections, trimming, gain calibration, and prepared-asset checksums.
+## Frozen revision 9 recordings
+
+The original bank contains the 77 active recorded notes from the accepted revision 9 archive, copied without conversion or editing. Archive SHA-256: `64f61c7bc012aa862a26cfc0de28a03681acdde1174992f970f1b5d281c2ca61`. The two original manifests preserve source URLs, revisions, source checksums, mapping corrections, trimming, gain calibration, and prepared-asset checksums.
 
 | Source | Active notes | Instruments | Retained notices |
 | --- | --- | --- | --- |
@@ -17,3 +19,20 @@ Run `scripts/verify-bank` to verify the exact file set, compressed hashes and si
 To reproduce the import from an authorized copy of the accepted archive, verify its archive hash, parse the 45 entries in `sample_manifest.json` and 32 entries in `electric_guitar_manifest.json`, and copy only those `asset` paths plus the four active notice files byte for byte. Preserve the two manifests unchanged. The decoded hash command for each note is `ffmpeg -nostdin -v error -i NOTE.flac -map 0:a:0 -c:a pcm_f32le -f f32le -`; hash those output bytes. Do not normalize or re-prepare the recordings during import. Original preprocessing details remain in the source manifests rather than an invented reconstruction script.
 
 Developer reference code, plans, short fixtures, and their measurements are outside the app target. Long listening references, research plots/reports, the handoff archive, and analysis-only uploaded audio remain outside version control and app resources.
+
+
+## Band recordings
+
+The band adds 28 recordings of individual notes from the same VCSL revision. The ten TX81Z electric-piano notes cover two velocity layers. Six soft-mallet vibraphone notes retain their mallet attacks and decays. The tenor has six non-vibrato sustains and six staccato notes. Each voice maps to the nearest recorded concert pitch within three semitones. The preparation measures each fundamental because the original filenames use different octave conventions. [Pinned VCSL source and CC0 license](https://github.com/sgossner/VCSL/tree/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e)
+
+The [source inventory](../tools/band/sources-v1.json) records every WAV path, git blob ID, SHA-256 and concert pitch. To reproduce the band under the pinned Python environment, run the following from the repository root. An existing VCSL checkout at this revision can replace the source directory when running offline.
+
+```sh
+tools/reference/setup /path/to/python3.12
+.tools/reference/bin/python tools/band/prepare.py --download .build/vcsl .build/reproduced-band
+diff -r Lowlight/SoundBank/band .build/reproduced-band
+```
+
+The importer maintains a small lead-in for breath and mallet noise, downmixes and resamples to 32 kHz, removes low-frequency rumble, calibrates each note's first 400 ms at Focus Warmth, and bounds peaks and release tails. The 16-bit mono FLACs total 2,075,718 bytes. Their [shipped manifest](../Lowlight/SoundBank/band/manifest.json) includes peak-estimated tuning offsets in cents, leading frames trimmed at 32 kHz, SHA-256 of each FLAC, and independent decoded Float32 checksums. The directory occupies 2,088,224 bytes including that manifest. The app selects the brighter electric-piano layer at velocity 0.50 and the short tenor recording at gates up to 320 ms.
+
+Prepared voices share the keys bus and room send. The fourth-order low-pass cutoff moves from 4,200 Hz to 1,700 Hz across Warmth. Sample selection, pitch shifting and decoding happen before playback. The render kernel uses its fixed voice pool and filters the active voices as Warmth changes. The finite note release, room tail and peak protector run through the existing song path.

@@ -11,9 +11,12 @@ import LowlightPlanning
 public final class SessionPlanning {
     private var timeline: SessionTimeline
 
-    public convenience init(seed: UInt64 = 91_031, controls: Controls = Controls()) throws {
+    public convenience init(
+        seed: UInt64 = 91_031, controls: Controls = Controls(),
+        edition: CompositionEdition = .classic
+    ) throws {
         let timeline = try PreparationMode.perform {
-            try Self.makeTimeline(seed: seed, controls: controls)
+            try Self.makeTimeline(seed: seed, controls: controls, edition: edition)
         }
         self.init(timeline: timeline)
     }
@@ -24,6 +27,10 @@ public final class SessionPlanning {
     public var positionFrame: Int64? { timeline.positionFrame }
 
     public func next() throws -> SongSchedule { try transaction { try $0.next() } }
+
+    func useEvolvingSuccessors() throws {
+        try transaction { $0.useEvolvingSuccessors() }
+    }
 
     public func setControls(_ controls: Controls) throws {
         try transaction { try $0.setControls(controls) }
@@ -49,8 +56,10 @@ public final class SessionPlanning {
     }
 
     @inline(never)
-    private static func makeTimeline(seed: UInt64, controls: Controls) throws -> SessionTimeline {
-        try SessionTimeline(seed: seed, controls: controls)
+    private static func makeTimeline(seed: UInt64, controls: Controls, edition: CompositionEdition)
+        throws -> SessionTimeline
+    {
+        try SessionTimeline(seed: seed, controls: controls, edition: edition)
     }
 
     @inline(never)

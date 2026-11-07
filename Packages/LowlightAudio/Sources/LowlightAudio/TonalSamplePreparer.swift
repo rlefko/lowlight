@@ -28,13 +28,17 @@ public struct TonalSamplePreparer: Sendable {
         let assetSha256: String?
     }
     private struct GuitarManifest: Decodable { let entries: [Entry] }
+    let bandBank: BandSampleBank
+    let bandColors: Bool
     let calibrationBank: TonalCalibrationBank
     private let bankURL: URL
     private let guitar, piano, bass, percussion: [Entry]
 
-    public init(bankURL: URL) throws {
+    public init(bankURL: URL, bandColors: Bool = true) throws {
         guard bankURL.isFileURL else { throw SamplePreparationError.invalidBank }
         self.bankURL = bankURL.resolvingSymlinksInPath().standardizedFileURL
+        self.bandColors = bandColors
+        bandBank = BandSampleBank(root: self.bankURL)
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let guitarData = try Self.manifest(
@@ -276,22 +280,28 @@ public struct TonalSamplePreparer: Sendable {
     }
 
     private func decode(_ entry: Entry) throws -> [Float] {
+        try Self.decode(
+            bankURL.appendingPathComponent(entry.asset), frames: entry.frames,
+            channels: entry.channels)
+    }
+
+    static func decode(_ url: URL, frames: Int, channels: Int) throws -> [Float] {
         try autoreleasepool {
             let file = try AVAudioFile(
-                forReading: bankURL.appendingPathComponent(entry.asset),
+                forReading: url,
                 commonFormat: .pcmFormatFloat32, interleaved: true)
-            guard file.length == Int64(entry.frames), file.processingFormat.sampleRate == 32_000,
-                file.processingFormat.channelCount == entry.channels,
+            guard file.length == Int64(frames), file.processingFormat.sampleRate == 32_000,
+                file.processingFormat.channelCount == channels,
                 let buffer = AVAudioPCMBuffer(
-                    pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(entry.frames)
+                    pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(frames)
                 )
             else { throw SamplePreparationError.invalidAudio }
             try file.read(into: buffer)
-            guard buffer.frameLength == entry.frames, let data = buffer.floatChannelData?[0] else {
+            guard buffer.frameLength == frames, let data = buffer.floatChannelData?[0] else {
                 throw SamplePreparationError.invalidAudio
             }
             let samples = Array(
-                UnsafeBufferPointer(start: data, count: entry.frames * entry.channels))
+                UnsafeBufferPointer(start: data, count: frames * channels))
             guard samples.allSatisfy(\.isFinite) else { throw SamplePreparationError.invalidAudio }
             return samples
         }

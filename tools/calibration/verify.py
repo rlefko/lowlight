@@ -23,6 +23,7 @@ def integrity():
         'Lowlight/SoundBank/electric_guitar_manifest.json', 'Lowlight/SoundBank/sample_manifest.json',
         str(TABLE.relative_to(ROOT)), 'config/toolchain.env', 'tools/calibration/Generate.swift',
         'tools/calibration/generate', 'Packages/LowlightAudio/Sources/LowlightAudio/TonalSamplePreparer.swift',
+        'Packages/LowlightAudio/Sources/LowlightAudio/BandSampleBank.swift',
         'Packages/LowlightAudio/Sources/LowlightAudio/SampleProcessing.swift',
         'Packages/LowlightAudio/Sources/LowlightAudio/PreparationMode.swift',
         'Packages/LowlightAudio/Sources/CLowlightDSP/Preparation.cpp',

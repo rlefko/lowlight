@@ -29,8 +29,15 @@ final class ListeningSaves {
         latest = record ?? .initial
     }
 
+    /// A fresh owner reuses this seed on retries. Preserve the silent-launch policy by
+    /// saving it with the first settings edit or capture; an old restart carries its own RNG.
+    func bindSessionSeed(_ seed: UInt64) {
+        latest = latest.withSessionSeed(seed)
+    }
+
     func updateControls(_ controls: Controls) throws {
-        latest = try ListeningRecord(controls: controls, restart: latest.restart)
+        latest = try ListeningRecord(
+            controls: controls, restart: latest.restart, sessionSeed: latest.sessionSeed)
         submit(latest)
     }
 
@@ -40,8 +47,8 @@ final class ListeningSaves {
     }
 
     /// An explicit new-session choice replaces any pending old place, preserving settings.
-    func discardRestart() {
-        latest = latest.discardingRestart()
+    func discardRestart(seed: UInt64) {
+        latest = latest.discardingRestart(seed: seed)
         failed = false
         submit(latest)
     }

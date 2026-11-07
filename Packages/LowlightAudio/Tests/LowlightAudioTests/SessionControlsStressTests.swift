@@ -27,7 +27,11 @@ struct SessionControlsStressTests {
         let preparer = try TonalSamplePreparer(
             bankURL: root.appendingPathComponent("Lowlight/SoundBank"))
         let initial = try Controls.preset(.focus)
-        let worker = try SessionPreparationWorker(seed: 1, controls: initial, preparer: preparer)
+        let edition = try #require(
+            CompositionEdition(
+                rawValue: Int(environment["LOWLIGHT_CONTROLS_SOAK_EDITION"] ?? "2") ?? -1))
+        let worker = try SessionPreparationWorker(
+            seed: 1, controls: initial, edition: edition, preparer: preparer)
         defer {
             worker.requestStop()
             worker.join()
@@ -113,20 +117,14 @@ struct SessionControlsStressTests {
         while endpoint.position < target {
             try #require(progress.duration(to: clock.now) < .seconds(30))
             try #require(worker.lastError == nil && worker.controlsError == nil)
-            // Keep an eight-minute musical tail for a deferred request to reach a later
-            // eligible selection. Wall-clock waiting alone cannot finish a transition.
-            // A newer intention may legally supersede a late handoff. Give each intended
-            // setting a turn before sending the next burst. Retry on the 30-second grid
-            // between live-effect reversals and keep rendering while preparation catches up.
-            if endpoint.position >= nextSettings, !appliedRevisions.contains(revision),
-                nextSettings + 480 * 32_000 <= target
-            {
+            // The nominal schedule reserves an eight-minute tail. A handoff can push
+            // a planned request into that tail; keep retrying until it has its turn.
+            // The final coverage check requires every scheduled revision to settle.
+            if endpoint.position >= nextSettings, !appliedRevisions.contains(revision) {
                 deferredSettings.append(["frame": endpoint.position, "pending_revision": revision])
                 nextSettings += 30 * 32_000
             }
-            if endpoint.position >= nextSettings, requestIndex < intendedCount,
-                nextSettings + 480 * 32_000 <= target
-            {
+            if endpoint.position >= nextSettings, requestIndex < intendedCount {
                 requestIndex += 1
                 var controls: Controls
                 let sequence: [Preset] = [.relax, .commute, .workout, .reflective, .focus]
@@ -258,10 +256,12 @@ struct SessionControlsStressTests {
                 progress = clock.now
                 // This correctness soak explicitly yields preparation time; its elapsed
                 // duration is not a maximum-throughput or device-deadline measurement.
-                let waitingForHandoff =
-                    deferredSettings.last?["pending_revision"] == revision
-                    && !appliedRevisions.contains(revision)
-                let pace = waitingForHandoff ? 1 : acceleration
+                // A 64× consumer can repeatedly overtake the worker's eligible phrase.
+                // Give each pending edit preparation time, including the final revision.
+                let pending = !appliedRevisions.contains(revision)
+                let late = deferredSettings.last?["pending_revision"] == revision
+                let handoffPace = late ? 1 : min(4, acceleration)
+                let pace = pending ? handoffPace : acceleration
                 Thread.sleep(forTimeInterval: Double(written) / (32_000 * pace))
             }
         }

@@ -26,28 +26,9 @@ struct PlaybackComparisonFixtureTests {
         let preparer = try TonalSamplePreparer(
             bankURL: root.appendingPathComponent("Lowlight/SoundBank"))
         let session = try PreparedSession(
-            seed: 91_031, controls: .preset(.focus), preparer: preparer)
-        let endpoint = try session.makeRenderEndpoint()
-        let frames = UInt64(seconds) * 32_000
-        let destination = directory.appendingPathComponent("source.f32")
-        try Data().write(to: destination, options: .withoutOverwriting)
-        let file = try FileHandle(forWritingTo: destination)
-        defer { try? file.close() }
-        var samples = [Float](repeating: 0, count: 8192)
-        while endpoint.position < frames {
-            if session.needsPreparation { try session.prepareNext() }
-            let start = endpoint.position
-            let count = min(samples.count / 2, Int(frames - start))
-            let written = try #require(
-                samples.withUnsafeMutableBufferPointer {
-                    endpoint.render(into: UnsafeMutableBufferPointer(rebasing: $0[..<(count * 2)]))
-                })
-            try #require(written > 0 && endpoint.position == start + UInt64(written))
-            try #require(!endpoint.isFaulted)
-            try samples.withUnsafeBytes {
-                try file.write(contentsOf: $0.prefix(written * 2 * MemoryLayout<Float>.size))
-            }
-        }
-        try #require(endpoint.position == frames)
+            seed: 91_031, controls: .preset(.focus), edition: .evolving, preparer: preparer)
+        try NativePCMExport.write(
+            session: session, frames: UInt64(seconds) * 32_000,
+            to: directory.appendingPathComponent("source.f32"))
     }
 }

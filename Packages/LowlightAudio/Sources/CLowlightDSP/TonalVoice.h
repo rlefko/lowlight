@@ -10,6 +10,15 @@
 
 namespace lowlight {
 constexpr uint32_t tonalKeys = 100, warmthBins = 101;
+// Five mono articulations, each admitting MIDI 50 through 69 on the keys bus.
+inline bool bandKey(uint32_t key) {
+    return key >= 256 && key < 356;
+}
+inline bool tonalFormat(uint32_t key, uint32_t channels) {
+    if (bandKey(key))
+        return channels == 1;
+    return key < tonalKeys && channels == (key < 80 ? 1u : 2u);
+}
 struct TonalSection {
     double b0, b1, a1, a2;
     static TonalSection design(double tangent, double quality) {
@@ -31,14 +40,14 @@ struct TonalCoefficients {
 // Immutable, fully initialized off the render thread. Both racks can borrow this table.
 struct LLTonalCalibration {
     float gains[lowlight::tonalKeys][lowlight::warmthBins];
-    lowlight::TonalCoefficients filters[2][lowlight::warmthBins];
+    lowlight::TonalCoefficients filters[3][lowlight::warmthBins];
     double pianoShape[32000];
 };
 
 namespace lowlight {
 struct TonalSetting {
     const LLTonalCalibration *table = nullptr;
-    TonalCoefficients filters[2]{};
+    TonalCoefficients filters[3]{};
     uint32_t lower = 0, upper = 0;
     double fraction = 0, position = -1;
     void set(double bin) {
@@ -48,7 +57,7 @@ struct TonalSetting {
         lower = static_cast<uint32_t>(bin);
         upper = std::min(warmthBins - 1, lower + 1);
         fraction = bin - lower;
-        for (uint32_t instrument = 0; instrument < 2; ++instrument) {
+        for (uint32_t instrument = 0; instrument < 3; ++instrument) {
             const auto &from = table->filters[instrument][lower];
             if (!fraction) {
                 filters[instrument] = from;
@@ -60,6 +69,8 @@ struct TonalSetting {
         }
     }
     float gain(uint32_t key) const {
+        if (bandKey(key))
+            return 1.f; // Band PCM is level-matched at import.
         const float from = table->gains[key][lower];
         if (!fraction)
             return from;

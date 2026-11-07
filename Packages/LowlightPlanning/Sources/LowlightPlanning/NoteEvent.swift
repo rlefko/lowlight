@@ -7,6 +7,11 @@ public enum EventError: Error, Equatable {
     case invalidEvent, invalidReference, capacityExceeded, unsupportedVersion
 }
 
+/// A sampled color on a tonal part. The instrument still identifies its original-palette voice.
+public enum BandColor: String, Codable, CaseIterable, Sendable {
+    case electricPiano, vibraphone, tenor
+}
+
 public struct NoteEvent: Codable, Equatable, Sendable {
     public static let formatVersion = 1
     public static let capacity = 2048
@@ -21,16 +26,17 @@ public struct NoteEvent: Codable, Equatable, Sendable {
     public enum Articulation: String, Codable, Sendable { case normal, soft, connected }
 
     public let instrument: Instrument
+    public let color: BandColor?
     public let role: Role
     public let articulation: Articulation
     public let note, roundRobin: Int
     public let beat, velocity, pan: Double
     public let startFrame, gateEndFrame, releaseEndFrame: Int64
-    private let version = NoteEvent.formatVersion
+    private let version: Int
 
     private enum CodingKeys: String, CodingKey {
         case version = "formatVersion"
-        case instrument, role, articulation, note, roundRobin, beat, velocity, pan
+        case instrument, color, role, articulation, note, roundRobin, beat, velocity, pan
         case startFrame, gateEndFrame, releaseEndFrame
     }
 
@@ -42,6 +48,8 @@ public struct NoteEvent: Codable, Equatable, Sendable {
         _ event: EventDraft, referenceDurations: Bool, referenceOrigin: Int64? = nil
     ) throws {
         try event.validate()
+        color = event.color
+        version = event.color == nil ? Self.formatVersion : 2
         instrument = event.instrument
         role = event.role
         articulation = event.articulation
@@ -69,9 +77,11 @@ public struct NoteEvent: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         // The independently frozen, unversioned native fixture records are version 1.
-        if values.contains(.version),
-            try values.decode(Int.self, forKey: .version) != Self.formatVersion
-        {
+        color = try values.decodeIfPresent(BandColor.self, forKey: .color)
+        version =
+            values.contains(.version)
+            ? try values.decode(Int.self, forKey: .version) : Self.formatVersion
+        guard version == (color == nil ? Self.formatVersion : 2) else {
             throw EventError.unsupportedVersion
         }
         instrument = try values.decode(Instrument.self, forKey: .instrument)
@@ -92,7 +102,8 @@ public struct NoteEvent: Codable, Equatable, Sendable {
         try Self.validateMetadata(
             instrument: instrument, role: role, note: note, roundRobin: roundRobin,
             beat: beat, velocity: velocity, pan: pan)
-        guard startFrame >= 0, startFrame < gateEndFrame, gateEndFrame <= releaseEndFrame,
+        guard color == nil || instrument.harmonic, startFrame >= 0, startFrame < gateEndFrame,
+            gateEndFrame <= releaseEndFrame,
             releaseEndFrame <= 1 << 52, gateEndFrame - startFrame <= 16 * 32_000,
             releaseEndFrame - gateEndFrame <= 5 * 32_000
         else { throw EventError.invalidEvent }
@@ -179,6 +190,7 @@ struct EventDraft: Decodable {
     var roundRobin: Int
     var release: Double
     var articulation: NoteEvent.Articulation
+    var color: BandColor?
 
     func validate() throws {
         try NoteEvent.validateMetadata(

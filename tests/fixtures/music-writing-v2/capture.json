@@ -1,0 +1,85 @@
+{
+  "audio": {
+    "commute": {
+      "pcm_sha256": "2620bec4b2955986f5356e02bf8fb1b264b49d463c2c665dd6ec6d022887b030",
+      "seconds": 120
+    },
+    "focus": {
+      "pcm_sha256": "ca4dbf3db0fa4e3114d8042232be6f5f7a809f632a840faa58235b28366f7d5e",
+      "seconds": 600
+    },
+    "original-palette": {
+      "pcm_sha256": "57766008752611845b5edb34a919645da0d27e8ef364cfcf6e66dce0013f9f69",
+      "seconds": 105
+    },
+    "reflective": {
+      "pcm_sha256": "fd9a4a8f7a5ef146a8feedf6c68db1d63f2a6d25300dc076e05f1328ebfe69cc",
+      "seconds": 120
+    }
+  },
+  "by_preset": {
+    "Commute": {
+      "ascending_second_notes": 539,
+      "bars_with_multiple_lead_notes": 1519,
+      "comparable_bars": 1816,
+      "distinct_lead_rhythms_per_piece_median": 8.0,
+      "instrument_entrances_after_bar_of_rest": 1776,
+      "lead_bars_at_rest": 809,
+      "max_events": 780,
+      "pieces": 64,
+      "repeated_bass_bars": 119,
+      "repeated_lead_bars": 90
+    },
+    "Focus": {
+      "ascending_second_notes": 476,
+      "bars_with_multiple_lead_notes": 1413,
+      "comparable_bars": 1816,
+      "distinct_lead_rhythms_per_piece_median": 7.0,
+      "instrument_entrances_after_bar_of_rest": 1081,
+      "lead_bars_at_rest": 851,
+      "max_events": 588,
+      "pieces": 64,
+      "repeated_bass_bars": 240,
+      "repeated_lead_bars": 90
+    },
+    "Reflective": {
+      "ascending_second_notes": 491,
+      "bars_with_multiple_lead_notes": 1407,
+      "comparable_bars": 1808,
+      "distinct_lead_rhythms_per_piece_median": 7.0,
+      "instrument_entrances_after_bar_of_rest": 1075,
+      "lead_bars_at_rest": 849,
+      "max_events": 588,
+      "pieces": 64,
+      "repeated_bass_bars": 230,
+      "repeated_lead_bars": 84
+    },
+    "Relax": {
+      "ascending_second_notes": 542,
+      "bars_with_multiple_lead_notes": 1392,
+      "comparable_bars": 1784,
+      "distinct_lead_rhythms_per_piece_median": 7.0,
+      "instrument_entrances_after_bar_of_rest": 1071,
+      "lead_bars_at_rest": 840,
+      "max_events": 587,
+      "pieces": 64,
+      "repeated_bass_bars": 218,
+      "repeated_lead_bars": 78
+    },
+    "Workout": {
+      "ascending_second_notes": 522,
+      "bars_with_multiple_lead_notes": 1520,
+      "comparable_bars": 1816,
+      "distinct_lead_rhythms_per_piece_median": 8.0,
+      "instrument_entrances_after_bar_of_rest": 1852,
+      "lead_bars_at_rest": 808,
+      "max_events": 780,
+      "pieces": 64,
+      "repeated_bass_bars": 116,
+      "repeated_lead_bars": 89
+    }
+  },
+  "edition": 2,
+  "format": "32 kHz stereo interleaved Float32 little-endian",
+  "scores_sha256": "0b43a396444888bbba512f4e9421d66c13d36ca586ce82c3089bba2a9e654915"
+}

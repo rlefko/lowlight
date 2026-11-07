@@ -89,7 +89,8 @@ void ll_tonal_calibration_destroy(LLTonalCalibration *calibration);
 bool ll_mixer_configure_tonal(LLMixer *mixer, const LLTonalCalibration *calibration,
                               uint32_t initial_bin);
 // HP-only PCM: keys 0...79 are (guitar MIDI - 50) * 4 + take and 80...99 are
-// 80 + piano MIDI - 50. The existing arena and sample/voice limits apply.
+// 80 + piano MIDI - 50. Keys 256...355 encode the five mono band articulations,
+// each in MIDI order 50...69, on the keys bus. The same arena and voice limits apply.
 int32_t ll_mixer_add_tonal_sample(LLMixer *, const float *, uint32_t frames, uint32_t channels,
                                   uint32_t key);
 // Sorted absolute 32 kHz starts at/after the configured origin; gate/release

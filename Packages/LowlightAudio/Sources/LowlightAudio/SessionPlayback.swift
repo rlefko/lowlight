@@ -86,14 +86,14 @@ public final class SessionPlayback {
     /// predecessor tails and prior session-protector history are not restored.
     public convenience init(
         bankURL: URL, seed: UInt64 = 91_031, controls: Controls? = nil,
-        restart: SessionRestartIntent? = nil
+        edition: CompositionEdition = .classic, restart: SessionRestartIntent? = nil
     ) {
         self.init(audioSession: .system, controls: controls, restart: restart) {
             token, prepareOutput, latest, requested in
             try token.check()
             let preparer = try TonalSamplePreparer(bankURL: bankURL)
             let worker = try SessionPreparationWorker(
-                seed: seed, controls: requested, restart: latest,
+                seed: seed, controls: requested, edition: edition, restart: latest,
                 preparer: preparer, cancellation: token)
             do {
                 try prepareOutput()

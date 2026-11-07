@@ -13,6 +13,8 @@ python3 -B tools/playback-comparison/trials.py prepare .build/comparison/phone -
 python3 -B tools/playback-comparison/fixture.py verify .build/comparison/phone
 ```
 
+The fixture and each in-app snapshot name the score and bank recipe (`evolving-2.band-1`). Regenerate and stage a new AAC when that recipe changes. Legacy recordings still identify the earlier experiment.
+
 The default export covers exactly 35 minutes. The 40-minute command above leaves time to lock the screen, align the measured window in the trace, and capture the endpoint before AAC runs out. Reserve about 1.5 GiB of temporary space for a 35-minute encode and decode, in addition to build products. Keep generated audio and device evidence in an ignored directory. The staging command copies the manifest and compressed AAC to the profile app’s data container.
 
 Select **Lowlight Playback Comparison** in Xcode. It builds the Lowlight target with optimizations and the separate identifier `com.rlefko.lowlight.profile`. For a physical trial, install a development-signed build on the intended phone using an authorized local team and provisioning profile. Use the same installed executable for every arm on a phone. Record its SHA-256 with `shasum -a 256 path/to/Lowlight.app/Lowlight`, the full commit with `git rev-parse HEAD`, and the fixture's `aac_sha256`. After installing, open the profile app once to create its data directory and exit. Set the shell variable `phone` to the explicit development device identifier. Stage the verified fixture and retain a copy of its manifest with each record.
@@ -66,7 +68,20 @@ python3 -B tools/playback-comparison/trials.py report .build/comparison/current/
 
 Review each phone separately. Compare the three absolute measurements within each block, then subtract that block's idle rate from both playback rates. The relative comparison uses the local AAC cost above idle as its denominator. A denominator close to zero can make a tiny battery difference look large. The report combines per-reading uncertainty with the observed spread of the three blocks. It withholds a ratio if the AAC cost above idle cannot be resolved within 10% of its median or the paired difference cannot be resolved within 10 percentage points. Keep the absolute readings, uncertainty, and block spread with every reported percentage. Interpret the project’s roughly 10% target only when the measurements can resolve a difference that small.
 
-## Local evidence
+## Evolving score and band reference
+
+The current Focus comparison uses the `evolving-2.band-1` recipe. Two independent continuous renders of the 35-minute passage produced identical PCM. A separate 45-second export matched its prefix byte for byte. Core Audio decoded each AAC to the source frame count.
+
+| Passage | Stereo frames at 32 kHz | Native LUFS | Decoded AAC LUFS | Native / decoded sample peak |
+| --- | ---: | ---: | ---: | ---: |
+| 45 seconds | 1,440,000 | -21.2153 | -21.2182 | 0.562388 / 0.567760 |
+| 35 minutes | 67,200,000 | -20.6994 | -20.7015 | 0.562391 / 0.567760 |
+
+The 35-minute source PCM SHA-256 is `bef25d8f7b106a6c2c2641629df14b11aee0f1796087dbfc6bb20bd13a3fee11`. The rehearsed 27,317,786-byte AAC has SHA-256 `e43add6b4901cd95a6fdaa3a692577aa29f0accbb4d9ab9ff0932357461605f9`.
+
+On the pinned iPhone 17 simulator, all seven comparison tests passed with zero skips. Generator and AAC advanced, paused, resumed, stopped, and relaunched at frame zero. Idle held at zero. The profile rejected missing audio, damaged audio, an invalid mode, and a PR 52 manifest with an intact AAC. The final rejection exercised the performance recipe check. Physical energy comparisons still require matched device trials.
+
+## PR 52 baseline evidence
 
 With Xcode 26.6 (17F113) and Swift 6.3.3 on Apple Silicon, two native renders of the 2,100-second reference produced the same 537,600,000-byte interleaved Float32 source. The locally retained reference has the following measurements.
 
@@ -78,6 +93,8 @@ With Xcode 26.6 (17F113) and Swift 6.3.3 on Apple Silicon, two native renders of
 | AAC file size | 26,978,859 bytes |
 | Source PCM SHA-256 | `ab61c454419487fb4d0304481485be5f19f11bf20de0ab4469efcc34a25cd6df` |
 | This AAC SHA-256 | `80a14cfcaf320db26afdd87b62707a797241d1028dc98db8342f9ec87462b9aa` |
+
+These measurements describe the original PR 52 performance. The current rehearsal adds a seventh case that rejects an older recipe with otherwise valid AAC.
 
 The short repeat check (`fixture.py smoke .build/comparison/repeat`) also produced identical native PCM across two fresh 12-second sessions. The verifier rejected modified AAC bytes and a manifest with a 1 LU discrepancy.
 

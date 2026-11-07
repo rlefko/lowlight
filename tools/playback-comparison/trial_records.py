@@ -10,6 +10,8 @@ import re
 from statistics import median
 from uuid import UUID
 
+from fixture import CONTRACT, PERFORMANCE_RECIPE
+
 
 BUNDLE = "com.rlefko.lowlight.profile"
 BLOCKS = (("generator", "aac", "idle"), ("aac", "idle", "generator"), ("idle", "generator", "aac"))
@@ -77,7 +79,8 @@ def check_snapshots(row, root, warmup, end, fixture_frames):
     samples = []
     for key, reason in (("start_snapshot", "start"), ("end_snapshot", "refresh")):
         sample = json.loads(artifact(root, row[key]).read_text())
-        require(sample["formatVersion"] == 1 and sample["bundleID"] == BUNDLE and sample["platform"] == "device"
+        require(sample["formatVersion"] == 2 and sample["performanceRecipe"] == PERFORMANCE_RECIPE
+                and sample["bundleID"] == BUNDLE and sample["platform"] == "device"
                 and sample["appSHA256"] == row["app_sha256"]
                 and sample["trialID"].lower() == row["trial_id"].lower()
                 and sample["mode"] == mode and sample["state"] == active and sample["reason"] == reason
@@ -190,9 +193,8 @@ def report(path):
         require(type(data["schema_version"]) is int and data["schema_version"] == 1
                 and data["device_role"] in ("older", "current"), "unknown schema or phone role")
         fixture = json.loads(artifact(path.resolve().parent, data["fixture_manifest"]).read_text())
-        require(fixture["schema_version"] == 1 and fixture["sample_rate"] == 32000
-                and fixture["channels"] == 2 and fixture["seed"] == 91031 and fixture["preset"] == "Focus"
-                and fixture["codec"] == "aac" and type(fixture["frames"]) is int
+        require(all(type(fixture.get(k)) is type(v) and fixture[k] == v for k, v in CONTRACT.items())
+                and type(fixture["frames"]) is int
                 and type(fixture["duration_seconds"]) is int and 1 <= fixture["duration_seconds"] <= 3600
                 and fixture["frames"] == fixture["duration_seconds"] * 32000,
                 "invalid fixture manifest")
