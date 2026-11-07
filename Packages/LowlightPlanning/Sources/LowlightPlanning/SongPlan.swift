@@ -10,6 +10,7 @@ public struct SongPlan: Codable, Equatable, Sendable {
         public internal(set) var voices, tops, pcs: [Int]
     }
 
+    public internal(set) var ensemble: SongEnsemble?
     public internal(set) var id: UInt64
     public internal(set) var family, mode, focus: String
     public internal(set) var key, shift, bars, drumCell, bassCell: Int
@@ -26,7 +27,8 @@ public struct SongPlan: Codable, Equatable, Sendable {
             zip(notes, times).map { note, beat in "\((note % 12 - key % 12 + 24) % 12)@\(beat)" }
                 .joined(separator: ",")
         }.joined(separator: ";")
-        return "ll-song-v1|" + chords.map(\.name).joined(separator: ",") + "|" + phrases
+        let tag = ensemble == nil ? "ll-song-v1|" : "ll-song-v2|"
+        return tag + chords.map(\.name).joined(separator: ",") + "|" + phrases
     }
 
     static func times(for count: Int) -> [Int] {
@@ -70,7 +72,12 @@ public struct SongPlan: Codable, Equatable, Sendable {
         else { throw PlanningError.invalidCheckpoint }
         for bar in 0..<8 {
             let count = Self.noteCount(energy: energy, bar: bar)
-            guard melody[bar].count == count, melodyTimes[bar] == Self.times(for: count),
+            let times = melodyTimes[bar]
+            let rhythmOK =
+                ensemble == nil
+                ? melody[bar].count == count && times == Self.times(for: count)
+                : Self.validMotifTicks(times) && melody[bar].count == times.count
+            guard rhythmOK,
                 melody[bar].allSatisfy({
                     (55...69).contains($0) && chords[bar].pcs.contains($0 % 12)
                 })
@@ -87,7 +94,9 @@ public struct SongPlan: Codable, Equatable, Sendable {
     static func validSignature(_ value: String, grammar: Grammar) -> Bool {
         guard value.utf8.count <= 512 else { return false }
         let parts = value.split(separator: "|", omittingEmptySubsequences: false)
-        guard parts.count == 3, parts[0] == "ll-song-v1" else { return false }
+        guard parts.count == 3, ["ll-song-v1", "ll-song-v2"].contains(parts[0]) else {
+            return false
+        }
         let progression = parts[1].split(separator: ",", omittingEmptySubsequences: false).map(
             String.init)
         guard grammar.families.contains(where: { $0.progression == progression }) else {
@@ -98,7 +107,14 @@ public struct SongPlan: Codable, Equatable, Sendable {
         return bars.allSatisfy { bar in
             let notes = bar.split(separator: ",", omittingEmptySubsequences: false)
             guard (1...4).contains(notes.count) else { return false }
-            return zip(notes, times(for: notes.count)).allSatisfy { note, time in
+            let ticks = notes.compactMap { note -> Int? in
+                let fields = note.split(separator: "@", omittingEmptySubsequences: false)
+                return fields.count == 2 ? Int(fields[1]) : nil
+            }
+            let rhythmOK =
+                parts[0] == "ll-song-v1" ? ticks == times(for: notes.count) : validMotifTicks(ticks)
+            guard ticks.count == notes.count, rhythmOK else { return false }
+            return zip(notes, ticks).allSatisfy { note, time in
                 let fields = note.split(separator: "@", omittingEmptySubsequences: false)
                 guard fields.count == 2, let pitch = Int(fields[0]), (0..<12).contains(pitch)
                 else { return false }

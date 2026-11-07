@@ -8,6 +8,10 @@ public enum EventPlanner {
     public static func events(for schedule: SongSchedule) throws -> [NoteEvent] {
         try schedule.validate()
         let song = schedule.song
+        if let ensemble = song.ensemble {
+            var performance = try BandArrangement(schedule: schedule, ensemble: ensemble)
+            return try performance.events()
+        }
         let origin = try schedule.seconds(at: 0)
         var rng = SeededGenerator(seed: song.takeSeed)
         var events: [EventDraft] = []
@@ -141,7 +145,14 @@ public enum EventPlanner {
                 try emit(.shaker, 0, beat + 2.54, 0.16, 0.095 * gain, .drum, -0.3, rr)
             }
         }
-        var cleaned = deduplicate(events)
+        return try finish(deduplicate(events), schedule: schedule, barChords: barChords)
+    }
+
+    static func finish(_ sorted: [EventDraft], schedule: SongSchedule, barChords: [SongPlan.Chord])
+        throws -> [NoteEvent]
+    {
+        let song = schedule.song
+        var cleaned = sorted
         damp(&cleaned)
         for index in cleaned.indices where cleaned[index].instrument.harmonic {
             let firstBoundary = Int(cleaned[index].beat / 4) + 1
@@ -196,17 +207,18 @@ public enum EventPlanner {
 
     private static func damp(_ events: inout [EventDraft]) {
         for instrument in [NoteEvent.Instrument.guitar, .piano, .bass] {
-            var previous: [Int: Int] = [:]
+            var previous: [BandColor?: [Int: Int]] = [:]
             for index in events.indices where events[index].instrument == instrument {
-                let key = instrument == .bass ? 0 : events[index].note
-                if let prior = previous[key] {
+                let color = events[index].color
+                let key = instrument == .bass || color == .tenor ? 0 : events[index].note
+                if let prior = previous[color]?[key] {
                     let distance = events[index].time - events[prior].time
                     events[prior].duration = max(
                         0.035, min(events[prior].duration, distance - 0.028))
                     events[prior].release = min(
                         events[prior].release, max(0.025, distance - events[prior].duration))
                 }
-                previous[key] = index
+                previous[color, default: [:]][key] = index
             }
         }
     }

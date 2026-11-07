@@ -51,17 +51,22 @@ public struct SongPlanner {
     var recentSignatures: [String] { state.history.signatures }
     var lastFallback: FallbackDiagnostic? { state.history.lastFallback }
 
-    public init(seed: UInt64 = 91_031, controls: Controls = Controls()) throws {
+    public init(
+        seed: UInt64 = 91_031, controls: Controls = Controls(),
+        edition: CompositionEdition = .classic
+    ) throws {
         let grammar = try Grammar.bundled()
         let controls = try controls.normalized()
         var rng = SeededGenerator(seed: seed)
         var history = NoveltyHistory()
         let pending = try Self.prepare(
-            id: 0, controls: controls, previous: nil, grammar: grammar, rng: &rng, history: &history
+            id: 0, controls: controls, previous: nil, grammar: grammar, edition: edition, rng: &rng,
+            history: &history
         )
         self.grammar = grammar
         state = Checkpoint(
-            rng: rng, controls: controls, index: 1, pending: pending, history: history)
+            algorithmVersion: edition.rawValue, rng: rng, controls: controls, index: 1,
+            pending: pending, history: history)
     }
 
     private init(grammar: Grammar, state: Checkpoint) {
@@ -73,12 +78,24 @@ public struct SongPlanner {
         state.controls = try controls.normalized()
     }
 
+    /// Adopt the new writing in the first undelivered song. Its harmony, duration and
+    /// tempo already define the current song's outgoing pivot, so retain them exactly.
+    public mutating func useEvolvingSuccessors() {
+        guard state.pending.ensemble == nil else { return }
+        var rng = SeededGenerator(seed: state.pending.takeSeed)
+        state.pending.develop(following: nil, rng: &rng)
+        state.algorithmVersion = CompositionEdition.evolving.rawValue
+        state.history.signatures.removeLast()
+        state.history.signatures.append(state.pending.signature)
+    }
+
     public mutating func next() throws -> SongPlan {
         let result = state.pending
         var updated = state
         updated.pending = try Self.prepare(
             id: state.index, controls: state.controls, previous: result, grammar: grammar,
-            rng: &updated.rng, history: &updated.history)
+            edition: result.ensemble == nil ? .classic : .evolving, rng: &updated.rng,
+            history: &updated.history)
         updated.index &+= 1
         state = updated
         return result
@@ -96,9 +113,13 @@ public struct SongPlanner {
         do { state = try JSONDecoder().decode(Checkpoint.self, from: data) } catch {
             throw PlanningError.invalidCheckpoint
         }
-        guard state.algorithmVersion == algorithmVersion, state.catalogVersion == Grammar.version
+        guard let edition = CompositionEdition(rawValue: state.algorithmVersion),
+            state.catalogVersion == Grammar.version
         else { throw PlanningError.unsupportedVersion }
         let grammar = try Grammar.bundled()
+        guard (edition == .classic) == (state.pending.ensemble == nil) else {
+            throw PlanningError.invalidCheckpoint
+        }
         try state.pending.validate(using: grammar)
         let history = state.history
         guard try state.controls.normalized() == state.controls,
@@ -121,12 +142,15 @@ public struct SongPlanner {
 
     private static func prepare(
         id: UInt64, controls: Controls, previous: SongPlan?, grammar: Grammar,
+        edition: CompositionEdition,
         rng: inout SeededGenerator, history: inout NoveltyHistory
     ) throws -> SongPlan {
         var plan = try history.select { excluded in
-            try draft(
+            var candidate = try draft(
                 id: id, controls: controls, previous: previous, grammar: grammar,
                 rng: &rng, excluded: excluded)
+            if edition == .evolving { candidate.develop(following: previous?.ensemble, rng: &rng) }
+            return candidate
         }
         plan.takeSeed = UInt64(rng.index(1 << 31))
         plan.drumCell = rng.index(6)
