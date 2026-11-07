@@ -16,6 +16,8 @@
     struct ComparisonFixture: Decodable {
         static let sampleRate = 32_000
         static let seed: UInt64 = 91_031
+        static let requiredRecipe = "evolving-2.band-1"
+        let performanceRecipe: String?
         let schemaVersion: Int
         let preset: String
         let seed: UInt64
@@ -36,7 +38,11 @@
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let fixture = try decoder.decode(Self.self, from: Data(contentsOf: manifest))
-            guard fixture.schemaVersion == 1, fixture.seed == Self.seed, fixture.preset == "Focus",
+            guard fixture.schemaVersion == 2, fixture.performanceRecipe == requiredRecipe else {
+                throw ComparisonFailure(
+                    "Reference recipe has changed. Prepare and stage a current fixture.")
+            }
+            guard fixture.seed == Self.seed, fixture.preset == "Focus",
                 fixture.codec == "aac", fixture.sampleRate == Self.sampleRate,
                 fixture.channels == 2,
                 fixture.durationSeconds > 0,

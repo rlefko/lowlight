@@ -19,7 +19,8 @@ REFERENCE = ROOT / ".tools/reference"
 RATE = 32_000
 CHANNELS = 2
 MAX_LU_DIFFERENCE = 0.5
-CONTRACT = {"schema_version": 1, "seed": 91_031, "preset": "Focus",
+PERFORMANCE_RECIPE = "evolving-2.band-1"
+CONTRACT = {"schema_version": 2, "performance_recipe": PERFORMANCE_RECIPE, "seed": 91_031, "preset": "Focus",
             "sample_rate": RATE, "channels": CHANNELS, "codec": "aac"}
 FIXTURE = "reference.m4a"
 MANIFEST = "manifest.json"

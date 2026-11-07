@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import CPreparationTestSupport
+import CryptoKit
 import Foundation
 import LowlightPlanning
 import Testing
@@ -55,6 +56,117 @@ struct SessionListeningTests {
             // The ahead-of-render cursor remains independent and unchanged.
             #expect(try planning.checkpoint() == checkpoints[5])
         }
+    }
+
+    @Test(arguments: [false, true])
+    func oldRestartsKeepTheirExactSongAndFrameUntilAnEvolvingSuccessor(anchored: Bool) throws {
+        let classic = try SessionPlanning(controls: controls, edition: .classic)
+        _ = try classic.next()
+        let anchor = try classic.checkpoint()
+        let selected = try classic.next()
+        let frame = UInt64(try selected.frame(at: 5))
+        let old = try SessionRestartIntent(
+            checkpoint: classic.checkpoint(), canonicalFrame: frame,
+            planningAnchor: anchored ? anchor : nil)
+        // Digests were produced independently by the merged PR 52 binary at 3bb95d9.
+        let expectedDigest =
+            anchored
+            ? "475bc6d8c5f39c04cb36209aae2f77c948c9b70c530b6675fb844c3b9779a69b"
+            : "8a445ca33f2cc31b4a4c3af0c4dde64e187192cb71e9456c6ee68842797ae6f7"
+        let digest = SHA256.hash(data: try old.encoded()).map { String(format: "%02x", $0) }
+            .joined()
+        #expect(digest == expectedDigest)
+        let oldSuccessor = try classic.next()
+
+        let sequence = try SessionListeningSequence(
+            seed: 42, controls: Controls(), edition: .evolving, restart: old, preparer: preparer())
+        let first = try sequence.pendingRecord()
+        sequence.accepted()
+        let second = try sequence.pendingRecord()
+        sequence.accepted()
+        #expect(first.schedule == selected && first.checkpoint == old.checkpoint)
+        #expect(UInt64(sequence.warmFrames) + first.canonicalOrigin == frame)
+        #expect(try sequence.capture(at: UInt64(sequence.warmFrames))?.restart == old)
+        #expect(try sequence.capture(at: second.handoff - 1)?.currentSong == selected.song)
+        #expect(second.schedule.song.id == oldSuccessor.song.id)
+        #expect(
+            second.schedule.incoming == selected.outgoing && second.schedule.song.ensemble != nil)
+        let handoff = try #require(try sequence.capture(at: second.handoff))
+        #expect(handoff.currentSong == second.schedule.song)
+        #expect(try SessionRestartIntent.restore(handoff.restart.encoded()) == handoff.restart)
+
+        let request = try SessionControlsRequest(revision: 1, controls: .preset(.workout))
+        let plan = try sequence.planControls(request, selectionID: selected.song.id)
+        guard anchored else {
+            #expect(plan == nil)
+            return
+        }
+        let revised = try #require(plan)
+        #expect(revised.current.schedule.song == selected.song)
+        #expect(revised.successor.schedule.song.ensemble != nil)
+        #expect(revised.successor.schedule.incoming == revised.current.schedule.outgoing)
+        // Both candidate anchors must independently reproduce the exact checkpoint that
+        // would be saved on their side of the handoff.
+        _ = try SessionRestartIntent(
+            checkpoint: revised.current.checkpoint, canonicalFrame: frame,
+            planningAnchor: revised.current.planningAnchor)
+        _ = try SessionRestartIntent(
+            checkpoint: revised.successor.checkpoint,
+            canonicalFrame: revised.successor.canonicalOrigin,
+            planningAnchor: revised.successor.planningAnchor)
+    }
+
+    @Test func anOlderCrossfadeKeepsEachAlreadyStartedSongAndPromotesTheNextUnheardOne() throws {
+        let classic = try SessionListeningSequence(
+            seed: 91_031, controls: controls, edition: .classic, restart: nil, preparer: preparer())
+        let a = try classic.pendingRecord()
+        classic.accepted()
+        let b = try classic.pendingRecord()
+        classic.accepted()
+        let request = try SessionControlsRequest(revision: 1, controls: .preset(.workout))
+        let frames = [b.placement - 1, b.placement, b.handoff - 1, b.handoff, b.handoff + 1]
+        for frame in frames {
+            let saved = try #require(try classic.capture(at: frame))
+            let resumed = try SessionListeningSequence(
+                seed: 0, controls: controls, edition: .evolving, restart: saved.restart,
+                preparer: preparer())
+            let selected = try resumed.pendingRecord()
+            resumed.accepted()
+            let incoming = try resumed.pendingRecord()
+            resumed.accepted()
+            #expect(try resumed.capture(at: UInt64(resumed.warmFrames))?.restart == saved.restart)
+            if (b.placement..<b.handoff).contains(frame) {
+                #expect(selected.schedule == a.schedule && incoming.schedule == b.schedule)
+                #expect(try resumed.planControls(request, selectionID: a.schedule.song.id) == nil)
+                let handed = try #require(try resumed.capture(at: incoming.handoff))
+                #expect(handed.currentSong == b.schedule.song)
+                resumed.retired()
+                let unheard = try resumed.pendingRecord()
+                resumed.accepted()
+                #expect(unheard.schedule.song.ensemble != nil)
+                #expect(unheard.schedule.incoming == b.schedule.outgoing)
+                let revised = try #require(
+                    try resumed.planControls(request, selectionID: b.schedule.song.id))
+                #expect(revised.current.schedule.song == b.schedule.song)
+                #expect(revised.successor.schedule.song.ensemble != nil)
+            } else {
+                #expect(selected.schedule == (frame < b.placement ? a.schedule : b.schedule))
+                #expect(incoming.schedule.song.ensemble != nil)
+            }
+        }
+    }
+
+    @Test func freshSeedsChooseRepeatableEvolvingSongsAndSuccessors() throws {
+        let first = try SessionPlanning(seed: 191, controls: controls, edition: .evolving)
+        let retry = try SessionPlanning(seed: 191, controls: controls, edition: .evolving)
+        let separate = try SessionPlanning(seed: 192, controls: controls, edition: .evolving)
+        let start = try first.next()
+        #expect(start.song.ensemble != nil)
+        #expect(try retry.next() == start)
+        #expect(try separate.next().song.signature != start.song.signature)
+        let next = try first.next()
+        #expect(next.song.ensemble != nil && next.song.ensemble != start.song.ensemble)
+        #expect(try retry.next() == next)
     }
 
     @Test func malformedAndOutOfSongIntentsCannotBecomePlaybackOrUnboundedWarmup() throws {

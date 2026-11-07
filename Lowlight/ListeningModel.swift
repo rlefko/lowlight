@@ -21,8 +21,9 @@ final class ListeningModel {
         try Preset.allCases.map { ($0, try Controls.preset($0)) }
     }
     @ObservationIgnored private let persistence: ListeningPersistence
+    @ObservationIgnored private let makeSeed: () -> UInt64
     @ObservationIgnored private let makePlayback:
-        (Controls, SessionRestartIntent?) -> SessionPlayback
+        (Controls, SessionRestartIntent?, UInt64) -> SessionPlayback
     @ObservationIgnored private let remoteServices: () -> ListeningRemoteServices
     @ObservationIgnored private var remote: ListeningRemoteControl?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
@@ -36,15 +37,18 @@ final class ListeningModel {
     init(
         persistence: ListeningPersistence = .disk(),
         remoteServices: @escaping () -> ListeningRemoteServices = { .system() },
-        makePlayback: @escaping (Controls, SessionRestartIntent?) -> SessionPlayback = {
-            controls, restart in
+        makeSeed: @escaping () -> UInt64 = { UInt64.random(in: .min ... .max) },
+        makePlayback: @escaping (Controls, SessionRestartIntent?, UInt64) -> SessionPlayback = {
+            controls, restart, seed in
             let bank = (Bundle.main.resourceURL ?? Bundle.main.bundleURL)
                 .appendingPathComponent("SoundBank", isDirectory: true)
-            return SessionPlayback(bankURL: bank, controls: controls, restart: restart)
+            return SessionPlayback(
+                bankURL: bank, seed: seed, controls: controls, edition: .evolving, restart: restart)
         }
     ) {
         self.persistence = persistence
         saves = ListeningSaves(write: persistence.save)
+        self.makeSeed = makeSeed
         self.makePlayback = makePlayback
         self.remoteServices = remoteServices
     }
@@ -97,7 +101,7 @@ final class ListeningModel {
         captureRequested = false
         remote?.invalidate()
         remote = nil
-        saves.discardRestart()
+        saves.discardRestart(seed: makeSeed())
         playback.stop()
     }
 
@@ -105,7 +109,11 @@ final class ListeningModel {
         let settings = record?.controls ?? Controls()
         controls = settings
         committedControls = settings
-        let playback = makePlayback(settings, record?.restart)
+        // Existing checkpoints reconstruct their own random stream. A settings-only record
+        // carries its unplayed seed across launches. A genuinely new owner draws once.
+        let seed = record?.sessionSeed ?? (record?.restart == nil ? makeSeed() : 0)
+        if record?.restart == nil { saves.bindSessionSeed(seed) }
+        let playback = makePlayback(settings, record?.restart, seed)
         self.playback = playback
         previousListening = nil
         previousState = nil

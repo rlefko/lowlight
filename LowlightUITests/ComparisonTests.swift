@@ -117,6 +117,11 @@ final class ComparisonTests: XCTestCase {
         try expectFailure("aac")
     }
 
+    func testLegacyFixture() throws {
+        try expectFailure("aac")
+        XCTAssertTrue(app.staticTexts["comparisonError"].label.contains("recipe"))
+    }
+
     func testInvalidMode() throws {
         try expectFailure("unexpected")
     }

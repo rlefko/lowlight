@@ -97,7 +97,7 @@ struct ListeningPersistenceTests {
         let root = try directory()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ListeningPersistence.disk(at: root.appendingPathComponent("listening.json"))
-        let settings = try ListeningRecord(controls: .preset(.reflective))
+        let settings = try ListeningRecord(controls: .preset(.reflective), sessionSeed: .max)
         try await store.save(settings)
         #expect(try await store.load() == settings)
         #expect(try await store.load()?.restart == nil)

@@ -77,7 +77,7 @@
                             path: "SoundBank")
                         generator = try SessionPlayback(
                             bankURL: bank, seed: ComparisonFixture.seed,
-                            controls: Controls.preset(.focus), restart: nil)
+                            controls: Controls.preset(.focus), edition: .evolving, restart: nil)
                         observeGenerator()
                     }
                     generator?.play()
@@ -332,7 +332,8 @@
         }
 
         private struct Snapshot: Encodable {
-            let formatVersion = 1
+            let formatVersion = 2
+            let performanceRecipe = ComparisonFixture.requiredRecipe
             #if targetEnvironment(simulator)
                 let platform = "simulator"
             #else

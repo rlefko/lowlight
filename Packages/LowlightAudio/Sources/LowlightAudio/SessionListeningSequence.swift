@@ -23,6 +23,9 @@ final class SessionListeningSequence {
     }
 
     private var planning: SessionPlanning
+    // A legacy capture inside a crossfade commits both songs on either side of its ramp.
+    private let resumedOverlapID: UInt64?
+    private let edition: CompositionEdition
     let preparer: TonalSamplePreparer
     private var pending: Record?
     private(set) var records: [Record] = []
@@ -35,10 +38,12 @@ final class SessionListeningSequence {
     }
 
     init(
-        seed: UInt64, controls: Controls, restart: SessionRestartIntent?,
+        seed: UInt64, controls: Controls, edition: CompositionEdition = .classic,
+        restart: SessionRestartIntent?,
         preparer: TonalSamplePreparer
     ) throws {
         self.preparer = preparer
+        self.edition = edition
         let planning: SessionPlanning
         let schedule: SongSchedule
         let anchor: Data?
@@ -48,13 +53,26 @@ final class SessionListeningSequence {
             schedule = current
             anchor = restart.planningAnchor
         } else {
-            planning = try SessionPlanning(seed: seed, controls: controls)
+            planning = try SessionPlanning(seed: seed, controls: controls, edition: edition)
             anchor = try planning.checkpoint()
             schedule = try planning.next()
         }
         let record = try PreparationMode.perform {
             try Self.record(
                 schedule, checkpoint: planning.checkpoint(), anchor: anchor, offset: 0)
+        }
+        if let restart, edition == .evolving, schedule.song.ensemble == nil {
+            let rampStart = try PreparationMode.perform { try schedule.outgoing.ramp.frame(at: 0) }
+            // During the first half of the fade, capture still selects the outgoing song
+            // even though the incoming rack has begun. Keep the already audible pair.
+            if restart.canonicalFrame >= UInt64(rampStart) {
+                resumedOverlapID = schedule.song.id
+            } else {
+                resumedOverlapID = nil
+                try planning.useEvolvingSuccessors()
+            }
+        } else {
+            resumedOverlapID = nil
         }
         self.planning = planning
         offset = -Int64(record.canonicalOrigin)
@@ -98,10 +116,15 @@ final class SessionListeningSequence {
         if pending == nil {
             let anchor = try planning.checkpoint()
             let schedule = try planning.next()
-            pending = try PreparationMode.perform {
+            let next = try PreparationMode.perform {
                 try Self.record(
                     schedule, checkpoint: planning.checkpoint(), anchor: anchor, offset: offset)
             }
+            if let resumedOverlapID, records.last?.schedule.song.id == resumedOverlapID {
+                // The retained incoming song now has its own unmodified checkpoint/anchor.
+                try planning.useEvolvingSuccessors()
+            }
+            pending = next
         }
         guard let pending else { throw PreparedSessionError.invalidSession }
         return pending
@@ -146,7 +169,8 @@ final class SessionListeningSequence {
         -> SessionControlsPlan?
     {
         guard request.revision > acceptedControlsRevision, records.count == 2, pending == nil,
-            records[0].schedule.song.id == selectionID, records[0].pivot == nil,
+            records[0].schedule.song.id == selectionID, selectionID != resumedOverlapID,
+            records[0].pivot == nil,
             let originalAnchor = records[0].planningAnchor
         else { return nil }
         let candidate = try SessionPlanning.restore(originalAnchor)
@@ -154,6 +178,15 @@ final class SessionListeningSequence {
         let anchor = try candidate.checkpoint()
         let currentSchedule = try candidate.next()
         let currentCheckpoint = try candidate.checkpoint()
+        // A migrated track can still be selected when its successor is replaced by a control
+        // edit. Reproduce the selected track first, then capture the successor's own anchor.
+        let successorAnchor: Data
+        if edition == .evolving, currentSchedule.song.ensemble == nil {
+            try candidate.useEvolvingSuccessors()
+            successorAnchor = try candidate.checkpoint()
+        } else {
+            successorAnchor = currentCheckpoint
+        }
         let successorSchedule = try candidate.next()
         let successorCheckpoint = try candidate.checkpoint()
         return try PreparationMode.perform {
@@ -164,7 +197,7 @@ final class SessionListeningSequence {
                 currentSchedule, checkpoint: currentCheckpoint, anchor: anchor, offset: offset)
             current.handoff = records[0].handoff
             let successor = try Self.record(
-                successorSchedule, checkpoint: successorCheckpoint, anchor: currentCheckpoint,
+                successorSchedule, checkpoint: successorCheckpoint, anchor: successorAnchor,
                 offset: offset)
             let next = try successorSchedule.outgoing.ramp.frame(at: 0)
             let following = next.addingReportingOverflow(offset)

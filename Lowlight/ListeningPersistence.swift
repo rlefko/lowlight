@@ -12,14 +12,16 @@ enum ListeningRecordError: Error { case invalidRecord, unsupportedVersion }
 struct ListeningRecord: Equatable, Sendable {
     static let formatVersion = 2
     static let maximumEncodedByteCount = 1_048_576
-    static let initial = Self(validated: Controls(), restart: nil)
+    static let initial = Self(validated: Controls(), restart: nil, sessionSeed: nil)
     let controls: Controls
     let restart: SessionRestartIntent?
+    let sessionSeed: UInt64?
 
     private struct Envelope: Codable {
         let formatVersion: Int
         let controls: Controls
         let restartData: Data?
+        let sessionSeed: UInt64?
     }
 
     private struct Header: Decodable {
@@ -27,32 +29,44 @@ struct ListeningRecord: Equatable, Sendable {
         let hasWrapperFields, hasCheckpoint, hasPlanningAnchor: Bool
 
         private enum CodingKeys: String, CodingKey {
-            case formatVersion, controls, restartData, checkpoint, planningAnchor
+            case formatVersion, controls, restartData, sessionSeed, checkpoint, planningAnchor
         }
 
         init(from decoder: any Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             formatVersion = try container.decode(Int.self, forKey: .formatVersion)
-            hasWrapperFields = container.contains(.controls) || container.contains(.restartData)
+            hasWrapperFields =
+                container.contains(.controls) || container.contains(.restartData)
+                || container.contains(.sessionSeed)
             hasCheckpoint = container.contains(.checkpoint)
             hasPlanningAnchor = container.contains(.planningAnchor)
         }
     }
 
-    init(controls: Controls, restart: SessionRestartIntent? = nil) throws {
-        self.init(validated: try controls.normalized(), restart: restart)
+    init(controls: Controls, restart: SessionRestartIntent? = nil, sessionSeed: UInt64? = nil)
+        throws
+    {
+        self.init(validated: try controls.normalized(), restart: restart, sessionSeed: sessionSeed)
     }
 
-    private init(validated controls: Controls, restart: SessionRestartIntent?) {
+    private init(validated controls: Controls, restart: SessionRestartIntent?, sessionSeed: UInt64?)
+    {
         self.controls = controls
         self.restart = restart
+        self.sessionSeed = sessionSeed
     }
 
     func capturing(_ restart: SessionRestartIntent) -> Self {
-        Self(validated: controls, restart: restart)
+        Self(validated: controls, restart: restart, sessionSeed: sessionSeed)
     }
 
-    func discardingRestart() -> Self { Self(validated: controls, restart: nil) }
+    func withSessionSeed(_ seed: UInt64) -> Self {
+        Self(validated: controls, restart: restart, sessionSeed: seed)
+    }
+
+    func discardingRestart(seed: UInt64) -> Self {
+        Self(validated: controls, restart: nil, sessionSeed: seed)
+    }
 
     func encoded() throws -> Data {
         let encoder = JSONEncoder()
@@ -60,7 +74,7 @@ struct ListeningRecord: Equatable, Sendable {
         let data = try encoder.encode(
             Envelope(
                 formatVersion: Self.formatVersion, controls: controls,
-                restartData: restart?.encoded()))
+                restartData: restart?.encoded(), sessionSeed: sessionSeed))
         guard data.count <= Self.maximumEncodedByteCount else {
             throw ListeningRecordError.invalidRecord
         }
@@ -91,7 +105,8 @@ struct ListeningRecord: Equatable, Sendable {
         }
         return Self(
             validated: envelope.controls,
-            restart: try envelope.restartData.map(SessionRestartIntent.restore))
+            restart: try envelope.restartData.map(SessionRestartIntent.restore),
+            sessionSeed: envelope.sessionSeed)
     }
 }
 

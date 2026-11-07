@@ -22,13 +22,17 @@ struct ListeningControlsTests {
         }
     }
 
-    private func model(store: ControlsSaveStore, saved: ListeningRecord? = nil) -> ListeningModel {
+    private func model(
+        store: ControlsSaveStore, saved: ListeningRecord? = nil,
+        makeSeed: @escaping () -> UInt64 = { 111 }
+    ) -> ListeningModel {
         ListeningModel(
             persistence: ListeningPersistence(load: { saved }, save: { try await store.write($0) }),
             remoteServices: {
                 ListeningRemoteServices(register: { _, _ in {} }, update: { _ in })
             },
-            makePlayback: { controls, _ in
+            makeSeed: makeSeed,
+            makePlayback: { controls, _, _ in
                 SessionPlayback(controls: controls) { _ in
                     Issue.record("Editing settings must not construct an audio engine")
                     throw ControlsSaveError.unexpectedStartup
@@ -64,6 +68,7 @@ struct ListeningControlsTests {
         #expect(playback.desiredControls == model.controls)
         #expect(await store.attempts[0].controls == model.controls)
         #expect(await store.attempts[0].restart == nil)
+        #expect(await store.attempts[0].sessionSeed == 111)
         model.commitControls()
         #expect(!model.isSaving && !model.requestedPlayback)
         #expect(await store.attempts.count == 1)
@@ -137,8 +142,11 @@ struct ListeningControlsTests {
 
     @Test func settingsOnlyRestoreAndBackgroundCommitStaySilent() async throws {
         let store = ControlsSaveStore()
-        let saved = try ListeningRecord(controls: .preset(.relax))
-        let model = model(store: store, saved: saved)
+        let saved = try ListeningRecord(controls: .preset(.relax), sessionSeed: 191)
+        let model = model(store: store, saved: saved) {
+            Issue.record("A saved seed must survive a silent launch")
+            return 0
+        }
         model.load()
         try await wait { !model.isLoading }
         let playback = try #require(model.playback)
@@ -152,6 +160,7 @@ struct ListeningControlsTests {
         try await wait { await store.attempts.count == 1 && !model.isSaving }
         #expect(await store.attempts[0].controls == preview)
         #expect(await store.attempts[0].restart == nil)
+        #expect(await store.attempts[0].sessionSeed == 191)
         #expect(playback.state == .idle && !model.requestedPlayback)
         model.sceneActive(true)
         #expect(try await playback.inspect { $0 == nil })
@@ -184,7 +193,8 @@ struct ListeningControlsTests {
         _ = try planning.next()
         let restart = try SessionRestartIntent(
             checkpoint: planning.checkpoint(), canonicalFrame: 1234)
-        let saved = try ListeningRecord(controls: .preset(.focus), restart: restart)
+        let saved = try ListeningRecord(
+            controls: .preset(.focus), restart: restart, sessionSeed: 111)
         let store = ControlsSaveStore()
         let remote = RecoveryRemoteServices()
         let probe = RecoveryPlaybackProbe()
@@ -194,12 +204,15 @@ struct ListeningControlsTests {
         let model = ListeningModel(
             persistence: ListeningPersistence(load: { saved }, save: { try await store.write($0) }),
             remoteServices: { remote.value },
-            makePlayback: { controls, restart in
+            makeSeed: { 222 },
+            makePlayback: { controls, restart, seed in
                 if let previous = owners.last {
                     #expect(previous.state == .stopped && previous.audioSessionError == nil)
                     #expect(remote.handlers.isEmpty)
                 }
-                if let record = try? ListeningRecord(controls: controls, restart: restart) {
+                if let record = try? ListeningRecord(
+                    controls: controls, restart: restart, sessionSeed: seed)
+                {
                     installed.append(record)
                 }
                 let playback = SessionPlayback(
@@ -244,6 +257,8 @@ struct ListeningControlsTests {
         try await wait { !model.isStartingNewSession && model.playback !== old }
         let fresh = try #require(model.playback)
         #expect(installed.count == 2 && installed[1].restart == nil)
+        #expect(installed.map(\.sessionSeed) == [111, 222])
+        #expect(await store.attempts.last?.sessionSeed == 222)
         #expect(installed[1].controls == settings && model.controls == settings)
         #expect(fresh.state == .idle && !model.requestedPlayback && probe.constructions == 1)
         #expect(remote.handlers.count == 4 && latePlay() == .unavailable)
@@ -268,7 +283,7 @@ struct ListeningControlsTests {
         let model = ListeningModel(
             persistence: ListeningPersistence(load: { nil }, save: { try await store.write($0) }),
             remoteServices: { ListeningRemoteServices(register: { _, _ in {} }, update: { _ in }) },
-            makePlayback: { controls, restart in
+            makePlayback: { controls, restart, _ in
                 #expect(restart == nil)
                 if let previous = owners.last { #expect(previous.state == .stopped) }
                 let playback = SessionPlayback(controls: controls) { try probe.makeEngine($0) }

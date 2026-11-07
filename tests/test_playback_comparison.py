@@ -13,6 +13,7 @@ from uuid import UUID
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools/playback-comparison"
 sys.path.insert(0, str(TOOLS))
+import fixture
 import trial_records
 import trials
 
@@ -24,9 +25,8 @@ class TrialReportTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.path = self.root / "operator.json"
         self.data = trial_records.template("older")
-        self.write("manifest.json", {"schema_version": 1, "codec": "aac", "sample_rate": 32000,
-                   "channels": 2, "frames": 2400 * 32000, "duration_seconds": 2400, "seed": 91031,
-                   "preset": "Focus", "aac_sha256": "c" * 64})
+        self.write("manifest.json", {**fixture.CONTRACT, "frames": 2400 * 32000,
+                                     "duration_seconds": 2400, "aac_sha256": "c" * 64})
         for n, row in enumerate(self.data["trials"]):
             mode = row["mode"]
             warm = datetime(2026, 11, 1, tzinfo=timezone.utc) + timedelta(hours=n)
@@ -44,7 +44,9 @@ class TrialReportTests(unittest.TestCase):
                 rate={"generator": 3.1, "aac": 3, "idle": 1}[mode], uncertainty=0.015,
                 uncertainty_source="synthetic bound", trace_sha256=hashlib.sha256(trace).hexdigest(),
             )
-            sample = {"formatVersion": 1, "platform": "device", "appSHA256": "b" * 64, "bundleID": trial_records.BUNDLE, "trialID": row["trial_id"],
+            sample = {"formatVersion": 2, "performanceRecipe": fixture.PERFORMANCE_RECIPE,
+                      "platform": "device", "appSHA256": "b" * 64,
+                      "bundleID": trial_records.BUNDLE, "trialID": row["trial_id"],
                       "mode": mode, "state": "running" if mode == "idle" else "playing", "seed": 91031,
                       "preset": "Focus", "generatedFrames": 0, "observedAt": warm.isoformat(),
                       "reason": "start", "startCount": 1}
@@ -77,6 +79,17 @@ class TrialReportTests(unittest.TestCase):
         self.assertLess(lower, 5)
         self.assertGreater(upper, 5)
 
+    def test_previous_performance_and_unknown_recipe_are_ineligible_even_with_matching_hashes(self):
+        manifest = json.loads((self.root / "manifest.json").read_text())
+        for version, recipe in ((1, None), (2, None), (2, "other-bank")):
+            previous = {**manifest, "schema_version": version, "performance_recipe": recipe}
+            if recipe is None:
+                del previous["performance_recipe"]
+            with self.assertRaisesRegex(ValueError, "invalid fixture"):
+                fixture.validate_manifest(previous)
+            self.write("manifest.json", previous)
+            self.assertEqual(self.analyze()["status"], "inconclusive")
+
     def test_missing_mismatched_duplicate_or_ineligible_conditions_have_no_comparison(self):
         for key, value in [
             ("mode", "idle"), ("block", 2), ("build_commit", "d" * 40), ("app_sha256", "e" * 64),
@@ -104,6 +117,7 @@ class TrialReportTests(unittest.TestCase):
             ("start", "observedAt", "2026-11-01T00:00:02+00:00"), ("start", "reason", "refresh"),
             ("end", "observedAt", "2026-11-01T00:34:58+00:00"), ("end", "trialID", str(UUID(int=42))),
             ("start", "appSHA256", "d" * 64), ("end", "appSHA256", "d" * 64),
+            ("start", "performanceRecipe", "other-score"), ("end", "formatVersion", 1),
             ("start", "platform", "simulator"), ("end", "platform", "simulator"), ("end", "state", "paused"), ("end", "reason", "pause"), ("end", "startCount", 2), ("start", "startCount", 0), ("end", "generatedFrames", 0), ("end", "mode", "aac"), ("end", "state", "failed"),
             ("end", "bundleID", "com.rlefko.lowlight"), ("end", "error", "unexpected interruption"),
         ]:

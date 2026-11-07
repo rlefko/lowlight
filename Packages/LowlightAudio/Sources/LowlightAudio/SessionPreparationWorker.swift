@@ -87,14 +87,14 @@ public final class SessionPreparationWorker: @unchecked Sendable {
     }
 
     public convenience init(
-        seed: UInt64 = 91_031, controls: Controls? = nil,
+        seed: UInt64 = 91_031, controls: Controls? = nil, edition: CompositionEdition = .classic,
         restart: SessionRestartIntent? = nil, preparer: TonalSamplePreparer,
         cancellation: PreparationCancellation? = nil
     ) throws {
         let desired = try (controls ?? restart?.currentSong.controls ?? Controls()).normalized()
         try self.init(initialControls: desired, cancellation: cancellation) { token in
             try PreparedSession(
-                seed: seed, controls: desired, restart: restart,
+                seed: seed, controls: desired, edition: edition, restart: restart,
                 preparer: preparer, cancellation: token)
         }
     }

@@ -26,7 +26,7 @@ struct PlaybackComparisonFixtureTests {
         let preparer = try TonalSamplePreparer(
             bankURL: root.appendingPathComponent("Lowlight/SoundBank"))
         let session = try PreparedSession(
-            seed: 91_031, controls: .preset(.focus), preparer: preparer)
+            seed: 91_031, controls: .preset(.focus), edition: .evolving, preparer: preparer)
         try NativePCMExport.write(
             session: session, frames: UInt64(seconds) * 32_000,
             to: directory.appendingPathComponent("source.f32"))

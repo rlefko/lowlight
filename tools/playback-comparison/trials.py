@@ -152,11 +152,12 @@ def rehearse(folder, artifacts):
         require(plistlib.loads((app / "Info.plist").read_bytes())["CFBundleIdentifier"] == BUNDLE,
                 "refusing to install a shipping app")
         receipt = {"kind": "simulator_rehearsal", "simulator": simulator,
+                   "performance_recipe": manifest["performance_recipe"],
                    "fixture_sha256": manifest["aac_sha256"], "app_sha256": digest(app / "Lowlight"),
                    "groups": {}}
         # The missing case runs before staging; corruption is confined to this disposable container.
         for group, names in (("missing", ("testUnavailableFixture",)), ("playback", GOOD),
-                             ("corrupt", ("testCorruptFixture",))):
+                             ("corrupt", ("testCorruptFixture",)), ("legacy", ("testLegacyFixture",))):
             expected = {}
             if group != "missing":
                 support = sim_support(simulator)
@@ -173,6 +174,15 @@ def rehearse(folder, artifacts):
                 require(expected["reference.m4a"] != manifest["aac_sha256"]
                         and expected["manifest.json"] == digest(folder / "manifest.json"),
                         "corruption did not preserve the original manifest")
+            elif group == "legacy":
+                # Re-stage intact audio with the PR 52 manifest layout. A valid digest alone
+                # cannot identify the score and bank used by the live generator.
+                put_sim(folder / "reference.m4a", support / "reference.m4a")
+                previous = {**manifest, "schema_version": 1}
+                del previous["performance_recipe"]
+                (support / "manifest.json").write_text(json.dumps(previous))
+                expected = {name: digest(support / name) for name in FIXTURE}
+                require(expected["reference.m4a"] == manifest["aac_sha256"], "legacy audio changed")
             result = artifacts / (group + ".xcresult")
             try:
                 run("xcodebuild", "test-without-building", "-xctestrun", enabled, "-destination", destination,
@@ -202,7 +212,7 @@ def main():
     target = put.add_mutually_exclusive_group(required=True)
     target.add_argument("--simulator", metavar="UUID")
     target.add_argument("--device", metavar="DEVELOPMENT_DEVICE_ID")
-    rehearsal = actions.add_parser("rehearse", help="Run six exact tests on a new disposable simulator")
+    rehearsal = actions.add_parser("rehearse", help="Run seven exact tests on a new disposable simulator")
     rehearsal.add_argument("fixture", type=Path)
     rehearsal.add_argument("output", type=Path)
     capture = actions.add_parser("collect", help="Copy start and end snapshots after a physical run")
