@@ -1,6 +1,6 @@
 # Lowlight
 
-Lowlight is an iPhone app in development for original, ongoing lo-fi music that works entirely offline. The accepted sound uses soft guitar and piano, rounded bass, restrained drums, and a shared room.
+Lowlight is an iPhone app in development for original, ongoing lo-fi music that works entirely offline. A piece introduces a melodic idea, gives it to different players and brings it back with a changed ending. Soft guitar, piano, electric piano, vibraphone and tenor share a small band with rounded bass and restrained drums.
 
 Lowlight plays an ongoing sequence of original lo-fi music from its bundled lossless note bank. Play/Pause keeps your place; Next moves into a prepared piece at a musical phrase. Background audio and lock-screen transport are integrated, and saved sessions reopen silently until you press Play. Instrument preparation and voices match the frozen reference within measured tolerances. Five presets and seven listening controls shape the sound and the music. See the [milestone status](docs/status.md) and [playback validation](docs/validation-playback-integration.md) for measured limits and device checks.
 
@@ -22,7 +22,7 @@ Open `Lowlight.xcodeproj` and choose the shared **Lowlight** scheme for interact
 
 ## Listening controls
 
-Use Warmth to soften guitar, piano, and the room while the music plays. Energy changes activity and Mood steers harmony at a musical handoff. **More Controls** contains Auto or manual Tempo, Space for the room, Texture for quiet synthetic air, and Variation for changes between pieces. A preset sets all seven values. Settings are saved when you finish an adjustment.
+Use Warmth to soften the pitched instruments and the room while the music plays. Energy changes activity and Mood steers harmony at a musical handoff. **More Controls** contains Auto or manual Tempo, Space for the room, Texture for quiet synthetic air, and Variation for changes between pieces. A preset sets all seven values. Settings are saved when you finish an adjustment.
 
 The dusk horizon moves slowly with the current piece while you listen. It settles when you pause, cover the artwork, leave the app, or enable Reduce Motion or Low Power Mode.
 
@@ -34,6 +34,6 @@ See [project documentation](docs/index.md) for architecture, sound provenance, t
 
 ## License and credits
 
-Copyright © 2026 Ryan Lefkowitz. Original project code is licensed under [GPL-3.0-only](LICENSE). The 77 bundled recorded notes are CC0-1.0; see the [sound-bank provenance and notices](docs/sound-bank.md). Small adapted NumPy/PCG noise-generation and pyloudnorm loudness-meter subsets retain their [third-party code notices](docs/third-party-code.md), also available offline in About. Python reference tools and test audio are developer resources outside the app; no NumPy runtime or external runtime package is bundled.
+Copyright © 2026 Ryan Lefkowitz. Original project code is licensed under [GPL-3.0-only](LICENSE). The 105 bundled recorded notes are CC0-1.0; see the [sound-bank provenance and notices](docs/sound-bank.md). Small adapted NumPy/PCG noise-generation and pyloudnorm loudness-meter subsets retain their [third-party code notices](docs/third-party-code.md), also available offline in About. Python reference tools and test audio are developer resources outside the app; no NumPy runtime or external runtime package is bundled.
 
 Development accelerated with Codex

@@ -38,7 +38,7 @@ struct WritingEvidenceTests {
             let note = [tick, event.note]
             if event.role == .melody { bars[bar].melody.append(note) }
             if event.role == .bass { bars[bar].bass.append(note) }
-            bars[bar].players.insert(event.instrument.rawValue)
+            bars[bar].players.insert(event.color?.rawValue ?? event.instrument.rawValue)
         }
         let pairs = zip(bars, bars.dropFirst(8))
         let poly = bars.filter { $0.melody.count >= 2 }
@@ -66,10 +66,13 @@ struct WritingEvidenceTests {
             .resolvingSymlinksInPath().standardizedFileURL
         let build = root.appendingPathComponent(".build").resolvingSymlinksInPath()
         try #require(directory.path.hasPrefix(build.path + "/"))
+        let edition = try #require(
+            CompositionEdition(rawValue: Int(env["LOWLIGHT_WRITING_EDITION"] ?? "") ?? -1))
         var records: [SongAudit] = []
         for preset in Preset.allCases {
             for seed: UInt64 in [91_031, 17, 509, 8_731] {
-                var timeline = try SessionTimeline(seed: seed, controls: .preset(preset))
+                var timeline = try SessionTimeline(
+                    seed: seed, controls: .preset(preset), edition: edition)
                 for index in 0..<16 {
                     try records.append(
                         audit(timeline.next(), seed: seed, preset: preset, index: index))
@@ -82,13 +85,17 @@ struct WritingEvidenceTests {
             to: directory.appendingPathComponent("scores.json"), options: .withoutOverwriting)
         let preparer = try TonalSamplePreparer(
             bankURL: root.appendingPathComponent("Lowlight/SoundBank"))
-        let passages: [(String, Preset, UInt64, Int)] = [
+        var passages: [(String, Preset, UInt64, Int)] = [
             ("focus", .focus, 91_031, 600), ("reflective", .reflective, 17, 120),
             ("commute", .commute, 509, 120),
         ]
+        if edition == .evolving { passages.append(("original-palette", .focus, 91_031, 105)) }
+        let original = try TonalSamplePreparer(
+            bankURL: root.appendingPathComponent("Lowlight/SoundBank"), bandColors: false)
         for (name, preset, seed, seconds) in passages {
             let session = try PreparedSession(
-                seed: seed, controls: .preset(preset), preparer: preparer)
+                seed: seed, controls: .preset(preset), edition: edition,
+                preparer: name == "original-palette" ? original : preparer)
             try NativePCMExport.write(
                 session: session, frames: UInt64(seconds * 32_000),
                 to: directory.appendingPathComponent(name + ".f32"))

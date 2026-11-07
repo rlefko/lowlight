@@ -50,26 +50,28 @@ def summarize(scores):
     return result
 
 
-def capture(destination):
+def capture(destination, classic):
     if BUILD not in destination.parents or destination.exists():
         raise ValueError("use a new output directory under this checkout's .build")
     destination.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=destination.parent) as temp:
         result = Path(temp) / "capture"
         result.mkdir()
-        env = dict(os.environ, LOWLIGHT_WRITING_CAPTURE=str(result), TOOLCHAINS="com.apple.dt.toolchain.Xcode")
+        env = dict(os.environ, LOWLIGHT_WRITING_CAPTURE=str(result), LOWLIGHT_WRITING_EDITION="1" if classic else "2",
+                   TOOLCHAINS="com.apple.dt.toolchain.Xcode")
         subprocess.run(["xcrun", "swift", "test", "-c", "release", "--package-path", "Packages/LowlightAudio",
                         "--scratch-path", ".build/WritingAudio", "--filter", "WritingEvidenceTests/capture"],
                        cwd=ROOT, env=env, check=True)
         scores = result / "scores.json"
         records = summarize(json.loads(scores.read_text()))
         audio = {}
-        for name, seconds in SECONDS.items():
+        durations = SECONDS if classic else {**SECONDS, "original-palette": 105}
+        for name, seconds in durations.items():
             path = result / (name + ".f32")
             if path.stat().st_size != seconds * 32000 * 2 * 4:
                 raise ValueError(f"incomplete {name} PCM")
             audio[name] = {"seconds": seconds, "pcm_sha256": fingerprint(path)}
-        manifest = {"format": "32 kHz stereo interleaved Float32 little-endian", "audio": audio,
+        manifest = {"edition": 1 if classic else 2, "format": "32 kHz stereo interleaved Float32 little-endian", "audio": audio,
                     "scores_sha256": fingerprint(scores), "by_preset": records}
         (result / "capture.json").write_text(json.dumps(manifest, sort_keys=True, indent=2) + "\n")
         result.rename(destination)
@@ -78,5 +80,6 @@ def capture(destination):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
+    parser.add_argument("--classic", action="store_true", help="Capture the original arrangement and instruments")
     args = parser.parse_args()
-    capture(args.directory.resolve())
+    capture(args.directory.resolve(), args.classic)
