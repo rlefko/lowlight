@@ -16,6 +16,6 @@ echo 'module CLowlightDSP { header "LowlightDSP.h" export * }' > "$work/module/m
 cp "$native/include/LowlightDSP.h" "$work/module/LowlightDSP.h"
 xcrun clang++ -arch "$architecture" -mmacosx-version-min=15.0 -O2 -std=c++17 -ffp-contract=off -I "$native/include" -c "$native/Preparation.cpp" -o "$work/preparation.o"
 xcrun swiftc -target "$architecture-apple-macosx15.0" -O -module-cache-path "$work/cache" -I "$work/module" -Xlinker -lc++ \
-  tools/calibration/Generate.swift "$swift"/{TonalSamplePreparer,TonalCalibrationBank,SampleProcessing,PreparationMode}.swift \
+  tools/calibration/Generate.swift "$swift"/{TonalSamplePreparer,BandSampleBank,TonalCalibrationBank,SampleProcessing,PreparationMode}.swift \
   "$work/preparation.o" -o "$work/generate"
 "$work/generate" Lowlight/SoundBank "$1"

@@ -19,6 +19,15 @@ private struct Inventory: Decodable {
     }
 }
 
+private struct BandInventory: Decodable {
+    struct Entry: Decodable {
+        let asset, assetSha256, pcmSha256: String
+        let bytes, frames, channels, sampleRate: Int
+    }
+    let entries: [Entry]
+    let license: String
+}
+
 // All probe access is serialized through SessionPlayback's control executor.
 private final class IOSPlaybackProbe: @unchecked Sendable {
     weak var engine: AVAudioEngine?
@@ -553,16 +562,29 @@ struct SoundBankTests {
         #expect(inventory.assets.reduce(0) { $0 + $1.bytes } == inventory.compressedBytes)
         let paths = Set(inventory.assets.map(\.path))
         #expect(paths.count == 77)
+        let band = try decoder.decode(
+            BandInventory.self,
+            from: Data(contentsOf: bank.appendingPathComponent("band/manifest.json")))
+        let bandAssets = band.entries.map {
+            Inventory.Asset(
+                path: $0.asset, sha256: $0.assetSha256, pcmSha256: $0.pcmSha256,
+                license: band.license, bytes: $0.bytes, frames: $0.frames,
+                channels: $0.channels, sampleRate: $0.sampleRate)
+        }
+        let allPaths = paths.union(bandAssets.map(\.path))
+        #expect(bandAssets.count == 28 && allPaths.count == 105)
         let metadata: Set<String> = [
+            "band/manifest.json",
             "inventory.json", "manifest-checksums.json", "sample_manifest.json",
             "electric_guitar_manifest.json", "licenses/FreePats_Electric_Jazz_LICENSE.txt",
             "licenses/FreePats_Electric_Jazz_README.txt", "licenses/VCSL_CC0.txt",
             "licenses/VSCO_CC0.txt",
         ]
-        #expect(try files(in: bank) == paths.union(metadata))
+        #expect(try files(in: bank) == allPaths.union(metadata))
         let bundled = try files(in: app)
         #expect(
-            Set(bundled.filter { $0.hasSuffix(".flac") }) == Set(paths.map { "SoundBank/" + $0 }))
+            Set(bundled.filter { $0.hasSuffix(".flac") }) == Set(allPaths.map { "SoundBank/" + $0 })
+        )
         #expect(
             !bundled.contains { path in
                 ["py", "pyc", "wav", "m4a", "mp3", "zip"].contains(
@@ -570,7 +592,7 @@ struct SoundBankTests {
                     || path.lowercased().contains("fixtures/")
                     || path.lowercased().contains("reference/")
             })
-        for asset in inventory.assets {
+        for asset in inventory.assets + bandAssets {
             try autoreleasepool {
                 let url = bank.appendingPathComponent(asset.path)
                 let compressed = try Data(contentsOf: url)

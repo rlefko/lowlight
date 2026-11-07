@@ -35,7 +35,22 @@ paths.each do |path|
   abort "Invalid bank path: #{path}" if Pathname.new(path).absolute? || path.split('/').include?('..') ||
     !path.start_with?('assets/') || !path.end_with?('.flac')
 end
-expected_paths = (paths + originals + %w[inventory.json manifest-checksums.json]).sort
+band_manifest = File.binread("#{root}/band/manifest.json")
+abort 'Changed band manifest' unless Digest::SHA256.hexdigest(band_manifest) ==
+  'ebb29c50cc3ca956de6ec82e29081a11f46cf5beace7e128ec4441fdd3f55d0c'
+band = JSON.parse(band_manifest)
+sources = File.binread(File.join(__dir__, '../tools/band/sources-v1.json'))
+abort 'Changed band source provenance' unless Digest::SHA256.hexdigest(sources) == band.fetch('sources_sha256')
+source_rows = JSON.parse(sources).fetch('entries')
+band_entries = band.fetch('entries')
+abort 'Incomplete band bank or licenses' unless band.fetch('license') == 'CC0-1.0' &&
+  band_entries.length == 28 && band_entries.map { |e| e.values_at('voice', 'root_midi') } ==
+    source_rows.map { |e| e.values_at('voice', 'root_midi') }
+band_assets = band_entries.map do |e|
+  e.merge('path' => e.fetch('asset'), 'sha256' => e.fetch('asset_sha256'), 'license' => band.fetch('license'))
+end
+band_paths = band_assets.map { |a| a.fetch('path') }
+expected_paths = (paths + band_paths + originals + %w[inventory.json manifest-checksums.json band/manifest.json]).sort
 actual_paths = Dir.glob("#{root}/**/*", File::FNM_DOTMATCH).select do |path|
   abort "Bank symlink is not allowed: #{path}" if File.symlink?(path)
   File.file?(path)
@@ -45,12 +60,15 @@ abort 'Missing or unexpected sound-bank files' unless actual_paths == expected_p
 source_entries = manifests.to_h { |entry| [entry.fetch('asset'), entry] }
 assets.each do |asset|
   path = asset.fetch('path')
-  raw = File.binread("#{root}/#{path}")
   entry = source_entries.fetch(path)
   { 'sha256' => 'asset_sha256', 'bytes' => 'packed_bytes', 'frames' => 'frames',
     'channels' => 'channels', 'sample_rate' => 'sample_rate', 'license' => 'license' }.each do |key, source_key|
     abort "Manifest mismatch for #{path}: #{key}" unless asset.fetch(key) == entry.fetch(source_key)
   end
+end
+(assets + band_assets).each do |asset|
+  path = asset.fetch('path')
+  raw = File.binread("#{root}/#{path}")
   abort "Corrupt asset: #{path}" unless Digest::SHA256.hexdigest(raw) == asset.fetch('sha256') &&
     raw.bytesize == asset.fetch('bytes') && asset.fetch('license') == 'CC0-1.0'
   abort "Invalid FLAC STREAMINFO: #{path}" unless raw.start_with?('fLaC') && (raw.getbyte(4) & 127).zero? &&
@@ -71,4 +89,5 @@ decoded = assets.sum { |asset| asset.fetch('frames') * asset.fetch('channels') *
 abort 'Bank totals changed' unless compressed == 8_825_758 && decoded == 55_605_692 &&
   inventory.fetch('compressed_bytes') == compressed && inventory.fetch('decoded_float32_bytes') == decoded
 puts "Verified 77 active CC0 notes: #{compressed} compressed bytes; #{decoded} decoded float32 bytes"
+puts "Verified 28 CC0 band notes: #{band_assets.sum { |a| a.fetch('bytes') }} compressed bytes"
 puts 'Decoded PCM checksums match' if decode

@@ -120,14 +120,14 @@ extension TonalVoiceMixer {
             guard event.startFrame >= Int64(shiftFrames) else {
                 throw VoiceMixerError.invalidScore
             }
-            let key = try Self.key(for: event)
+            let key = try Self.key(for: event, bandColors: preparer.bandColors)
             needed[key] = max(needed[key] ?? 0, Int(event.releaseEndFrame - event.startFrame))
         }
         var slots: [Key: UInt32] = [:]
         var result: [LLEvent] = []
         for event in events {
             try cancellation?.check()
-            let key = try Self.key(for: event)
+            let key = try Self.key(for: event, bandColors: preparer.bandColors)
             if slots[key] == nil {
                 let isPrefix = [.guitar, .piano, .bass].contains(key.instrument)
                 let required = needed[key] ?? 0

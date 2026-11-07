@@ -429,12 +429,37 @@ static std::vector<float> effectsAcrossOrdinaryAdmission(LLTonalCalibration *tab
     append(pair.value, output, oldOutro + oldFrames + 2000 - uint32_t(output.size() / 2), {97});
     return output;
 }
+static void supplementalBandArticulations(LLTonalCalibration *table) {
+    ChangeFixture fixture(table);
+    fixture.change = ll_song_pair_begin_change(&fixture.frozen);
+    CHECK(fixture.change);
+    const float pcm[] = {.25f, .125f};
+    LLSongChangeSample sample{-1, pcm, 2, 1};
+    for (uint32_t key = 100; key < 256; ++key)
+        CHECK(ll_song_change_add_tonal_sample(fixture.change, &sample, key) == -1);
+    for (const uint32_t key : {356u, UINT32_MAX})
+        CHECK(ll_song_change_add_tonal_sample(fixture.change, &sample, key) == -1);
+    LLSongChangeSample stereo{-1, pcm, 1, 2};
+    CHECK(ll_song_change_add_tonal_sample(fixture.change, &stereo, 256) == -1);
+    std::vector<LLEvent> events;
+    for (const uint32_t key : {256u, 276u, 296u, 316u, 336u, 355u}) {
+        const auto slot = ll_song_change_add_tonal_sample(fixture.change, &sample, key);
+        CHECK(slot >= 0);
+        auto note = event(100000 + boundary + events.size() * 100, 1, 50 + (key - 256) % 20);
+        note.sample_index = uint32_t(slot);
+        events.push_back(note);
+    }
+    auto score = configuration(events);
+    score.pivot_pitch_classes = 0xfff;
+    CHECK(ll_song_change_finish(fixture.change, &score));
+}
 static void effectsAcrossReplacementAndRestoration() {
     std::array<float, 10100> gains{};
     gains.fill(1);
     std::unique_ptr<LLTonalCalibration, decltype(&ll_tonal_calibration_destroy)> table(
         ll_tonal_calibration_create(gains.data(), gains.size()), ll_tonal_calibration_destroy);
     CHECK(table.get());
+    supplementalBandArticulations(table.get());
     for (bool shortened : {true, false}) {
         const auto expected = effectsOracle(table.get(), shortened, true);
         const auto unchanged = effectsOracle(table.get(), shortened, false);

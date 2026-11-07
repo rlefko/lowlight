@@ -26,8 +26,10 @@ public final class TonalVoiceMixer {
     struct Key: Hashable {
         let instrument: TonalInstrument
         let note, roundRobin, layer: Int
+        var bandVoice: BandVoice?
         var calibrationKey: UInt32? {
             guard (50...69).contains(note) else { return nil }
+            if let bandVoice { return bandVoice.sampleKey(note: note) }
             switch instrument {
             case .guitar: return UInt32((note - 50) * 4 + roundRobin)
             case .piano: return UInt32(80 + note - 50)
@@ -38,6 +40,10 @@ public final class TonalVoiceMixer {
         func sample(preparer: TonalSamplePreparer, warmth: Double, velocity: Double, live: Bool)
             throws -> PreparedTonalSample
         {
+            if let bandVoice {
+                return try preparer.bandBank.prepare(
+                    bandVoice, note: note, warmth: warmth, live: live)
+            }
             if live, calibrationKey != nil {
                 // Initial and supplemental tonal keys use the same verified gain table.
                 try preparer.calibrationBank.verify()
@@ -55,7 +61,19 @@ public final class TonalVoiceMixer {
         let frames, completeFrames, channels: Int
     }
 
-    static func key(for event: NoteEvent) throws -> Key {
+    static func key(for event: NoteEvent, bandColors: Bool = true) throws -> Key {
+        if bandColors, let color = event.color {
+            let voice: BandVoice =
+                switch color {
+                case .electricPiano: event.velocity >= 0.50 ? .electricAccent : .electricSoft
+                case .vibraphone: .vibraphone
+                case .tenor:
+                    event.gateEndFrame - event.startFrame <= 10_240 ? .tenorShort : .tenorLong
+                }
+            // Route all three recorded colors to the existing keys/room send.
+            return Key(
+                instrument: .piano, note: event.note, roundRobin: 0, layer: 1, bandVoice: voice)
+        }
         guard let instrument = TonalInstrument(rawValue: event.instrument.rawValue) else {
             throw VoiceMixerError.invalidScore
         }
@@ -128,7 +146,7 @@ public final class TonalVoiceMixer {
             }
             previous = event.startFrame
             if [.guitar, .piano, .bass].contains(event.instrument) {
-                let key = try Self.key(for: event)
+                let key = try Self.key(for: event, bandColors: preparer.bandColors)
                 requiredFrames[key] = max(
                     requiredFrames[key] ?? 0, Int(event.releaseEndFrame - event.startFrame))
             }
@@ -159,7 +177,7 @@ public final class TonalVoiceMixer {
             var score: [LLEvent] = []
             for event in events {
                 try cancellation?.check()
-                let key = try Self.key(for: event)
+                let key = try Self.key(for: event, bandColors: preparer.bandColors)
                 let instrument = key.instrument
                 if slots[key] == nil {
                     guard slots.count < Int(LL_SAMPLE_LIMIT) else {

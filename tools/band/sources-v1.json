@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/sgossner/VCSL",
+  "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+  "license": "CC0-1.0",
+  "entries": [
+    {
+      "voice": "electricSoft",
+      "root_midi": 52,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_E3_vl1.wav",
+      "git_blob": "f99d3e9f6582ba88fb6071e355adf1982fd65e64",
+      "source_sha256": "dff74f0f6ed2503fb9ff7c82ebabe9be842982480ac4542e752a3ebf40622f54"
+    },
+    {
+      "voice": "electricAccent",
+      "root_midi": 52,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_E3_vl2.wav",
+      "git_blob": "4ce7c6b23887a11804816a9bcd296eb419690e8e",
+      "source_sha256": "f950e18183502e94637fb0fcad09c39f3d67ea5be26673e2de55b7bd34198d30"
+    },
+    {
+      "voice": "electricSoft",
+      "root_midi": 56,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_G#3_vl1.wav",
+      "git_blob": "2ccc5c0d40d5eb563ac71fcc9c741292dfaf59f1",
+      "source_sha256": "727dea4aa6289323c9057c479340a7decc2d7a3e12dbe5ea64de395f67e21991"
+    },
+    {
+      "voice": "electricAccent",
+      "root_midi": 56,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_G#3_vl2.wav",
+      "git_blob": "1224f75a4aced02911c57eaf174aadc1d919e649",
+      "source_sha256": "6c32c0dea461ea49f4cf3c3439b20f5f94340e387fd0a32d6d5cbaa937a4a04d"
+    },
+    {
+      "voice": "electricSoft",
+      "root_midi": 60,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_C4_vl1.wav",
+      "git_blob": "b3d755f581ee6c5fbb601dd94d8778b8670cd694",
+      "source_sha256": "416848bf8bf2e64135e61aca6f4cd07bdd3c705e9a7cb9eea4ceb1906b7f9a8c"
+    },
+    {
+      "voice": "electricAccent",
+      "root_midi": 60,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_C4_vl2.wav",
+      "git_blob": "5786a9fa63713f56bb2b945053331169a6c9fdaf",
+      "source_sha256": "7578fbb7b8203d1cfdcff1f3cbb74f158e183d810faa52dfb3656114e33fa595"
+    },
+    {
+      "voice": "electricSoft",
+      "root_midi": 64,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_E4_vl1.wav",
+      "git_blob": "36e84ff3a898c22833403aff491f4b83d3284517",
+      "source_sha256": "516225632b3219f9c2bfc5e14e9b8dcb47ffed50367f093685caecf898bd8a56"
+    },
+    {
+      "voice": "electricAccent",
+      "root_midi": 64,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_E4_vl2.wav",
+      "git_blob": "d11a389a6073bf488b0af2a8fa77be738e6c2d81",
+      "source_sha256": "ffdb976f02bc4b1ab8a8eda4f880a46c2505804f35ce07e73fff02b177b54e46"
+    },
+    {
+      "voice": "electricSoft",
+      "root_midi": 68,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_G#4_vl1.wav",
+      "git_blob": "1425b1e6938c3e10e2c56afa1ec681d66331def2",
+      "source_sha256": "0f18cb427c71fb68d36b08cdabad4e53699e57a68eab4612c8ab13292c6fad1e"
+    },
+    {
+      "voice": "electricAccent",
+      "root_midi": 68,
+      "source": "Electrophones/TX81Z/FM Piano/FMPiano_G#4_vl2.wav",
+      "git_blob": "00f89738ea678d954e376d40772580b319bab401",
+      "source_sha256": "fceb186ca57ae8c15666e2e23a066e0c5be5d63dc569136b2b136142923bb16e"
+    },
+    {
+      "voice": "vibraphone",
+      "root_midi": 53,
+      "source": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_F2_v1_rr1_Main.wav",
+      "git_blob": "859f9625a662560facae4de31e8af82f78469492",
+      "source_sha256": "df5cfcc72af80fac2191300d09922474c4ac25c5cbc43ff387953d607f7c1320"
+    },
+    {
+      "voice": "vibraphone",
+      "root_midi": 57,
+      "source": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_A2_v1_rr1_Main.wav",
+      "git_blob": "5e0049f968a46453e531d235c55dec82d7cda29d",
+      "source_sha256": "b6e23a94322107d0ab884d7c38e51be538eb45f613c6a24e980c2261151bed75"
+    },
+    {
+      "voice": "vibraphone",
+      "root_midi": 60,
+      "source": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_C3_v1_rr2_Main.wav",
+      "git_blob": "8413d99c880ff57e696be5ca4de5eb2b0774aabd",
+      "source_sha256": "1dda9a4c3205c365345d66dcb68c8e09c0dca76a310b8fe8108e43c7e8c1cd0a"
+    },
+    {
+      "voice": "vibraphone",
+      "root_midi": 64,
+      "source": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_E3_v1_rr2_Main.wav",
+      "git_blob": "19a3cc3b74fb64d19a9e6995f634685ab41a90f6",
+      "source_sha256": "620a241017d0de0e6cb789c97d439401f25d659d08f753746690632e71de8f0b"
+    },
+    {
+      "voice": "vibraphone",
+      "root_midi": 67,
+      "source": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_G3_v1_rr1_Main.wav",
+      "git_blob": "36a655b6f107c87cd5e7ed06aa1805449600576a",
+      "source_sha256": "9b479e4c84fb1caafba8c1c106a8922cea20bba81c37d65f93afae339626767f"
+    },
+    {
+      "voice": "vibraphone",
+      "root_midi": 71,
+      "source": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_B3_v1_rr1_Main.wav",
+      "git_blob": "bacab8cdb0f85f9f4f28a1654ded6811318bb9f8",
+      "source_sha256": "7edfbd70f93781d2cbb17c2fc8befe474de9987c6353db2358af4e13a0269345"
+    },
+    {
+      "voice": "tenorLong",
+      "root_midi": 50,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/BrettTenor_NV_Main_D2_vl2_rr1.wav",
+      "git_blob": "cdcc49208e9b4771261c780e60eb81b7b20a942b",
+      "source_sha256": "06e4b9b0842b3f274459e03b0d53a0f32795ec7999c20c6630581c554af3834d"
+    },
+    {
+      "voice": "tenorShort",
+      "root_midi": 50,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_D2_vl1_rr5.wav",
+      "git_blob": "69212b1dc74d934569baef822413578a03abde7a",
+      "source_sha256": "36af6ff7716b693243f78b617eead92aa5f0999208a7e833aa0bda3122b1fb80"
+    },
+    {
+      "voice": "tenorLong",
+      "root_midi": 54,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/BrettTenor_NV_Main_F#2_vl2_rr1.wav",
+      "git_blob": "86314722b774a5464f00788bbb5afdb8971d45d9",
+      "source_sha256": "7dcce4c0312980039c0fc8e58598989759b7448eac0daa8ab245c4706b11e0d5"
+    },
+    {
+      "voice": "tenorShort",
+      "root_midi": 54,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_F#2_vl1_rr4.wav",
+      "git_blob": "8523b9ba7698763ebaeb4bf9a180b69896bf336a",
+      "source_sha256": "026c91f59819b278b7327e7b4f11544c353e4274591289a1d83328c3c83e2a6e"
+    },
+    {
+      "voice": "tenorLong",
+      "root_midi": 58,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/BrettTenor_NV_Main_A#2_vl2_rr1.wav",
+      "git_blob": "10a0ef18b56032d496e96cad2173bac8c8ecb605",
+      "source_sha256": "be09161fe8f06650fb3d40e33a1d39e7537d6d5b6acbff3c976b0a5d52e56ad3"
+    },
+    {
+      "voice": "tenorShort",
+      "root_midi": 57,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_A2_vl1_rr1.wav",
+      "git_blob": "2c8c5ced42833e1f6a898f3a8ea234145c797bb0",
+      "source_sha256": "9ff36ac4494020451b7f9ec592d694e25f30fde7842e9d3a4f94ff85d89f46bf"
+    },
+    {
+      "voice": "tenorLong",
+      "root_midi": 62,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/BrettTenor_NV_Main_D3_vl2_rr1.wav",
+      "git_blob": "4a9ce914994589b289d46c3a122dc9ecc164767c",
+      "source_sha256": "6324a58060534001081a33b54d6c2dfb290dee31ae82639f8514cdacf83eadee"
+    },
+    {
+      "voice": "tenorShort",
+      "root_midi": 62,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_D3_vl1_rr1.wav",
+      "git_blob": "c7c6c3c3d67a1ea9d17b139085ba59b8ac297197",
+      "source_sha256": "de97118ea5b7c20d06358b18bdc735b7ecb3a64c943b447600fce4160e18af0b"
+    },
+    {
+      "voice": "tenorLong",
+      "root_midi": 66,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/BrettTenor_NV_Main_F#3_vl2_rr1.wav",
+      "git_blob": "353bab1d01d7c2102ca24ed71196eb8aa2f15764",
+      "source_sha256": "ccd189ac565b1eba4dfa86c3768796ee5396ae42eece9148bd9e1a91ffd8b79e"
+    },
+    {
+      "voice": "tenorShort",
+      "root_midi": 66,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_F#3_vl1_rr3.wav",
+      "git_blob": "2f657b872bbfe0887f92fd4e054627246cb73ee9",
+      "source_sha256": "6d406a69188dfae8d6412f94e8e29817fca907b65c01928b6f9983c364ebeffa"
+    },
+    {
+      "voice": "tenorLong",
+      "root_midi": 70,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/BrettTenor_NV_Main_A#3_vl2_rr1.wav",
+      "git_blob": "bc92516cc9cbd3016ac9e2b7fa8bd679ffaf6c96",
+      "source_sha256": "f95ba7ddcf84ca07aa4f458e00e999486fbf5489b5f87a8a0d538af4ae6a522d"
+    },
+    {
+      "voice": "tenorShort",
+      "root_midi": 70,
+      "source": "Aerophones/Reed Aerophones/Tenor Saxophone/Staccato/BrettTenor_Staccato_Main_A#3_vl1_rr3.wav",
+      "git_blob": "7faa73ed2eba90e07e4442f6cd62fa19e9b139d9",
+      "source_sha256": "5154c3dd155b22523a4805b601274256191440eeaeece60c282062773fcd9cc4"
+    }
+  ]
+}

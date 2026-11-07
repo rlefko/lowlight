@@ -1384,7 +1384,9 @@ static void liveTonalBoundsAndRetargeting() {
     gains[101] = 1;
     auto *table = ll_tonal_calibration_create(gains.data(), 10100);
     CHECK(table);
-    {
+    // Run the same allocation, partition and active-voice retarget audit for guitar
+    // and a note in every band articulation.
+    for (const uint32_t key : {0u, 256u, 276u, 296u, 316u, 355u}) {
         Mixer mixer;
         CHECK(!ll_mixer_configure_tonal(mixer.value, table, 101));
         CHECK(ll_mixer_configure_tonal(mixer.value, table, 78));
@@ -1395,13 +1397,18 @@ static void liveTonalBoundsAndRetargeting() {
             raw[i] = static_cast<float>((int(i % 7) - 3) * .125);
         CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 512, 2, 0) < 0);
         CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 1024, 1, 100) < 0);
-        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 1024, 1, 0) == 0);
+        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 1024, 1, 356) < 0);
+        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 512, 2, 256) < 0);
+        CHECK(ll_mixer_add_tonal_sample(mixer.value, raw.data(), 1024, 1, key) == 0);
         auto note = event(0, 0, 900, 124);
-        note.midi = 50;
+        note.midi = key ? 50 + (key - 256) % 20 : 50;
         CHECK(!ll_mixer_load_events(mixer.value, &note, 0xffffffffu));
-        note.instrument = 1;
+        note.instrument = key ? 0 : 1;
         CHECK(!ll_mixer_load_events(mixer.value, &note, 1));
-        note.instrument = 0;
+        note.instrument = key ? 1 : 0;
+        ++note.midi;
+        CHECK(!ll_mixer_load_events(mixer.value, &note, 1));
+        --note.midi;
         mixer.load({note});
         std::vector<LLBusFrame> first(1024), split(1024), fixed(1024);
         std::vector<double> bins(1024);

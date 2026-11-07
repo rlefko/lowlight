@@ -27,6 +27,8 @@ void increment(uint32_t &value) {
 struct Sample {
     uint32_t offset = 0, frames = 0, channels = 0, tonalKey = lowlight::tonalKeys;
     bool matches(const LLEvent &event) const {
+        if (lowlight::bandKey(tonalKey))
+            return event.instrument == 1 && event.midi == 50 + (tonalKey - 256) % 20;
         return tonalKey == lowlight::tonalKeys ||
                (tonalKey < 80 ? event.instrument == 0 && event.midi == 50 + tonalKey / 4
                               : event.instrument == 1 && event.midi == 50 + tonalKey - 80);
@@ -190,8 +192,10 @@ LLTonalCalibration *ll_tonal_calibration_create(const float *gains, uint32_t cou
     }
     for (uint32_t bin = 0; bin < lowlight::warmthBins; ++bin) {
         const double warmth = static_cast<double>(bin) / 100;
-        for (uint32_t instrument = 0; instrument < 2; ++instrument) {
-            const double cutoff = instrument ? 1200 - 500 * warmth : 1300 - 600 * warmth;
+        for (uint32_t instrument = 0; instrument < 3; ++instrument) {
+            const double cutoffs[] = {1300 - 600 * warmth, 1200 - 500 * warmth,
+                                      4200 - 2500 * warmth};
+            const double cutoff = cutoffs[instrument];
             const double tangent = std::tan(pi * cutoff / 32000);
             auto &filter = table->filters[instrument][bin];
             filter.sections[0] = lowlight::TonalSection::design(tangent, .541196100146197);
@@ -236,7 +240,7 @@ int32_t ll_mixer_add_sample(LLMixer *m, const float *pcm, uint32_t frames, uint3
 }
 int32_t ll_mixer_add_tonal_sample(LLMixer *m, const float *pcm, uint32_t frames, uint32_t channels,
                                   uint32_t key) {
-    if (!m || !m->tonal.table || key >= lowlight::tonalKeys || channels != (key < 80 ? 1u : 2u))
+    if (!m || !m->tonal.table || !lowlight::tonalFormat(key, channels))
         return -1;
     return addSample(m, pcm, frames, channels, key);
 }
@@ -467,7 +471,8 @@ void renderFrame(LLMixer &m, float *output, LLBusFrame *busOutput) {
             float sourceLeft = m.pcm[offset], sourceRight = m.pcm[offset + s.channels - 1];
             if (s.tonalKey != lowlight::tonalKeys) {
                 const float calibration = m.tonal.gain(s.tonalKey);
-                const auto &filter = m.tonal.filters[e.note.instrument];
+                const auto &filter =
+                    m.tonal.filters[lowlight::bandKey(s.tonalKey) ? 2 : e.note.instrument];
                 sourceLeft = v.tonal.process(sourceLeft, 0, filter, calibration);
                 if (s.channels == 1) {
                     sourceRight = sourceLeft;
@@ -716,8 +721,7 @@ int32_t ll_mixer_change_add_sample(LLMixerChangeSamples *builder, const LLSongCh
         prepared = m->samples[sample.original_sample];
     } else {
         if ((tonalKey != lowlight::tonalKeys &&
-             (tonalKey >= lowlight::tonalKeys || !m->tonal.table ||
-              sample.channels != (tonalKey < 80 ? 1u : 2u))) ||
+             (!m->tonal.table || !lowlight::tonalFormat(tonalKey, sample.channels))) ||
             sample.original_sample != -1 || !sample.pcm || !sample.frames ||
             sample.frames > sampleFramesLimit || (sample.channels != 1 && sample.channels != 2))
             return -1;
@@ -855,7 +859,7 @@ uint32_t ll_mixer_change_sample_bytes(const LLMixerAdvance *patch) {
 // follow a live Warmth target, so check each new score before its rack is published.
 static bool supportsEffects(const Event *events, uint32_t count) {
     return std::all_of(events, events + count, [](const Event &event) {
-        return event.note.instrument >= 2 || event.sample.tonalKey < lowlight::tonalKeys;
+        return event.note.instrument >= 2 || event.sample.tonalKey != lowlight::tonalKeys;
     });
 }
 bool ll_mixer_supports_effects(const LLMixer *mixer) {

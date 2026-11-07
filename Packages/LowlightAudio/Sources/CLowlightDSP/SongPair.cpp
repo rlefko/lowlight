@@ -3,6 +3,7 @@
 #include "FloatingPointMode.h"
 #include "LowlightDSP.h"
 #include "SongAdvance.h"
+#include "TonalVoice.h"
 #include "LiveEffects.h"
 #include <algorithm>
 #include <atomic>
@@ -784,7 +785,8 @@ int32_t ll_song_change_add_sample(LLSongChange *patch, const LLSongChangeSample 
 }
 int32_t ll_song_change_add_tonal_sample(LLSongChange *patch, const LLSongChangeSample *sample,
                                         uint32_t key) {
-    return patch && !patch->advance && sample && sample->original_sample == -1 && key < 100
+    return patch && !patch->advance && sample && sample->original_sample == -1 &&
+                   lowlight::tonalFormat(key, sample->channels)
                ? ll_mixer_change_add_sample(patch->samples, *sample, key)
                : -1;
 }
